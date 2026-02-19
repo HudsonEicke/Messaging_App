@@ -4,9 +4,20 @@ POST {{Messaging_App_HostAddress}}/auth/register
 Content-Type: application/json
 
 {
-  "username": "testuser1",
-  "email": "test@email.com1",
+  "username": "testuser11",
+  "email": "test@email.com11",
   "password": "Test"
+}
+
+###
+
+POST {{Messaging_App_HostAddress}}/auth/login
+Content-Type: application/json
+
+{
+  "username": "testuser11",
+  "password": "Test"
+
 }
 
 ###

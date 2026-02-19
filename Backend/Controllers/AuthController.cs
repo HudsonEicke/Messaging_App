@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Messaging_App.Models;
 using Messaging_App.Data;
+using Microsoft.AspNetCore.Identity;
 
 namespace Messaging_App.Controllers;
 
@@ -57,16 +58,57 @@ public class AuthController : ControllerBase
         newUser.username = registerRequest.username;
         newUser.displayName = registerRequest.username;
         newUser.email = registerRequest.email;
-        newUser.passwordHash = registerRequest.password;
+
+        PasswordHasher<User> passwordHasher = new PasswordHasher<User>();
+        newUser.passwordHash = passwordHasher.HashPassword(newUser, registerRequest.password);
 
         db.Users.Add(newUser);
 
         await db.SaveChangesAsync();
 
-        return Ok(new AuthResult {success = true, message = "Account successfully created"});
+        result.success = true;
+        result.message = "Account successfully created";
+
+        return Ok(result);
     }
 
     //LOGIN
+    [HttpPost("login")]
+    public async Task<ActionResult<AuthResult>> Login(LoginRequest loginRequest)
+    {
+        AuthResult result = new AuthResult();
+
+        if(string.IsNullOrWhiteSpace(loginRequest.username) || string.IsNullOrWhiteSpace(loginRequest.password))
+        {
+            result.message = "All fields must not be empty";
+            result.success = false;
+            return BadRequest(result);
+        }
+
+        User? foundUser = await db.Users.FirstOrDefaultAsync(user => user.username == loginRequest.username);
+
+        if(foundUser == null)
+        {
+            result.success = false;
+            result.message = "Username not found";
+            return Unauthorized(result);
+        }
+
+        
+        PasswordHasher<User> passwordHasher = new PasswordHasher<User>();
+        PasswordVerificationResult hashResult = passwordHasher.VerifyHashedPassword(foundUser, foundUser.passwordHash, loginRequest.password);
+
+        if(hashResult == PasswordVerificationResult.Failed)
+        {
+            result.success = false;
+            result.message = "Incorrect password";
+            return Unauthorized(result);
+        }
+
+        result.success = true;
+        result.message = "Login successful";
+        return Ok(result);
+    }
 
     //REFRESH
 
