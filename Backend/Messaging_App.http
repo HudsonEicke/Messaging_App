@@ -1,6 +1,12 @@
-@Messaging_App_HostAddress = http://localhost:5297
+@Messaging_App_HostAddress = https://localhost:7227
 
-GET {{Messaging_App_HostAddress}}/weatherforecast/
-Accept: application/json
+POST {{Messaging_App_HostAddress}}/auth/register
+Content-Type: application/json
+
+{
+  "username": "testuser",
+  "email": "test@email.com",
+  "password": "Test"
+}
 
 ###
