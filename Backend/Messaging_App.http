@@ -1,4 +1,6 @@
 @Messaging_App_HostAddress = https://localhost:7227
+@accessToken = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9uYW1lIjoidGVzdHVzZXIiLCJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9uYW1laWRlbnRpZmllciI6IjEiLCJleHAiOjE3NzE1NjUzMTMsImlzcyI6Imh0dHA6Ly9sb2NhbGhvc3QiLCJhdWQiOiJNZXNzYWdpbmdBcHBBUEkifQ.l0B6X6UlXCCVkRIbano0Jv6S2YXssZQM0lvFtVxw3GM
+@refreshToken = HACPNe3Cc/EeA568NACDgYocO8u12/xngt8V/1AKvPs=
 
 POST {{Messaging_App_HostAddress}}/auth/register
 Content-Type: application/json
@@ -26,8 +28,8 @@ POST {{Messaging_App_HostAddress}}/auth/refresh
 Content-Type: application/json
 
 {
-  "refreshToken": "",
-  "accessToken": ""
+  "refreshToken": "{{refreshToken}}",
+  "accessToken": "{{accessToken}}"
 }
 
 ###
@@ -37,7 +39,12 @@ POST {{Messaging_App_HostAddress}}/auth/logout
 Content-Type: application/json
 
 {
-  "refreshToken": ""
+  "refreshToken": "{{refreshToken}}"
 }
+
+###
+
+GET {{Messaging_App_HostAddress}}/user/me
+Authorization: Bearer {{accessToken}}
 
 ###
