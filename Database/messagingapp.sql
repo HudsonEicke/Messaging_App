@@ -20,6 +20,16 @@ create table Users
     accountCreationTime TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
+create table RefreshTokens
+(
+    id BIGSERIAL PRIMARY KEY,
+    userID BIGINT NOT NULL REFERENCES Users(id) ON DELETE CASCADE,
+    token CHAR(200) NOT NULL,
+    revoked BOOLEAN NOT NULL DEFAULT false,
+    createdDate TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    expiresDate TIMESTAMPTZ NOT NULL
+);
+
 --SERVER DB START
 create table Servers
 (

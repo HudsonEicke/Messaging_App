@@ -4,8 +4,8 @@ POST {{Messaging_App_HostAddress}}/auth/register
 Content-Type: application/json
 
 {
-  "username": "testuser11",
-  "email": "test@email.com11",
+  "username": "testuser",
+  "email": "test@email.com",
   "password": "Test"
 }
 
@@ -15,9 +15,29 @@ POST {{Messaging_App_HostAddress}}/auth/login
 Content-Type: application/json
 
 {
-  "username": "testuser11",
+  "username": "testuser",
   "password": "Test"
 
+}
+
+###
+
+POST {{Messaging_App_HostAddress}}/auth/refresh
+Content-Type: application/json
+
+{
+  "refreshToken": "",
+  "accessToken": ""
+}
+
+###
+
+
+POST {{Messaging_App_HostAddress}}/auth/logout
+Content-Type: application/json
+
+{
+  "refreshToken": ""
 }
 
 ###
