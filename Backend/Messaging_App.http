@@ -1,6 +1,8 @@
 @Messaging_App_HostAddress = https://localhost:7227
-@accessToken = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9uYW1lIjoidGVzdHVzZXIiLCJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9uYW1laWRlbnRpZmllciI6IjEiLCJleHAiOjE3NzE1NjUzMTMsImlzcyI6Imh0dHA6Ly9sb2NhbGhvc3QiLCJhdWQiOiJNZXNzYWdpbmdBcHBBUEkifQ.l0B6X6UlXCCVkRIbano0Jv6S2YXssZQM0lvFtVxw3GM
-@refreshToken = HACPNe3Cc/EeA568NACDgYocO8u12/xngt8V/1AKvPs=
+@accessToken = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9uYW1lIjoidGVzdHVzZXIiLCJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9uYW1laWRlbnRpZmllciI6IjEiLCJleHAiOjE3NzE1NzAzMTksImlzcyI6Imh0dHA6Ly9sb2NhbGhvc3QiLCJhdWQiOiJNZXNzYWdpbmdBcHBBUEkifQ.vW8S0VrfSjb_SIyM86AFlCIu6wapqtCpo8F_GWfAqO0
+@refreshToken = sg3vv3+gyvlxi37Zk1BRPoCOh5EZWWJCC1N7XX3Wcr0=
+
+###AUTH
 
 POST {{Messaging_App_HostAddress}}/auth/register
 Content-Type: application/json
@@ -18,7 +20,7 @@ Content-Type: application/json
 
 {
   "username": "testuser",
-  "password": "Test"
+  "password": "Test2"
 
 }
 
@@ -42,9 +44,53 @@ Content-Type: application/json
   "refreshToken": "{{refreshToken}}"
 }
 
-###
+###USER
 
 GET {{Messaging_App_HostAddress}}/user/me
+Authorization: Bearer {{accessToken}}
+
+###
+
+PUT {{Messaging_App_HostAddress}}/user/me
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "displayName": "TestUser",
+  "profileImageUrl": "https://example.com/image.jpg"
+}
+
+###
+
+PUT {{Messaging_App_HostAddress}}/user/me/password
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "currentPassword": "Test",
+  "newPassword": "Test2"
+}
+
+###
+
+PUT {{Messaging_App_HostAddress}}/user/me/status
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "activityStatus": 0
+}
+
+###
+
+@username=testuser
+GET {{Messaging_App_HostAddress}}/user/username/{{username}}
+Authorization: Bearer {{accessToken}}
+
+###
+
+@id=1
+GET {{Messaging_App_HostAddress}}/user/{{id}}
 Authorization: Bearer {{accessToken}}
 
 ###
