@@ -11,6 +11,8 @@ public class MessagingAppContext : DbContext
 
     public DbSet<User> Users { get; set; }
     public DbSet<RefreshToken> RefreshTokens { get; set; }
+    public DbSet<Server> Servers { get; set; }
+    public DbSet<ServerMember> ServerMembers { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
