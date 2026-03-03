@@ -79,7 +79,7 @@ public class ServerController : ControllerBase
         return Ok(servers);
     }
 
-    [HttpGet("servers/{id}")]
+    [HttpGet("{id}")]
     public async Task<ActionResult<ServerResult>> GetServer(long id)
     {
         string ? stringId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
