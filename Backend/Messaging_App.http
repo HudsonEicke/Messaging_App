@@ -1,9 +1,10 @@
 @Messaging_App_HostAddress = https://localhost:7227
-@accessToken = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9uYW1lIjoidGVzdHVzZXIiLCJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9uYW1laWRlbnRpZmllciI6IjEiLCJleHAiOjE3NzE1NzM0NzksImlzcyI6Imh0dHA6Ly9sb2NhbGhvc3QiLCJhdWQiOiJNZXNzYWdpbmdBcHBBUEkifQ.HjjhPpK9Wqx3KcheO9CkG-xzkgWWJu3EL9jIzKsNS2Y
-@refreshToken = 7rvnn+YS1MiuazH7OBwCUgzsffJalhuJDsTvnRUcibI=
+@accessToken = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9uYW1lIjoidGVzdHVzZXIiLCJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9uYW1laWRlbnRpZmllciI6IjEiLCJleHAiOjE3NzI1MDUwOTgsImlzcyI6Imh0dHA6Ly9sb2NhbGhvc3QiLCJhdWQiOiJNZXNzYWdpbmdBcHBBUEkifQ.6hPfaBNkc8AZh6cKuUdUsr4qPGa03zpiTzP5jzlbvHc
+@refreshToken = JstSg+1vbTBW7mid/SvCPkF95ZyM0dXCNONDv5hhmFA=
 
 ###AUTH
 
+###Register
 POST {{Messaging_App_HostAddress}}/auth/register
 Content-Type: application/json
 
@@ -13,19 +14,17 @@ Content-Type: application/json
   "password": "Test"
 }
 
-###
-
+###Login
 POST {{Messaging_App_HostAddress}}/auth/login
 Content-Type: application/json
 
 {
   "username": "testuser",
-  "password": "Test2"
+  "password": "Test"
 
 }
 
-###
-
+###Refresh
 POST {{Messaging_App_HostAddress}}/auth/refresh
 Content-Type: application/json
 
@@ -34,9 +33,7 @@ Content-Type: application/json
   "accessToken": "{{accessToken}}"
 }
 
-###
-
-
+###Logout
 POST {{Messaging_App_HostAddress}}/auth/logout
 Content-Type: application/json
 
@@ -46,11 +43,11 @@ Content-Type: application/json
 
 ###USER
 
+###Me
 GET {{Messaging_App_HostAddress}}/user/me
 Authorization: Bearer {{accessToken}}
 
-###
-
+###Update ne
 PUT {{Messaging_App_HostAddress}}/user/me
 Content-Type: application/json
 Authorization: Bearer {{accessToken}}
@@ -60,8 +57,7 @@ Authorization: Bearer {{accessToken}}
   "profileImageUrl": "https://example.com/image.jpg"
 }
 
-###
-
+###Update password
 PUT {{Messaging_App_HostAddress}}/user/me/password
 Content-Type: application/json
 Authorization: Bearer {{accessToken}}
@@ -71,8 +67,7 @@ Authorization: Bearer {{accessToken}}
   "newPassword": "Test2"
 }
 
-###
-
+###Update status
 PUT {{Messaging_App_HostAddress}}/user/me/status
 Content-Type: application/json
 Authorization: Bearer {{accessToken}}
@@ -81,26 +76,66 @@ Authorization: Bearer {{accessToken}}
   "activityStatus": 0
 }
 
-###
-
+###Get user info by username
 @username=testuser
 GET {{Messaging_App_HostAddress}}/user/username/{{username}}
 Authorization: Bearer {{accessToken}}
 
-###
-
+###Get user by id
 @id=1
 GET {{Messaging_App_HostAddress}}/user/{{id}}
 Authorization: Bearer {{accessToken}}
 
 ###Sever
 
+###Create Server
 POST {{Messaging_App_HostAddress}}/server/createserver
 Content-Type: application/json
 Authorization: Bearer {{accessToken}}
 
 {
-  "serverName": "Test Server 2"
+  "serverName": "Test Server 1"
 }
+
+###Get servers for user
+GET {{Messaging_App_HostAddress}}/server/servers
+Authorization: Bearer {{accessToken}}
+
+###Get server info
+@id=1
+GET {{Messaging_App_HostAddress}}/server/{{id}}
+Authorization: Bearer {{accessToken}}
+
+###Get server members
+@id=1
+GET {{Messaging_App_HostAddress}}/server/{{id}}/members
+Authorization: Bearer {{accessToken}}
+
+###Update server info
+@id=1
+PUT {{Messaging_App_HostAddress}}/server/{{id}}
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "serverName": "TestServer"
+  "serverImageUrl": "https://example.com/image.jpg"
+}
+
+###Delete server
+@id=1
+DELETE {{Messaging_App_HostAddress}}/server/{{id}}
+Authorization: Bearer {{accessToken}}
+
+###Leave server
+@id=1
+POST {{Messaging_App_HostAddress}}/server/{{id}}/leave
+Authorization: Bearer {{accessToken}}
+
+###Kick member
+@id=1
+@username="testuser"
+DELETE {{Messaging_App_HostAddress}}/server/{{id}}/members/{{username}}
+Authorization: Bearer {{accessToken}}
 
 ###

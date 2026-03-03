@@ -13,6 +13,7 @@ public class MessagingAppContext : DbContext
     public DbSet<RefreshToken> RefreshTokens { get; set; }
     public DbSet<Server> Servers { get; set; }
     public DbSet<ServerMember> ServerMembers { get; set; }
+    public DbSet<Channel> Channels { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -30,6 +31,11 @@ public class MessagingAppContext : DbContext
         modelBuilder.Entity<RefreshToken>(entity =>
         {
             entity.Property(u => u.createdDate).ValueGeneratedOnAdd();
+        });
+
+        modelBuilder.Entity<ServerMember>(entity =>
+        {
+            entity.HasKey(sm => new { sm.serverID, sm.userID });
         });
     }
 }
