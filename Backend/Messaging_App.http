@@ -180,4 +180,36 @@ Authorization: Bearer {{accessToken}}
 DELETE {{Messaging_App_HostAddress}}/channel/{{id}}
 Authorization: Bearer {{accessToken}}
 
+###Messages
+
+###Get messages in channel
+@id=1
+GET {{Messaging_App_HostAddress}}/channel/{{id}}/messages
+Authorization: Bearer {{accessToken}}
+
+###Send message
+@id=1
+POST {{Messaging_App_HostAddress}}/channel/{{id}}/sendmessage
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "messageText": "Hello, world!"
+}
+
+###Edit message
+@id=1
+PUT {{Messaging_App_HostAddress}}/message/{{id}}
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "messageText": "Hello, everyone!"
+}
+
+###Delete message
+@id=1
+DELETE {{Messaging_App_HostAddress}}/message/{{id}}
+Authorization: Bearer {{accessToken}}
+
 ###
