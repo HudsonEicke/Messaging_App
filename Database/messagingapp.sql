@@ -90,7 +90,7 @@ create table Conversations
 (
     id BIGSERIAL PRIMARY KEY,
     conversationName TEXT,
-    ownerID BIGINT NOT NULL REFERENCES Users(id),
+    ownerID BIGINT REFERENCES Users(id),
     iconUrl TEXT,
     conversationType CONVERSATIONTYPE NOT NULL DEFAULT 'direct'
 );
