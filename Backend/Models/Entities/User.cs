@@ -32,7 +32,6 @@ public class User
 
     [Column("activitystatus")]
     public ActivityStatus activityStatus { get; set; }
-
     
     [Column("accountcreationtime")]
     public DateTimeOffset accountCreationTime { get; set; }
