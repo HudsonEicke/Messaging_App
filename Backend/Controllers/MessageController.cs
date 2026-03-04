@@ -2,11 +2,8 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Messaging_App.Models;
 using Messaging_App.Data;
-using Microsoft.AspNetCore.Identity;
 using Messaging_App.Services;
 using System.Security.Claims;
-using Microsoft.Extensions.Options;
-using Messaging_App.Configuration;
 using Microsoft.AspNetCore.Authorization;
 
 namespace Messaging_App.Controllers;
@@ -14,21 +11,14 @@ namespace Messaging_App.Controllers;
 [Authorize]
 [ApiController]
 [Route("[controller]")]
-public class MessageController : ControllerBase
+public class MessageController : ModifiedControllerBase
 {
     private readonly MessagingAppContext db;
-    private readonly JwtService jwtService;
-    private readonly AuthService authService;
     private readonly EncryptionService encryptionService;
-    private readonly JwtSettings jwtSettings;
-    private const int MESSAGEGRABAMOUNT = 50;
 
-    public MessageController(MessagingAppContext db, JwtService jwtService, AuthService authService, IOptions<JwtSettings> jwtSettings, EncryptionService encryptionService)
+    public MessageController(MessagingAppContext db, EncryptionService encryptionService)
     {
         this.db = db;
-        this.jwtService = jwtService;
-        this.authService = authService;
-        this.jwtSettings = jwtSettings.Value;
         this.encryptionService = encryptionService;
     }
 
@@ -40,14 +30,12 @@ public class MessageController : ControllerBase
             return BadRequest("Invalid message text");
         }
 
-        string ? stringId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        long? userId = GetUserId();
 
-        if(stringId == null)
+        if(userId == null)
         {
             return Unauthorized();
         }
-
-        long userId = long.Parse(stringId);
 
         Message? foundMessage = await db.Messages.FirstOrDefaultAsync(message => message.id == id);
 
@@ -58,7 +46,7 @@ public class MessageController : ControllerBase
 
         if(foundMessage.sender != userId)
         {
-            return Unauthorized();
+            return Forbid();
         }
 
         if(encryptionService.Decrypt(foundMessage.messageText) == editMessageRequest.messageText)
@@ -77,14 +65,12 @@ public class MessageController : ControllerBase
     [HttpDelete("{id}")]
     public async Task<IActionResult> DeleteMessage(long id)
     {
-        string ? stringId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        long? userId = GetUserId();
 
-        if(stringId == null)
+        if(userId == null)
         {
             return Unauthorized();
         }
-
-        long userId = long.Parse(stringId);
 
         Message? foundMessage = await db.Messages.FirstOrDefaultAsync(message => message.id == id);
 
@@ -92,7 +78,7 @@ public class MessageController : ControllerBase
         {
             return NotFound();
         }
-        
+
         Server? foundServer = await db.Servers.AsNoTracking().FirstOrDefaultAsync(server => db.Channels.Any(channel => channel.id == foundMessage.channelID && channel.serverID == server.id));
 
         if(foundServer == null)
@@ -102,7 +88,7 @@ public class MessageController : ControllerBase
 
         if(foundMessage.sender != userId && foundServer.ownerID != userId)
         {
-            return Unauthorized();
+            return Forbid();
         }
 
         db.Messages.Remove(foundMessage);

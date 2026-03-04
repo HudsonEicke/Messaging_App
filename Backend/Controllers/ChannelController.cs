@@ -2,11 +2,8 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Messaging_App.Models;
 using Messaging_App.Data;
-using Microsoft.AspNetCore.Identity;
 using Messaging_App.Services;
 using System.Security.Claims;
-using Microsoft.Extensions.Options;
-using Messaging_App.Configuration;
 using Microsoft.AspNetCore.Authorization;
 
 namespace Messaging_App.Controllers;
@@ -14,21 +11,15 @@ namespace Messaging_App.Controllers;
 [Authorize]
 [ApiController]
 [Route("[controller]")]
-public class ChannelController : ControllerBase
+public class ChannelController : ModifiedControllerBase
 {
     private readonly MessagingAppContext db;
-    private readonly JwtService jwtService;
-    private readonly AuthService authService;
     private readonly EncryptionService encryptionService;
-    private readonly JwtSettings jwtSettings;
     private const int MESSAGEGRABAMOUNT = 50;
 
-    public ChannelController(MessagingAppContext db, JwtService jwtService, AuthService authService, IOptions<JwtSettings> jwtSettings, EncryptionService encryptionService)
+    public ChannelController(MessagingAppContext db, EncryptionService encryptionService)
     {
         this.db = db;
-        this.jwtService = jwtService;
-        this.authService = authService;
-        this.jwtSettings = jwtSettings.Value;
         this.encryptionService = encryptionService;
     }
 
@@ -40,14 +31,12 @@ public class ChannelController : ControllerBase
             return BadRequest("Invalid channel name");
         }
 
-        string ? stringId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        long? nullableUserId = GetUserId();
 
-        if(stringId == null)
-        {
+        if(nullableUserId == null) 
             return Unauthorized();
-        }
 
-        long userId = long.Parse(stringId);
+        long userId = nullableUserId.Value;
 
         Channel? foundChannel = await db.Channels.FirstOrDefaultAsync(channel => channel.id == id);
 
@@ -65,7 +54,7 @@ public class ChannelController : ControllerBase
 
         if(foundServer.ownerID != userId)
         {
-            return Unauthorized();
+            return Forbid();
         }
 
         foundChannel.channelName = updateChannelRequest.channelName.Trim();
@@ -78,14 +67,12 @@ public class ChannelController : ControllerBase
     [HttpDelete("{id}")]
     public async Task<IActionResult> DeleteChannel(long id)
     {
-        string ? stringId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        long? userId = GetUserId();
 
-        if(stringId == null)
+        if(userId == null)
         {
             return Unauthorized();
         }
-
-        long userId = long.Parse(stringId);
 
         Channel? foundChannel = await db.Channels.FirstOrDefaultAsync(channel => channel.id == id);
 
@@ -103,7 +90,7 @@ public class ChannelController : ControllerBase
 
         if(foundServer.ownerID != userId)
         {
-            return Unauthorized();
+            return Forbid();
         }
 
         db.Channels.Remove(foundChannel);
@@ -125,14 +112,12 @@ public class ChannelController : ControllerBase
     [HttpGet("{id}/messages")]
     public async Task<ActionResult<List<MessageResult>>> GetMessages(long id, [FromQuery] long? before = null)
     {
-        string ? stringId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        long? userId = GetUserId();
 
-        if(stringId == null)
+        if(userId == null)
         {
             return Unauthorized();
         }
-
-        long userId = long.Parse(stringId);
 
         Channel? foundChannel = await db.Channels.AsNoTracking().FirstOrDefaultAsync(channel => channel.id == id);
 
@@ -145,7 +130,7 @@ public class ChannelController : ControllerBase
 
         if(foundMember == null)
         {
-            return Unauthorized();
+            return Forbid();
         }
 
         IQueryable<Message> messageQuery = db.Messages.Where(message => message.channelID == id);
@@ -168,14 +153,12 @@ public class ChannelController : ControllerBase
             return BadRequest("Invalid message text");
         }
 
-        string ? stringId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-
-        if(stringId == null)
-        {
+        long? nullableUserId = GetUserId();
+        
+        if(nullableUserId == null) 
             return Unauthorized();
-        }
 
-        long userId = long.Parse(stringId);
+        long userId = nullableUserId.Value;
 
         Channel? foundChannel = await db.Channels.AsNoTracking().FirstOrDefaultAsync(channel => channel.id == id);
 
@@ -188,7 +171,7 @@ public class ChannelController : ControllerBase
 
         if(foundMember == null)
         {
-            return Unauthorized();
+            return Forbid();
         }
 
         Message newMessage = new Message();

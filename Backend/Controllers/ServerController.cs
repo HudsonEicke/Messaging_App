@@ -2,11 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Messaging_App.Models;
 using Messaging_App.Data;
-using Microsoft.AspNetCore.Identity;
-using Messaging_App.Services;
 using System.Security.Claims;
-using Microsoft.Extensions.Options;
-using Messaging_App.Configuration;
 using Microsoft.AspNetCore.Authorization;
 
 namespace Messaging_App.Controllers;
@@ -14,19 +10,13 @@ namespace Messaging_App.Controllers;
 [Authorize]
 [ApiController]
 [Route("[controller]")]
-public class ServerController : ControllerBase
+public class ServerController : ModifiedControllerBase
 {
     private readonly MessagingAppContext db;
-    private readonly JwtService jwtService;
-    private readonly AuthService authService;
-    private readonly JwtSettings jwtSettings;
 
-    public ServerController(MessagingAppContext db, JwtService jwtService, AuthService authService, IOptions<JwtSettings> jwtSettings)
+    public ServerController(MessagingAppContext db)
     {
         this.db = db;
-        this.jwtService = jwtService;
-        this.authService = authService;
-        this.jwtSettings = jwtSettings.Value;
     }
 
     //Server API
@@ -39,14 +29,12 @@ public class ServerController : ControllerBase
             return BadRequest("All fields must be filled");
         }
 
-        string ? stringId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-
-        if(stringId == null)
-        {
+        long? nullableUserId = GetUserId();
+        
+        if(nullableUserId == null)
             return Unauthorized();
-        }
 
-        long userId = long.Parse(stringId);
+        long userId = nullableUserId.Value;
 
         Server newServer = new Server();
         newServer.serverName = createServerRequest.serverName;
@@ -74,14 +62,12 @@ public class ServerController : ControllerBase
     [HttpGet("servers")]
     public async Task<ActionResult<List<ServerResult>>> GetServers()
     {
-        string ? stringId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-
-        if(stringId == null)
-        {
+        long? nullableUserId = GetUserId();
+        
+        if(nullableUserId == null) 
             return Unauthorized();
-        }
 
-        long userId = long.Parse(stringId);
+        long userId = nullableUserId.Value;
 
         List<ServerResult> servers = await db.ServerMembers.AsNoTracking().Where(member => member.userID == userId).Join(db.Servers, member => member.serverID, server => server.id, (member, server) => new ServerResult{serverID = server.id, ownerID = server.ownerID, serverName = server.serverName, iconUrl = server.iconUrl}).ToListAsync();
 
@@ -91,14 +77,12 @@ public class ServerController : ControllerBase
     [HttpGet("{id}")]
     public async Task<ActionResult<ServerResult>> GetServer(long id)
     {
-        string ? stringId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-
-        if(stringId == null)
-        {
+        long? nullableUserId = GetUserId();
+        
+        if(nullableUserId == null) 
             return Unauthorized();
-        }
 
-        long userId = long.Parse(stringId);
+        long userId = nullableUserId.Value;
 
         Server? server = await db.Servers.AsNoTracking().FirstOrDefaultAsync(servers => servers.id == id);
 
@@ -120,20 +104,18 @@ public class ServerController : ControllerBase
     [HttpGet("{id}/members")]
     public async Task<ActionResult<List<UserResult>>> GetServerMembers(long id)
     {
-        string ? stringId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-
-        if(stringId == null)
-        {
+        long? nullableUserId = GetUserId();
+        
+        if(nullableUserId == null) 
             return Unauthorized();
-        }
 
-        long userId = long.Parse(stringId);
+        long userId = nullableUserId.Value;
 
         ServerMember? isMember = await db.ServerMembers.AsNoTracking().FirstOrDefaultAsync(members => members.serverID == id && members.userID == userId);
 
         if(isMember == null)
         {
-            return Unauthorized();
+            return Forbid();
         }
 
         List<UserResult> members = await db.ServerMembers.AsNoTracking().Where(member => member.serverID == id).Join(db.Users, member => member.userID, user => user.id, (member, user) => new UserResult{displayName = user.displayName, username = user.username, profileImageUrl = user.profileImageUrl, activityStatus = user.activityStatus, accountCreationTime = user.accountCreationTime}).ToListAsync();
@@ -144,14 +126,12 @@ public class ServerController : ControllerBase
     [HttpPut("{id}")]
     public async Task<IActionResult> UpdateServer(long id, UpdateServerRequest updateServerRequest)
     {
-        string ? stringId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-
-        if(stringId == null)
-        {
+        long? nullableUserId = GetUserId();
+        
+        if(nullableUserId == null) 
             return Unauthorized();
-        }
 
-        long userId = long.Parse(stringId);
+        long userId = nullableUserId.Value;
 
         Server? foundServer = await db.Servers.FirstOrDefaultAsync(server => server.id == id);
 
@@ -162,7 +142,7 @@ public class ServerController : ControllerBase
 
         if(userId != foundServer.ownerID)
         {
-            return Unauthorized();
+            return Forbid();
         }
 
         if(updateServerRequest.serverName != null)
@@ -194,14 +174,12 @@ public class ServerController : ControllerBase
     [HttpDelete("{id}")]
     public async Task<IActionResult> DeleteServer(long id)
     {
-        string ? stringId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-
-        if(stringId == null)
-        {
+        long? nullableUserId = GetUserId();
+        
+        if(nullableUserId == null) 
             return Unauthorized();
-        }
 
-        long userId = long.Parse(stringId);
+        long userId = nullableUserId.Value;
 
         Server? foundServer = await db.Servers.FirstOrDefaultAsync(server => server.id == id);
 
@@ -212,7 +190,7 @@ public class ServerController : ControllerBase
 
         if(foundServer.ownerID != userId)
         {
-            return Unauthorized();
+            return Forbid();
         }
 
         db.Servers.Remove(foundServer);
@@ -224,17 +202,15 @@ public class ServerController : ControllerBase
     [HttpPost("{id}/leave")]
     public async Task<IActionResult> LeaveServer(long id)
     {
-        string ? stringId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-
-        if(stringId == null)
-        {
+        long? nullableUserId = GetUserId();
+        
+        if(nullableUserId == null) 
             return Unauthorized();
-        }
 
-        long userId = long.Parse(stringId);
+        long userId = nullableUserId.Value;
 
         ServerMember? foundMember = await db.ServerMembers.FirstOrDefaultAsync(member => member.serverID == id && member.userID == userId);
-        Server? foundServer = await db.Servers.FirstOrDefaultAsync(server => server.id == id);
+        Server? foundServer = await db.Servers.AsNoTracking().FirstOrDefaultAsync(server => server.id == id);
 
         if(foundMember == null || foundServer == null)
         {
@@ -245,6 +221,13 @@ public class ServerController : ControllerBase
 
         if(foundServer.ownerID == userId)
         {
+            foundServer = await db.Servers.FirstOrDefaultAsync(server => server.id == id);
+
+            if(foundServer == null)
+            {
+                return NotFound();
+            }
+
             ServerMember? newOwner = await db.ServerMembers.FirstOrDefaultAsync(member => member.serverID == id && member.userID != userId);
 
             if(newOwner == null)
@@ -264,16 +247,14 @@ public class ServerController : ControllerBase
     [HttpDelete("{id}/members/{username}")]
     public async Task<IActionResult> KickUser(long id, string username)
     {
-        string ? stringId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-
-        if(stringId == null)
-        {
-            return Unauthorized();
-        }
-
-        long userId = long.Parse(stringId);
+        long? nullableUserId = GetUserId();
         
-        Server? foundServer = await db.Servers.FirstOrDefaultAsync(server => server.id == id);
+        if(nullableUserId == null) 
+            return Unauthorized();
+
+        long userId = nullableUserId.Value;
+        
+        Server? foundServer = await db.Servers.AsNoTracking().FirstOrDefaultAsync(server => server.id == id);
 
         if(foundServer == null)
         {
@@ -282,7 +263,7 @@ public class ServerController : ControllerBase
 
         if(foundServer.ownerID != userId)
         {
-            return Unauthorized();
+            return Forbid();
         }
 
         User? foundUser = await db.Users.AsNoTracking().FirstOrDefaultAsync(user => user.username == username);
@@ -294,7 +275,7 @@ public class ServerController : ControllerBase
 
         if(foundUser.id == userId)
         {
-            return Unauthorized();
+            return Forbid();
         }
 
         ServerMember? foundMember = await db.ServerMembers.FirstOrDefaultAsync(member => member.serverID == id && member.userID == foundUser.id);
@@ -321,14 +302,12 @@ public class ServerController : ControllerBase
             return BadRequest("All fields must be filled");
         }
 
-        string ? stringId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-
-        if(stringId == null)
-        {
+        long? nullableUserId = GetUserId();
+        
+        if(nullableUserId == null) 
             return Unauthorized();
-        }
 
-        long userId = long.Parse(stringId);
+        long userId = nullableUserId.Value;
 
         Server? foundServer = await db.Servers.FirstOrDefaultAsync(server => server.id == id);
 
@@ -339,7 +318,7 @@ public class ServerController : ControllerBase
 
         if(foundServer.ownerID != userId)
         {
-            return Unauthorized();
+            return Forbid();
         }
 
         Channel newChannel = new Channel();
@@ -361,29 +340,27 @@ public class ServerController : ControllerBase
     }
 
     [HttpGet("{id}/channels")]
-    public async Task<ActionResult<ChannelResult>> GetChannels(long id)
+    public async Task<ActionResult<List<ChannelResult>>> GetChannels(long id)
     {
-        string ? stringId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-
-        if(stringId == null)
-        {
+        long? nullableUserId = GetUserId();
+        
+        if(nullableUserId == null) 
             return Unauthorized();
-        }
 
-        long userId = long.Parse(stringId);
+        long userId = nullableUserId.Value;
 
-        Server? foundServer = await db.Servers.FirstOrDefaultAsync(server => server.id == id);
+        Server? foundServer = await db.Servers.AsNoTracking().FirstOrDefaultAsync(server => server.id == id);
 
         if(foundServer == null)
         {
             return NotFound();
         }
 
-        ServerMember? isMember = await db.ServerMembers.FirstOrDefaultAsync(member => member.serverID == id && member.userID == userId);
+        ServerMember? isMember = await db.ServerMembers.AsNoTracking().FirstOrDefaultAsync(member => member.serverID == id && member.userID == userId);
 
         if(isMember == null)
         {
-            return Unauthorized();
+            return Forbid();
         }
 
         List<ChannelResult> results = await db.Channels.AsNoTracking().Where(channel => channel.serverID == id).OrderBy(channel => channel.channelOrder).Select(channel => new ChannelResult{channelID = channel.id, channelName = channel.channelName, channelOrder = channel.channelOrder}).ToListAsync();
@@ -396,14 +373,12 @@ public class ServerController : ControllerBase
     [HttpPut("{id}/channels/reorder")]
     public async Task<IActionResult> ReorderChannels(long id, ReorderChannelRequest reorderChannelRequest)
     {
-        string ? stringId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-
-        if(stringId == null)
-        {
+        long? nullableUserId = GetUserId();
+        
+        if(nullableUserId == null) 
             return Unauthorized();
-        }
 
-        long userId = long.Parse(stringId);
+        long userId = nullableUserId.Value;
 
         Server? foundServer = await db.Servers.FirstOrDefaultAsync(server => server.id == id);
 
@@ -414,7 +389,7 @@ public class ServerController : ControllerBase
 
         if(foundServer.ownerID != userId)
         {
-            return Unauthorized();
+            return Forbid();
         }
 
         List<Channel> channels = await db.Channels.Where(c => c.serverID == id).ToListAsync();
