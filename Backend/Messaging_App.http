@@ -1,9 +1,9 @@
 @Messaging_App_HostAddress = https://localhost:7227
-@accessToken = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9uYW1lIjoidGVzdHVzZXIyIiwiaHR0cDovL3NjaGVtYXMueG1sc29hcC5vcmcvd3MvMjAwNS8wNS9pZGVudGl0eS9jbGFpbXMvbmFtZWlkZW50aWZpZXIiOiIyIiwiZXhwIjoxNzcyNjA0MjMwLCJpc3MiOiJodHRwOi8vbG9jYWxob3N0IiwiYXVkIjoiTWVzc2FnaW5nQXBwQVBJIn0.I4h6Xkwaxgf6EdaxlN4-CP2lgC6OuOrfBf7-IBXbloQ
-@refreshToken = sZkpe4f9abRb1GZldDm3+OYvQ9G/EX37sZ8rV/K2iQA=
+@accessToken = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9uYW1lIjoidGVzdHVzZXIyIiwiaHR0cDovL3NjaGVtYXMueG1sc29hcC5vcmcvd3MvMjAwNS8wNS9pZGVudGl0eS9jbGFpbXMvbmFtZWlkZW50aWZpZXIiOiIyIiwiZXhwIjoxNzcyNjA4ODc0LCJpc3MiOiJodHRwOi8vbG9jYWxob3N0IiwiYXVkIjoiTWVzc2FnaW5nQXBwQVBJIn0.dvpDJjO_WHwK4kyO_8qCGweHSlu-N4UoLf0vElEFAiU
+@refreshToken = 1SL6rk15Oyw2K3b/oVFERmdg9LiMh9CvLN4gtKbmqck=
 @username=testuser
 @id=1
-@code=019cb763-e8c1-7898-8b2f-7b1d7d8157fe
+@code=019cb7aa-e2e9-7e78-8501-c97f8ae38506
 
 ###AUTH
 
@@ -22,7 +22,7 @@ POST {{Messaging_App_HostAddress}}/auth/login
 Content-Type: application/json
 
 {
-  "username": "testuser",
+  "username": "testuser2",
   "password": "Test"
 
 }
@@ -95,7 +95,7 @@ Content-Type: application/json
 Authorization: Bearer {{accessToken}}
 
 {
-  "serverName": "Test Server 1"
+  "serverName": "Test Server"
 }
 
 ###Get servers for user
