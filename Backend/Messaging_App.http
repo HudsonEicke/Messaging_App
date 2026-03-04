@@ -1,31 +1,33 @@
 @Messaging_App_HostAddress = https://localhost:7227
-@accessToken = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9uYW1lIjoidGVzdHVzZXIiLCJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9uYW1laWRlbnRpZmllciI6IjEiLCJleHAiOjE3NzE1NzAzMTksImlzcyI6Imh0dHA6Ly9sb2NhbGhvc3QiLCJhdWQiOiJNZXNzYWdpbmdBcHBBUEkifQ.vW8S0VrfSjb_SIyM86AFlCIu6wapqtCpo8F_GWfAqO0
-@refreshToken = sg3vv3+gyvlxi37Zk1BRPoCOh5EZWWJCC1N7XX3Wcr0=
+@accessToken = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9uYW1lIjoidGVzdHVzZXIyIiwiaHR0cDovL3NjaGVtYXMueG1sc29hcC5vcmcvd3MvMjAwNS8wNS9pZGVudGl0eS9jbGFpbXMvbmFtZWlkZW50aWZpZXIiOiIyIiwiZXhwIjoxNzcyNjA0MjMwLCJpc3MiOiJodHRwOi8vbG9jYWxob3N0IiwiYXVkIjoiTWVzc2FnaW5nQXBwQVBJIn0.I4h6Xkwaxgf6EdaxlN4-CP2lgC6OuOrfBf7-IBXbloQ
+@refreshToken = sZkpe4f9abRb1GZldDm3+OYvQ9G/EX37sZ8rV/K2iQA=
+@username=testuser
+@id=1
+@code=019cb763-e8c1-7898-8b2f-7b1d7d8157fe
 
 ###AUTH
 
+###Register
 POST {{Messaging_App_HostAddress}}/auth/register
 Content-Type: application/json
 
 {
-  "username": "testuser",
-  "email": "test@email.com",
+  "username": "testuser2",
+  "email": "test2@email.com",
   "password": "Test"
 }
 
-###
-
+###Login
 POST {{Messaging_App_HostAddress}}/auth/login
 Content-Type: application/json
 
 {
   "username": "testuser",
-  "password": "Test2"
+  "password": "Test"
 
 }
 
-###
-
+###Refresh
 POST {{Messaging_App_HostAddress}}/auth/refresh
 Content-Type: application/json
 
@@ -34,9 +36,7 @@ Content-Type: application/json
   "accessToken": "{{accessToken}}"
 }
 
-###
-
-
+###Logout
 POST {{Messaging_App_HostAddress}}/auth/logout
 Content-Type: application/json
 
@@ -46,11 +46,11 @@ Content-Type: application/json
 
 ###USER
 
+###Me
 GET {{Messaging_App_HostAddress}}/user/me
 Authorization: Bearer {{accessToken}}
 
-###
-
+###Update me
 PUT {{Messaging_App_HostAddress}}/user/me
 Content-Type: application/json
 Authorization: Bearer {{accessToken}}
@@ -60,8 +60,7 @@ Authorization: Bearer {{accessToken}}
   "profileImageUrl": "https://example.com/image.jpg"
 }
 
-###
-
+###Update password
 PUT {{Messaging_App_HostAddress}}/user/me/password
 Content-Type: application/json
 Authorization: Bearer {{accessToken}}
@@ -71,8 +70,7 @@ Authorization: Bearer {{accessToken}}
   "newPassword": "Test2"
 }
 
-###
-
+###Update status
 PUT {{Messaging_App_HostAddress}}/user/me/status
 Content-Type: application/json
 Authorization: Bearer {{accessToken}}
@@ -81,16 +79,147 @@ Authorization: Bearer {{accessToken}}
   "activityStatus": 0
 }
 
-###
-
-@username=testuser
+###Get user info by username
 GET {{Messaging_App_HostAddress}}/user/username/{{username}}
 Authorization: Bearer {{accessToken}}
 
-###
-
-@id=1
+###Get user by id
 GET {{Messaging_App_HostAddress}}/user/{{id}}
+Authorization: Bearer {{accessToken}}
+
+###Sever
+
+###Create Server
+POST {{Messaging_App_HostAddress}}/server/createserver
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "serverName": "Test Server 1"
+}
+
+###Get servers for user
+GET {{Messaging_App_HostAddress}}/server/servers
+Authorization: Bearer {{accessToken}}
+
+###Get server info
+GET {{Messaging_App_HostAddress}}/server/{{id}}
+Authorization: Bearer {{accessToken}}
+
+###Get server members
+GET {{Messaging_App_HostAddress}}/server/{{id}}/members
+Authorization: Bearer {{accessToken}}
+
+###Update server info
+PUT {{Messaging_App_HostAddress}}/server/{{id}}
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "serverName": "TestServer",
+  "serverImageUrl": "https://example.com/image.jpg"
+}
+
+###Delete server
+DELETE {{Messaging_App_HostAddress}}/server/{{id}}
+Authorization: Bearer {{accessToken}}
+
+###Leave server
+POST {{Messaging_App_HostAddress}}/server/{{id}}/leave
+Authorization: Bearer {{accessToken}}
+
+###Kick member
+DELETE {{Messaging_App_HostAddress}}/server/{{id}}/members/{{username}}
+Authorization: Bearer {{accessToken}}
+
+###Channel
+
+###Create channel
+POST {{Messaging_App_HostAddress}}/server/{{id}}/createchannel
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "channelName": "general"
+}
+
+###Get channels for server
+GET {{Messaging_App_HostAddress}}/server/{{id}}/channels
+Authorization: Bearer {{accessToken}}
+
+###Reorder channels
+PUT {{Messaging_App_HostAddress}}/server/{{id}}/channels/reorder
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "channelIDs": [1, 2, 3]
+}
+
+###Update channel info
+PUT {{Messaging_App_HostAddress}}/channel/{{id}}
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "channelName": "general2"
+}
+
+###Delete channel
+DELETE {{Messaging_App_HostAddress}}/channel/{{id}}
+Authorization: Bearer {{accessToken}}
+
+###Messages
+
+###Get messages in channel
+GET {{Messaging_App_HostAddress}}/channel/{{id}}/messages
+Authorization: Bearer {{accessToken}}
+
+###Send message
+POST {{Messaging_App_HostAddress}}/channel/{{id}}/sendmessage
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "messageText": "Hello, world!"
+}
+
+###Edit message
+PUT {{Messaging_App_HostAddress}}/message/{{id}}
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "messageText": "Hello, everyone!"
+}
+
+###Delete message
+DELETE {{Messaging_App_HostAddress}}/message/{{id}}
+Authorization: Bearer {{accessToken}}
+
+###Invites
+
+###Create Invite
+POST {{Messaging_App_HostAddress}}/server/{{id}}/invite
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "expiresDate": null,
+  "maxUses": null
+}
+
+###Get invites for server
+GET {{Messaging_App_HostAddress}}/server/{{id}}/invites
+Authorization: Bearer {{accessToken}}
+
+###Delete invite
+DELETE {{Messaging_App_HostAddress}}/server/{{id}}/invite/{{code}}
+Authorization: Bearer {{accessToken}}
+
+###Join server via invite
+POST {{Messaging_App_HostAddress}}/invite/{{code}}/join
+Content-Type: application/json
 Authorization: Bearer {{accessToken}}
 
 ###

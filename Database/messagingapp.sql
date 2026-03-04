@@ -7,6 +7,7 @@ CREATE DATABASE messaging_app;
 --then right click the messaging_app and select query tool
 --then paste these commands and run
 CREATE TYPE ACTIVITYSTATUS AS ENUM('online', 'away', 'dnd', 'offline');
+CREATE TYPE FRIENDSTATUS AS ENUM('pending', 'friends', 'blocked');
 
 create table Users
 (
@@ -30,6 +31,14 @@ create table RefreshTokens
     expiresDate TIMESTAMPTZ NOT NULL
 );
 
+create table Friends
+(
+    sender BIGINT NOT NULL REFERENCES Users(id),
+    receiver BIGINT NOT NULL REFERENCES Users(id),
+    status FRIENDSTATUS NOT NULL DEFAULT 'pending',
+    PRIMARY KEY(sender, receiver)
+);
+
 --SERVER DB START
 create table Servers
 (
@@ -46,11 +55,23 @@ create table ServerMembers --links members and servers together
     PRIMARY KEY(serverID, userID)
 );
 
+create table ServerInvites
+(
+    inviteCode UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    serverID BIGINT NOT NULL REFERENCES Servers(id) ON DELETE CASCADE,
+    createdBy BIGINT NOT NULL REFERENCES Users(id),
+    createdDate TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    expiresDate TIMESTAMPTZ,
+    maxUses INT,
+    uses INT NOT NULL DEFAULT 0
+);
+
 create table Channels
 (
     id BIGSERIAL PRIMARY KEY,
     serverID BIGINT NOT NULL REFERENCES Servers(id) ON DELETE CASCADE,
-    channelName TEXT NOT NULL
+    channelName TEXT NOT NULL,
+    channelOrder INT NOT NULL DEFAULT 0
 );
 
 create table Messages
@@ -90,5 +111,9 @@ create table ConversationMessages
 
 --INDEXES
 CREATE INDEX idx_messages_channel_time_desc ON Messages(channelID, timeSent DESC);
-
 CREATE INDEX idx_conversation_messages_time_desc ON ConversationMessages(conversationID, timeSent DESC);
+CREATE INDEX idx_servermembers_userid ON ServerMembers(userID);
+CREATE INDEX idx_serverinvites_serverid ON ServerInvites(serverID);
+CREATE INDEX idx_channels_serverid ON Channels(serverID);
+CREATE INDEX idx_conversationmembers_userid ON ConversationMembers(userID);
+CREATE INDEX idx_friends_receiver ON Friends(receiver);

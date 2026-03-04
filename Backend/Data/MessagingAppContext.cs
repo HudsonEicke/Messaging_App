@@ -11,6 +11,11 @@ public class MessagingAppContext : DbContext
 
     public DbSet<User> Users { get; set; }
     public DbSet<RefreshToken> RefreshTokens { get; set; }
+    public DbSet<Server> Servers { get; set; }
+    public DbSet<ServerMember> ServerMembers { get; set; }
+    public DbSet<Channel> Channels { get; set; }
+    public DbSet<Message> Messages { get; set; }
+    public DbSet<ServerInvite> ServerInvites { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -28,6 +33,23 @@ public class MessagingAppContext : DbContext
         modelBuilder.Entity<RefreshToken>(entity =>
         {
             entity.Property(u => u.createdDate).ValueGeneratedOnAdd();
+        });
+
+        modelBuilder.Entity<ServerMember>(entity =>
+        {
+            entity.HasKey(sm => new { sm.serverID, sm.userID });
+        });
+
+        modelBuilder.Entity<Message>(entity =>
+        {
+           entity.Property(m => m.timeSent).ValueGeneratedOnAdd(); 
+        });
+
+        modelBuilder.Entity<ServerInvite>(entity =>
+        {
+            entity.HasKey(si => si.inviteCode);
+            entity.Property(si => si.inviteCode).ValueGeneratedOnAdd();
+            entity.Property(si => si.createdDate).ValueGeneratedOnAdd();
         });
     }
 }

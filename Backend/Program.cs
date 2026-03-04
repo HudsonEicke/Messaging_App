@@ -12,9 +12,8 @@ var builder = WebApplication.CreateBuilder(args);
 var jwtSettings = builder.Configuration.GetSection("JwtSettings").Get<JwtSettings>();
 var secretKey = Encoding.UTF8.GetBytes(jwtSettings.SecretKey);
 
-builder.Services.Configure<JwtSettings>(
-    builder.Configuration.GetSection("JwtSettings")
-);
+builder.Services.Configure<JwtSettings>(builder.Configuration.GetSection("JwtSettings"));
+builder.Services.Configure<EncryptionSettings>(builder.Configuration.GetSection("EncryptionSettings"));
 
 builder.Services.AddAuthentication(options =>
 {
@@ -41,6 +40,7 @@ builder.Services.AddControllers();
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
 builder.Services.AddSingleton<JwtService>();
+builder.Services.AddSingleton<EncryptionService>();
 builder.Services.AddDbContext<MessagingAppContext>(options => options.UseNpgsql(builder.Configuration.GetConnectionString("MessagingAppContext"), options => options.MapEnum<ActivityStatus>("activitystatus")));
 builder.Services.AddAuthorization();
 builder.Services.AddScoped<AuthService>();
