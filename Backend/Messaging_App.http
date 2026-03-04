@@ -138,4 +138,46 @@ Authorization: Bearer {{accessToken}}
 DELETE {{Messaging_App_HostAddress}}/server/{{id}}/members/{{username}}
 Authorization: Bearer {{accessToken}}
 
+###Channel
+
+###Create channel
+@id=1
+POST {{Messaging_App_HostAddress}}/server/{{id}}/createchannel
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "channelName": "general"
+}
+
+###Get channels for server
+@id=1
+GET {{Messaging_App_HostAddress}}/server/{{id}}/channels
+Authorization: Bearer {{accessToken}}
+
+###Reorder channels
+@id=1
+PUT {{Messaging_App_HostAddress}}/server/{{id}}/channels/reorder
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  //ReorderChannelRequest
+}
+
+###Update channel info
+@id=1
+PUT {{Messaging_App_HostAddress}}/channel/{{id}}
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "channelName": "general2"
+}
+
+###Delete channel
+@id=1
+DELETE {{Messaging_App_HostAddress}}/channel/{{id}}
+Authorization: Bearer {{accessToken}}
+
 ###

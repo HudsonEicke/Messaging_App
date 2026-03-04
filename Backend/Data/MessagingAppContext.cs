@@ -14,6 +14,7 @@ public class MessagingAppContext : DbContext
     public DbSet<Server> Servers { get; set; }
     public DbSet<ServerMember> ServerMembers { get; set; }
     public DbSet<Channel> Channels { get; set; }
+    public DbSet<Message> Messages { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -36,6 +37,11 @@ public class MessagingAppContext : DbContext
         modelBuilder.Entity<ServerMember>(entity =>
         {
             entity.HasKey(sm => new { sm.serverID, sm.userID });
+        });
+
+        modelBuilder.Entity<Message>(entity =>
+        {
+           entity.Property(m => m.timeSent).ValueGeneratedOnAdd(); 
         });
     }
 }

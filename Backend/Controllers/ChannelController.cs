@@ -19,14 +19,17 @@ public class ChannelController : ControllerBase
     private readonly MessagingAppContext db;
     private readonly JwtService jwtService;
     private readonly AuthService authService;
+    private readonly EncryptionService encryptionService;
     private readonly JwtSettings jwtSettings;
+    private const int MESSAGEGRABAMOUNT = 50;
 
-    public ChannelController(MessagingAppContext db, JwtService jwtService, AuthService authService, IOptions<JwtSettings> jwtSettings)
+    public ChannelController(MessagingAppContext db, JwtService jwtService, AuthService authService, IOptions<JwtSettings> jwtSettings, EncryptionService encryptionService)
     {
         this.db = db;
         this.jwtService = jwtService;
         this.authService = authService;
         this.jwtSettings = jwtSettings.Value;
+        this.encryptionService = encryptionService;
     }
 
     [HttpPut("{id}")]
@@ -117,5 +120,93 @@ public class ChannelController : ControllerBase
         await db.SaveChangesAsync();
 
         return NoContent();
+    }
+
+    [HttpGet("{id}/messages")]
+    public async Task<ActionResult<List<MessageResult>>> GetMessages(long id, [FromQuery] long? before = null)
+    {
+        string ? stringId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+        if(stringId == null)
+        {
+            return Unauthorized();
+        }
+
+        long userId = long.Parse(stringId);
+
+        Channel? foundChannel = await db.Channels.AsNoTracking().FirstOrDefaultAsync(channel => channel.id == id);
+
+        if(foundChannel == null)
+        {
+            return NotFound();
+        }
+
+        ServerMember? foundMember = await db.ServerMembers.AsNoTracking().FirstOrDefaultAsync(member => member.serverID == foundChannel.serverID && member.userID == userId);
+
+        if(foundMember == null)
+        {
+            return Unauthorized();
+        }
+
+        IQueryable<Message> messageQuery = db.Messages.Where(message => message.channelID == id);
+
+        if(before != null)
+        {
+            messageQuery = messageQuery.Where(message => message.id < before);
+        }
+
+        List<MessageResult> results = await messageQuery.OrderByDescending(message => message.id).Take(MESSAGEGRABAMOUNT).Select(message => new MessageResult{id = message.id, messageText = encryptionService.Decrypt(message.messageText), sender = message.sender, edited = message.edited, timeSent = message.timeSent}).ToListAsync();
+
+        return Ok(results);
+    }
+
+    [HttpPost("{id}/sendmessage")]
+    public async Task<ActionResult<SendMessageResult>> SendMessage(long id, SendMessageRequest sendMessageRequest)
+    {
+        if(string.IsNullOrWhiteSpace(sendMessageRequest.messageText))
+        {
+            return BadRequest("Invalid message text");
+        }
+
+        string ? stringId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+        if(stringId == null)
+        {
+            return Unauthorized();
+        }
+
+        long userId = long.Parse(stringId);
+
+        Channel? foundChannel = await db.Channels.AsNoTracking().FirstOrDefaultAsync(channel => channel.id == id);
+
+        if(foundChannel == null)
+        {
+            return NotFound();
+        }
+
+        ServerMember? foundMember = await db.ServerMembers.AsNoTracking().FirstOrDefaultAsync(member => member.serverID == foundChannel.serverID && member.userID == userId);
+
+        if(foundMember == null)
+        {
+            return Unauthorized();
+        }
+
+        Message newMessage = new Message();
+
+        newMessage.messageText = encryptionService.Encrypt(sendMessageRequest.messageText);
+        newMessage.channelID = id;
+        newMessage.sender = userId;
+
+        db.Messages.Add(newMessage);
+
+        await db.SaveChangesAsync();
+
+        SendMessageResult result = new SendMessageResult();
+        result.id = newMessage.id;
+        result.messageText = sendMessageRequest.messageText;
+        result.sender = userId;
+        result.timeSent = newMessage.timeSent;
+
+        return Ok(result);
     }
 }
