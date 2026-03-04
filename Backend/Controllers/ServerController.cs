@@ -68,7 +68,7 @@ public class ServerController : ModifiedControllerBase
 
         long userId = nullableUserId.Value;
 
-        List<ServerResult> servers = await db.ServerMembers.AsNoTracking().Where(member => member.userID == userId).Join(db.Servers, member => member.serverID, server => server.id, (member, server) => new ServerResult{serverID = server.id, ownerID = server.ownerID, serverName = server.serverName, iconUrl = server.iconUrl}).ToListAsync();
+        List<ServerResult> servers = await db.ServerMembers.AsNoTracking().Where(member => member.userID == userId).Join(db.Servers, member => member.serverID, server => server.id, (member, server) => new { server }).Join(db.Users, s => s.server.ownerID, user => user.id, (s, user) => new ServerResult{serverID = s.server.id, ownerUsername = user.username, serverName = s.server.serverName, iconUrl = s.server.iconUrl}).ToListAsync();
 
         return Ok(servers);
     }
@@ -90,11 +90,18 @@ public class ServerController : ModifiedControllerBase
             return NotFound();
         }
 
+        User? owner = await db.Users.AsNoTracking().FirstOrDefaultAsync(u => u.id == server.ownerID);
+
+        if(owner == null)
+        {
+            return NotFound();
+        }
+
         ServerResult result = new ServerResult();
 
         result.serverID = server.id;
         result.serverName = server.serverName;
-        result.ownerID = server.ownerID;
+        result.ownerUsername = owner.username;
         result.iconUrl = server.iconUrl;
 
         return Ok(result);
@@ -117,7 +124,7 @@ public class ServerController : ModifiedControllerBase
             return Forbid();
         }
 
-        List<UserResult> members = await db.ServerMembers.AsNoTracking().Where(member => member.serverID == id).Join(db.Users, member => member.userID, user => user.id, (member, user) => new UserResult{userID = user.id, displayName = user.displayName, username = user.username, profileImageUrl = user.profileImageUrl, activityStatus = user.activityStatus, accountCreationTime = user.accountCreationTime}).ToListAsync();
+        List<UserResult> members = await db.ServerMembers.AsNoTracking().Where(member => member.serverID == id).Join(db.Users, member => member.userID, user => user.id, (member, user) => new UserResult{displayName = user.displayName, username = user.username, profileImageUrl = user.profileImageUrl, activityStatus = user.activityStatus, accountCreationTime = user.accountCreationTime}).ToListAsync();
 
         return Ok(members);
     }
@@ -161,10 +168,17 @@ public class ServerController : ModifiedControllerBase
 
         await db.SaveChangesAsync();
 
+        User? owner = await db.Users.AsNoTracking().FirstOrDefaultAsync(u => u.id == foundServer.ownerID);
+
+        if(owner == null)
+        {
+            return NotFound();
+        }
+
         ServerResult result = new ServerResult();
         result.serverID = foundServer.id;
         result.serverName = foundServer.serverName;
-        result.ownerID = foundServer.ownerID;
+        result.ownerUsername = owner.username;
         result.iconUrl = foundServer.iconUrl;
 
         return Ok(result);
@@ -471,7 +485,7 @@ public class ServerController : ModifiedControllerBase
             return Forbid();
         }
 
-        List<InviteResult> results = await db.ServerInvites.AsNoTracking().Where(invite => invite.serverID == id).Select(invite => new InviteResult{inviteCode = invite.inviteCode, createdBy = invite.createdBy, createdDate = invite.createdDate, expiresDate = invite.expiresDate, maxUses = invite.maxUses, uses = invite.uses}).ToListAsync();
+        List<InviteResult> results = await db.ServerInvites.AsNoTracking().Where(invite => invite.serverID == id).Join(db.Users, invite => invite.createdBy, user => user.id, (invite, user) => new InviteResult{inviteCode = invite.inviteCode, createdByUsername = user.username, createdDate = invite.createdDate, expiresDate = invite.expiresDate, maxUses = invite.maxUses, uses = invite.uses}).ToListAsync();
 
         return Ok(results);
     }

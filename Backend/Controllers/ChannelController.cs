@@ -3,7 +3,6 @@ using Microsoft.EntityFrameworkCore;
 using Messaging_App.Models;
 using Messaging_App.Data;
 using Messaging_App.Services;
-using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 
 namespace Messaging_App.Controllers;
@@ -140,7 +139,7 @@ public class ChannelController : ModifiedControllerBase
             messageQuery = messageQuery.Where(message => message.id < before);
         }
 
-        List<MessageResult> results = await messageQuery.OrderByDescending(message => message.id).Take(MESSAGEGRABAMOUNT).Select(message => new MessageResult{id = message.id, messageText = encryptionService.Decrypt(message.messageText), sender = message.sender, edited = message.edited, timeSent = message.timeSent}).ToListAsync();
+        List<MessageResult> results = await messageQuery.OrderByDescending(message => message.id).Take(MESSAGEGRABAMOUNT).Join(db.Users, message => message.sender, user => user.id, (message, user) => new MessageResult{id = message.id, messageText = encryptionService.Decrypt(message.messageText), senderUsername = user.username, edited = message.edited, timeSent = message.timeSent}).ToListAsync();
 
         return Ok(results);
     }
@@ -184,10 +183,15 @@ public class ChannelController : ModifiedControllerBase
 
         await db.SaveChangesAsync();
 
+        string? username = GetUsername();
+
+        if(username == null)
+            username = string.Empty;
+
         SendMessageResult result = new SendMessageResult();
         result.id = newMessage.id;
         result.messageText = sendMessageRequest.messageText;
-        result.sender = userId;
+        result.senderUsername = username;
         result.timeSent = newMessage.timeSent;
 
         return Ok(result);

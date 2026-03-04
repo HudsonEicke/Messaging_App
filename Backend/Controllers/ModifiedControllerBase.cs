@@ -14,4 +14,10 @@ public class ModifiedControllerBase : ControllerBase
             
         return long.Parse(stringId);
     }
+
+    protected string? GetUsername()
+    {
+        string? username = User.FindFirst(ClaimTypes.Name)?.Value;
+        return username;
+    }
 }

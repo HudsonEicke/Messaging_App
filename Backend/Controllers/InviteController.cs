@@ -68,10 +68,17 @@ public class InviteController : ModifiedControllerBase
             return NotFound();
         }
 
+        User? owner = await db.Users.AsNoTracking().FirstOrDefaultAsync(u => u.id == foundServer.ownerID);
+
+        if(owner == null)
+        {
+            return NotFound();
+        }
+
         ServerResult result = new ServerResult();
         result.serverID = foundServer.id;
         result.serverName = foundServer.serverName;
-        result.ownerID = foundServer.ownerID;
+        result.ownerUsername = owner.username;
         result.iconUrl = foundServer.iconUrl;
 
         return Ok(result);

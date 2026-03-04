@@ -3,7 +3,6 @@ using Microsoft.EntityFrameworkCore;
 using Messaging_App.Models;
 using Messaging_App.Data;
 using Messaging_App.Services;
-using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 
 namespace Messaging_App.Controllers;
