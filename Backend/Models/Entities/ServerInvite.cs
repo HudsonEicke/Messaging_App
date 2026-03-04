@@ -1,13 +1,3 @@
-/*
-inviteCode UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-serverID BIGINT NOT NULL REFERENCES Servers(id) ON DELETE CASCADE,
-createdBy BIGINT NOT NULL REFERENCES Users(id),
-createdDate TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-expiresDate TIMESTAMPTZ,
-maxUses INT,
-uses INT NOT NULL DEFAULT 0
-*/
-
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Messaging_App.Models;
