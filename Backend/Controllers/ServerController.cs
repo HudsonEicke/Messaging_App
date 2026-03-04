@@ -2,7 +2,6 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Messaging_App.Models;
 using Messaging_App.Data;
-using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 
 namespace Messaging_App.Controllers;
@@ -118,7 +117,7 @@ public class ServerController : ModifiedControllerBase
             return Forbid();
         }
 
-        List<UserResult> members = await db.ServerMembers.AsNoTracking().Where(member => member.serverID == id).Join(db.Users, member => member.userID, user => user.id, (member, user) => new UserResult{displayName = user.displayName, username = user.username, profileImageUrl = user.profileImageUrl, activityStatus = user.activityStatus, accountCreationTime = user.accountCreationTime}).ToListAsync();
+        List<UserResult> members = await db.ServerMembers.AsNoTracking().Where(member => member.serverID == id).Join(db.Users, member => member.userID, user => user.id, (member, user) => new UserResult{userID = user.id, displayName = user.displayName, username = user.username, profileImageUrl = user.profileImageUrl, activityStatus = user.activityStatus, accountCreationTime = user.accountCreationTime}).ToListAsync();
 
         return Ok(members);
     }
@@ -368,8 +367,6 @@ public class ServerController : ModifiedControllerBase
         return Ok(results);
     }
 
-    //reorder channels
-    //implement here
     [HttpPut("{id}/channels/reorder")]
     public async Task<IActionResult> ReorderChannels(long id, ReorderChannelRequest reorderChannelRequest)
     {
@@ -417,4 +414,101 @@ public class ServerController : ModifiedControllerBase
     }
 
     //Invite API
+    [HttpPost("{id}/invite")]
+    public async Task<ActionResult<CreateInviteResult>> CreateInvite(long id, CreateInviteRequest createInviteRequest)
+    {
+        long? nullableUserId = GetUserId();
+        
+        if(nullableUserId == null) 
+            return Unauthorized();
+
+        long userId = nullableUserId.Value;
+
+        ServerMember? foundMember = await db.ServerMembers.AsNoTracking().FirstOrDefaultAsync(member => member.serverID == id && member.userID == userId);
+
+        if(foundMember == null)
+        {
+            return Forbid();
+        }
+
+        ServerInvite newInvite = new ServerInvite();
+        newInvite.createdBy = userId;
+        newInvite.serverID = id;
+        newInvite.expiresDate = createInviteRequest.expiresDate;
+        newInvite.maxUses = createInviteRequest.maxUses;
+
+        db.ServerInvites.Add(newInvite);
+
+        await db.SaveChangesAsync();
+
+        CreateInviteResult result = new CreateInviteResult();
+        result.inviteCode = newInvite.inviteCode;
+        result.expiresDate = newInvite.expiresDate;
+        result.maxUses = newInvite.maxUses;
+
+        return Ok(result);
+    }
+
+    [HttpGet("{id}/invites")]
+    public async Task<ActionResult<List<InviteResult>>> GetInvites(long id)
+    {
+        long? nullableUserId = GetUserId();
+        
+        if(nullableUserId == null) 
+            return Unauthorized();
+
+        long userId = nullableUserId.Value;
+        
+        Server? foundServer = await db.Servers.AsNoTracking().FirstOrDefaultAsync(server => server.id == id);
+
+        if(foundServer == null)
+        {
+            return NotFound();
+        }
+
+        if(foundServer.ownerID != userId)
+        {
+            return Forbid();
+        }
+
+        List<InviteResult> results = await db.ServerInvites.AsNoTracking().Where(invite => invite.serverID == id).Select(invite => new InviteResult{inviteCode = invite.inviteCode, createdBy = invite.createdBy, createdDate = invite.createdDate, expiresDate = invite.expiresDate, maxUses = invite.maxUses, uses = invite.uses}).ToListAsync();
+
+        return Ok(results);
+    }
+
+    [HttpDelete("{id}/invite/{code}")]
+    public async Task<IActionResult> DeleteInvite(long id, Guid code)
+    {
+        long? nullableUserId = GetUserId();
+        
+        if(nullableUserId == null) 
+            return Unauthorized();
+
+        long userId = nullableUserId.Value;
+        
+        Server? foundServer = await db.Servers.AsNoTracking().FirstOrDefaultAsync(server => server.id == id);
+
+        if(foundServer == null)
+        {
+            return NotFound();
+        }
+
+        if(foundServer.ownerID != userId)
+        {
+            return Forbid();
+        }
+
+        ServerInvite? foundInvite = await db.ServerInvites.FirstOrDefaultAsync(invite => invite.inviteCode == code  && invite.serverID == id);
+
+        if(foundInvite == null)
+        {
+            return NotFound();
+        }
+
+        db.ServerInvites.Remove(foundInvite);
+
+        await db.SaveChangesAsync();
+
+        return NoContent();
+    }
 }

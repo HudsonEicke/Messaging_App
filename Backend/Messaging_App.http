@@ -1,6 +1,9 @@
 @Messaging_App_HostAddress = https://localhost:7227
-@accessToken = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9uYW1lIjoidGVzdHVzZXIiLCJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9uYW1laWRlbnRpZmllciI6IjEiLCJleHAiOjE3NzI1MDUwOTgsImlzcyI6Imh0dHA6Ly9sb2NhbGhvc3QiLCJhdWQiOiJNZXNzYWdpbmdBcHBBUEkifQ.6hPfaBNkc8AZh6cKuUdUsr4qPGa03zpiTzP5jzlbvHc
-@refreshToken = JstSg+1vbTBW7mid/SvCPkF95ZyM0dXCNONDv5hhmFA=
+@accessToken = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9uYW1lIjoidGVzdHVzZXIyIiwiaHR0cDovL3NjaGVtYXMueG1sc29hcC5vcmcvd3MvMjAwNS8wNS9pZGVudGl0eS9jbGFpbXMvbmFtZWlkZW50aWZpZXIiOiIyIiwiZXhwIjoxNzcyNjA0MjMwLCJpc3MiOiJodHRwOi8vbG9jYWxob3N0IiwiYXVkIjoiTWVzc2FnaW5nQXBwQVBJIn0.I4h6Xkwaxgf6EdaxlN4-CP2lgC6OuOrfBf7-IBXbloQ
+@refreshToken = sZkpe4f9abRb1GZldDm3+OYvQ9G/EX37sZ8rV/K2iQA=
+@username=testuser
+@id=1
+@code=019cb763-e8c1-7898-8b2f-7b1d7d8157fe
 
 ###AUTH
 
@@ -9,8 +12,8 @@ POST {{Messaging_App_HostAddress}}/auth/register
 Content-Type: application/json
 
 {
-  "username": "testuser",
-  "email": "test@email.com",
+  "username": "testuser2",
+  "email": "test2@email.com",
   "password": "Test"
 }
 
@@ -47,7 +50,7 @@ Content-Type: application/json
 GET {{Messaging_App_HostAddress}}/user/me
 Authorization: Bearer {{accessToken}}
 
-###Update ne
+###Update me
 PUT {{Messaging_App_HostAddress}}/user/me
 Content-Type: application/json
 Authorization: Bearer {{accessToken}}
@@ -77,12 +80,10 @@ Authorization: Bearer {{accessToken}}
 }
 
 ###Get user info by username
-@username=testuser
 GET {{Messaging_App_HostAddress}}/user/username/{{username}}
 Authorization: Bearer {{accessToken}}
 
 ###Get user by id
-@id=1
 GET {{Messaging_App_HostAddress}}/user/{{id}}
 Authorization: Bearer {{accessToken}}
 
@@ -102,46 +103,38 @@ GET {{Messaging_App_HostAddress}}/server/servers
 Authorization: Bearer {{accessToken}}
 
 ###Get server info
-@id=1
 GET {{Messaging_App_HostAddress}}/server/{{id}}
 Authorization: Bearer {{accessToken}}
 
 ###Get server members
-@id=1
 GET {{Messaging_App_HostAddress}}/server/{{id}}/members
 Authorization: Bearer {{accessToken}}
 
 ###Update server info
-@id=1
 PUT {{Messaging_App_HostAddress}}/server/{{id}}
 Content-Type: application/json
 Authorization: Bearer {{accessToken}}
 
 {
-  "serverName": "TestServer"
+  "serverName": "TestServer",
   "serverImageUrl": "https://example.com/image.jpg"
 }
 
 ###Delete server
-@id=1
 DELETE {{Messaging_App_HostAddress}}/server/{{id}}
 Authorization: Bearer {{accessToken}}
 
 ###Leave server
-@id=1
 POST {{Messaging_App_HostAddress}}/server/{{id}}/leave
 Authorization: Bearer {{accessToken}}
 
 ###Kick member
-@id=1
-@username="testuser"
 DELETE {{Messaging_App_HostAddress}}/server/{{id}}/members/{{username}}
 Authorization: Bearer {{accessToken}}
 
 ###Channel
 
 ###Create channel
-@id=1
 POST {{Messaging_App_HostAddress}}/server/{{id}}/createchannel
 Content-Type: application/json
 Authorization: Bearer {{accessToken}}
@@ -151,22 +144,19 @@ Authorization: Bearer {{accessToken}}
 }
 
 ###Get channels for server
-@id=1
 GET {{Messaging_App_HostAddress}}/server/{{id}}/channels
 Authorization: Bearer {{accessToken}}
 
 ###Reorder channels
-@id=1
 PUT {{Messaging_App_HostAddress}}/server/{{id}}/channels/reorder
 Content-Type: application/json
 Authorization: Bearer {{accessToken}}
 
 {
-  //ReorderChannelRequest
+  "channelIDs": [1, 2, 3]
 }
 
 ###Update channel info
-@id=1
 PUT {{Messaging_App_HostAddress}}/channel/{{id}}
 Content-Type: application/json
 Authorization: Bearer {{accessToken}}
@@ -176,19 +166,16 @@ Authorization: Bearer {{accessToken}}
 }
 
 ###Delete channel
-@id=1
 DELETE {{Messaging_App_HostAddress}}/channel/{{id}}
 Authorization: Bearer {{accessToken}}
 
 ###Messages
 
 ###Get messages in channel
-@id=1
 GET {{Messaging_App_HostAddress}}/channel/{{id}}/messages
 Authorization: Bearer {{accessToken}}
 
 ###Send message
-@id=1
 POST {{Messaging_App_HostAddress}}/channel/{{id}}/sendmessage
 Content-Type: application/json
 Authorization: Bearer {{accessToken}}
@@ -198,7 +185,6 @@ Authorization: Bearer {{accessToken}}
 }
 
 ###Edit message
-@id=1
 PUT {{Messaging_App_HostAddress}}/message/{{id}}
 Content-Type: application/json
 Authorization: Bearer {{accessToken}}
@@ -208,8 +194,32 @@ Authorization: Bearer {{accessToken}}
 }
 
 ###Delete message
-@id=1
 DELETE {{Messaging_App_HostAddress}}/message/{{id}}
+Authorization: Bearer {{accessToken}}
+
+###Invites
+
+###Create Invite
+POST {{Messaging_App_HostAddress}}/server/{{id}}/invite
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "expiresDate": null,
+  "maxUses": null
+}
+
+###Get invites for server
+GET {{Messaging_App_HostAddress}}/server/{{id}}/invites
+Authorization: Bearer {{accessToken}}
+
+###Delete invite
+DELETE {{Messaging_App_HostAddress}}/server/{{id}}/invite/{{code}}
+Authorization: Bearer {{accessToken}}
+
+###Join server via invite
+POST {{Messaging_App_HostAddress}}/invite/{{code}}/join
+Content-Type: application/json
 Authorization: Bearer {{accessToken}}
 
 ###
