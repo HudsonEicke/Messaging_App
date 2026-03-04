@@ -14,32 +14,26 @@ namespace Messaging_App.Controllers;
 [Authorize]
 [ApiController]
 [Route("[controller]")]
-public class UserController : ControllerBase
+public class UserController : ModifiedControllerBase
 {
     private readonly MessagingAppContext db;
-    private readonly JwtService jwtService;
     private readonly AuthService authService;
-    private readonly JwtSettings jwtSettings;
 
-    public UserController(MessagingAppContext db, JwtService jwtService, AuthService authService, IOptions<JwtSettings> jwtSettings)
+    public UserController(MessagingAppContext db, AuthService authService)
     {
         this.db = db;
-        this.jwtService = jwtService;
         this.authService = authService;
-        this.jwtSettings = jwtSettings.Value;
     }
 
     [HttpGet("me")]
     public async Task<ActionResult<UserDetailedResult>> GetMe()
     {
-        string ? stringId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        long? nullableUserId = GetUserId();
 
-        if(stringId == null)
-        {
+        if(nullableUserId == null) 
             return Unauthorized();
-        }
 
-        long userId = long.Parse(stringId);
+        long userId = nullableUserId.Value;
 
         User? foundUser = await db.Users.AsNoTracking().FirstOrDefaultAsync(user => user.id == userId);
 
@@ -105,14 +99,17 @@ public class UserController : ControllerBase
     [HttpPut("me")]
     public async Task<IActionResult> UpdateMe(UpdateMeRequest updateRequest)
     {
-        string ? stringId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-
-        if(stringId == null)
+        if(updateRequest.displayName == null && updateRequest.profileImageUrl == null)
         {
-            return Unauthorized();
+            return BadRequest("No fields provided to update");
         }
 
-        long userId = long.Parse(stringId);
+        long? nullableUserId = GetUserId();
+
+        if(nullableUserId == null) 
+            return Unauthorized();
+
+        long userId = nullableUserId.Value;
 
         User? foundUser = await db.Users.FirstOrDefaultAsync(user => user.id == userId);
 
@@ -165,14 +162,12 @@ public class UserController : ControllerBase
             return BadRequest("New password must be different from current password");
         }
 
-        string ? stringId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        long? nullableUserId = GetUserId();
 
-        if(stringId == null)
-        {
+        if(nullableUserId == null) 
             return Unauthorized();
-        }
 
-        long userId = long.Parse(stringId);
+        long userId = nullableUserId.Value;
 
         User? foundUser = await db.Users.FirstOrDefaultAsync(user => user.id == userId);
 
@@ -211,14 +206,12 @@ public class UserController : ControllerBase
             return BadRequest("Invalid status value.");
         }
 
-        string ? stringId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        long? nullableUserId = GetUserId();
 
-        if(stringId == null)
-        {
+        if(nullableUserId == null) 
             return Unauthorized();
-        }
 
-        long userId = long.Parse(stringId);
+        long userId = nullableUserId.Value;
 
         User? foundUser = await db.Users.FirstOrDefaultAsync(user => user.id == userId);
 
