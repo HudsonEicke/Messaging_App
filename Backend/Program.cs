@@ -12,9 +12,7 @@ var builder = WebApplication.CreateBuilder(args);
 var jwtSettings = builder.Configuration.GetSection("JwtSettings").Get<JwtSettings>();
 var secretKey = Encoding.UTF8.GetBytes(jwtSettings.SecretKey);
 
-builder.Services.Configure<JwtSettings>(
-    builder.Configuration.GetSection("JwtSettings")
-);
+builder.Services.Configure<JwtSettings>(builder.Configuration.GetSection("JwtSettings"));
 builder.Services.Configure<EncryptionSettings>(builder.Configuration.GetSection("EncryptionSettings"));
 
 builder.Services.AddAuthentication(options =>

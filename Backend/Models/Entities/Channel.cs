@@ -13,6 +13,6 @@ public class Channel
     [Column("channelname")]
     public string channelName { get; set; } = string.Empty;
 
-    [Column("channelOrder")]
+    [Column("channelorder")]
     public int channelOrder { get; set; }
 }
