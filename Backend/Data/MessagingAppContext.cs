@@ -19,11 +19,13 @@ public class MessagingAppContext : DbContext
     public DbSet<Conversation> Conversations { get; set; }
     public DbSet<ConversationMember> ConversationMembers { get; set; }
     public DbSet<ConversationMessage> ConversationMessages { get; set; }
+    public DbSet<Friend> Friends { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.HasPostgresEnum<ActivityStatus>();
         modelBuilder.HasPostgresEnum<ConversationType>();
+        modelBuilder.HasPostgresEnum<FriendStatus>();
 
         modelBuilder.Entity<User>(entity =>
         {
@@ -69,6 +71,11 @@ public class MessagingAppContext : DbContext
         modelBuilder.Entity<ConversationMessage>(entity =>
         {
             entity.Property(cm => cm.timeSent).ValueGeneratedOnAdd();
+        });
+
+        modelBuilder.Entity<Friend>(entity =>
+        {
+            entity.HasKey(f => new { f.sender, f.receiver });
         });
     }
 }
