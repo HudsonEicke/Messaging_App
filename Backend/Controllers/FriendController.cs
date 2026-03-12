@@ -169,4 +169,169 @@ public class FriendController : ModifiedControllerBase
 
         return NoContent();
     }
+
+    [HttpDelete("{username}")]
+    public async Task<IActionResult> UnfriendUser(string username)
+    {
+        long? nullableUserId = GetUserId();
+        
+        if(nullableUserId == null)
+            return Unauthorized();
+
+        long userId = nullableUserId.Value;
+
+        User? otherUser = await db.Users.AsNoTracking().FirstOrDefaultAsync(user => user.username == username);
+
+        if(otherUser == null)
+        {
+            return NotFound();
+        }
+
+        if(otherUser.id == userId)
+        {
+            return BadRequest("Cannot be friends with yourself");
+        }
+
+        Friend? request = await db.Friends.FirstOrDefaultAsync(friend => ((friend.sender == otherUser.id && friend.receiver == userId) || (friend.receiver == otherUser.id && friend.sender == userId)) && friend.status == FriendStatus.friends);
+
+        if(request == null)
+        {
+            return BadRequest("You are not friends with this user");
+        }
+
+        db.Friends.Remove(request);
+
+        await db.SaveChangesAsync();
+
+        return NoContent();
+    }
+
+    [HttpPost("block/{username}")]
+    public async Task<IActionResult> BlockUser(string username)
+    {
+        long? nullableUserId = GetUserId();
+        
+        if(nullableUserId == null)
+            return Unauthorized();
+
+        long userId = nullableUserId.Value;
+
+        User? otherUser = await db.Users.AsNoTracking().FirstOrDefaultAsync(user => user.username == username);
+
+        if(otherUser == null)
+        {
+            return NotFound();
+        }
+
+        if(otherUser.id == userId)
+        {
+            return BadRequest("Cannot block yourself");
+        }
+        
+        List<Friend> foundFriends = await db.Friends.Where(friend => (friend.sender == userId && friend.receiver == otherUser.id) || (friend.sender == otherUser.id && friend.receiver == userId)).ToListAsync();
+
+        Friend? myRow = foundFriends.FirstOrDefault(f => f.sender == userId);
+        Friend? theirRow = foundFriends.FirstOrDefault(f => f.sender == otherUser.id);
+
+        if(myRow?.status == FriendStatus.blocked)
+            return BadRequest("You have already blocked this user");
+
+        if(theirRow != null && theirRow.status != FriendStatus.blocked)
+            db.Friends.Remove(theirRow);
+
+        if(myRow != null && myRow.status != FriendStatus.blocked)
+            db.Friends.Remove(myRow);
+        
+        Friend blockRequest = new Friend();
+        blockRequest.sender = userId;
+        blockRequest.receiver = otherUser.id;
+        blockRequest.status = FriendStatus.blocked;
+
+        db.Friends.Add(blockRequest);
+
+        await db.SaveChangesAsync();
+
+        return NoContent();
+    }
+
+    [HttpDelete("block/{username}")]
+    public async Task<IActionResult> UnBlockUser(string username)
+    {
+        long? nullableUserId = GetUserId();
+        
+        if(nullableUserId == null)
+            return Unauthorized();
+
+        long userId = nullableUserId.Value;
+
+        User? otherUser = await db.Users.AsNoTracking().FirstOrDefaultAsync(user => user.username == username);
+
+        if(otherUser == null)
+        {
+            return NotFound();
+        }
+
+        if(otherUser.id == userId)
+        {
+            return BadRequest("Cannot block yourself");
+        }
+
+        Friend? blocked = await db.Friends.FirstOrDefaultAsync(friend => friend.sender == userId && friend.receiver == otherUser.id && friend.status == FriendStatus.blocked);
+
+        if(blocked == null)
+        {
+            return BadRequest("You have not blocked this user");
+        }
+
+        db.Remove(blocked);
+
+        await db.SaveChangesAsync();
+
+        return NoContent();
+    }
+
+    [HttpGet]
+    public async Task<ActionResult<List<UserResult>>> GetFriends()
+    {
+        long? nullableUserId = GetUserId();
+        
+        if(nullableUserId == null)
+            return Unauthorized();
+
+        long userId = nullableUserId.Value;
+
+        List<UserResult> results = await db.Friends.Where(friend => (friend.sender == userId || friend.receiver == userId) && friend.status == FriendStatus.friends).Join(db.Users, friend => friend.sender == userId ? friend.receiver : friend.sender, user => user.id, (friend, user) => new UserResult{displayName = user.displayName, username = user.username, profileImageUrl = user.profileImageUrl, activityStatus = user.activityStatus, accountCreationTime = user.accountCreationTime}).ToListAsync();
+
+        return Ok(results);
+    }
+
+    [HttpGet("pending")]
+    public async Task<ActionResult<List<UserResult>>> GetPendingFriends()
+    {
+        long? nullableUserId = GetUserId();
+        
+        if(nullableUserId == null)
+            return Unauthorized();
+
+        long userId = nullableUserId.Value;
+
+        List<UserResult> results = await db.Friends.Where(friend => friend.receiver == userId && friend.status == FriendStatus.pending).Join(db.Users, friend => friend.sender, user => user.id, (friend, user) => new UserResult{displayName = user.displayName, username = user.username, profileImageUrl = user.profileImageUrl, activityStatus = user.activityStatus, accountCreationTime = user.accountCreationTime}).ToListAsync();
+
+        return Ok(results);
+    }
+
+    [HttpGet("blocked")]
+    public async Task<ActionResult<List<UserResult>>> GetBlockedUsers()
+    {
+        long? nullableUserId = GetUserId();
+        
+        if(nullableUserId == null)
+            return Unauthorized();
+
+        long userId = nullableUserId.Value;
+
+        List<UserResult> results = await db.Friends.Where(friend => friend.sender == userId && friend.status == FriendStatus.blocked).Join(db.Users, friend => friend.receiver, user => user.id, (friend, user) => new UserResult{displayName = user.displayName, username = user.username, profileImageUrl = user.profileImageUrl, activityStatus = user.activityStatus, accountCreationTime = user.accountCreationTime}).ToListAsync();
+
+        return Ok(results);
+    }
 }
