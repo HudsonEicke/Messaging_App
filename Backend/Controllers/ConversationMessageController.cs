@@ -4,18 +4,19 @@ using Messaging_App.Models;
 using Messaging_App.Data;
 using Messaging_App.Services;
 using Microsoft.AspNetCore.Authorization;
+using System.Text;
 
 namespace Messaging_App.Controllers;
 
 [Authorize]
 [ApiController]
 [Route("[controller]")]
-public class MessageController : ModifiedControllerBase
+public class ConversationMessageController : ModifiedControllerBase
 {
     private readonly MessagingAppContext db;
     private readonly EncryptionService encryptionService;
 
-    public MessageController(MessagingAppContext db, EncryptionService encryptionService)
+    public ConversationMessageController(MessagingAppContext db, EncryptionService encryptionService)
     {
         this.db = db;
         this.encryptionService = encryptionService;
@@ -36,7 +37,7 @@ public class MessageController : ModifiedControllerBase
             return Unauthorized();
         }
 
-        Message? foundMessage = await db.Messages.FirstOrDefaultAsync(message => message.id == id);
+        ConversationMessage? foundMessage = await db.ConversationMessages.FirstOrDefaultAsync(message => message.id == id);
 
         if(foundMessage == null)
         {
@@ -71,26 +72,33 @@ public class MessageController : ModifiedControllerBase
             return Unauthorized();
         }
 
-        Message? foundMessage = await db.Messages.FirstOrDefaultAsync(message => message.id == id);
+        ConversationMessage? foundMessage = await db.ConversationMessages.FirstOrDefaultAsync(message => message.id == id);
 
         if(foundMessage == null)
         {
             return NotFound();
         }
 
-        Server? foundServer = await db.Servers.AsNoTracking().FirstOrDefaultAsync(server => db.Channels.Any(channel => channel.id == foundMessage.channelID && channel.serverID == server.id));
+        Conversation? foundConversation = await db.Conversations.AsNoTracking().FirstOrDefaultAsync(conversation => conversation.id == foundMessage.conversationID);
 
-        if(foundServer == null)
+        if(foundConversation == null)
         {
             return NotFound();
         }
 
-        if(foundMessage.sender != userId && foundServer.ownerID != userId)
+        if(foundMessage.sender != userId && foundConversation.ownerID != userId)
         {
             return Forbid();
         }
 
-        db.Messages.Remove(foundMessage);
+        ConversationMember? foundMember = await db.ConversationMembers.AsNoTracking().FirstOrDefaultAsync(member => member.conversationID == foundMessage.conversationID && member.userID == userId);
+
+        if(foundMember == null && foundConversation.ownerID != userId)
+        {
+            return Forbid();
+        }
+
+        db.ConversationMessages.Remove(foundMessage);
 
         await db.SaveChangesAsync();
 

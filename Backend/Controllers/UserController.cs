@@ -4,9 +4,6 @@ using Messaging_App.Models;
 using Messaging_App.Data;
 using Microsoft.AspNetCore.Identity;
 using Messaging_App.Services;
-using System.Security.Claims;
-using Microsoft.Extensions.Options;
-using Messaging_App.Configuration;
 using Microsoft.AspNetCore.Authorization;
 
 namespace Messaging_App.Controllers;

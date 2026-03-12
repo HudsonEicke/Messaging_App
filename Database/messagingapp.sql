@@ -8,6 +8,7 @@ CREATE DATABASE messaging_app;
 --then paste these commands and run
 CREATE TYPE ACTIVITYSTATUS AS ENUM('online', 'away', 'dnd', 'offline');
 CREATE TYPE FRIENDSTATUS AS ENUM('pending', 'friends', 'blocked');
+CREATE TYPE CONVERSATIONTYPE AS ENUM('direct', 'group');
 
 create table Users
 (
@@ -88,8 +89,10 @@ create table Messages
 create table Conversations
 (
     id BIGSERIAL PRIMARY KEY,
-    conversationName TEXT NOT NULL,
-    iconUrl TEXT NOT NULL
+    conversationName TEXT,
+    ownerID BIGINT REFERENCES Users(id),
+    iconUrl TEXT,
+    conversationType CONVERSATIONTYPE NOT NULL DEFAULT 'direct'
 );
 
 create table ConversationMembers

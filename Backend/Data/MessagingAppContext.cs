@@ -16,10 +16,14 @@ public class MessagingAppContext : DbContext
     public DbSet<Channel> Channels { get; set; }
     public DbSet<Message> Messages { get; set; }
     public DbSet<ServerInvite> ServerInvites { get; set; }
+    public DbSet<Conversation> Conversations { get; set; }
+    public DbSet<ConversationMember> ConversationMembers { get; set; }
+    public DbSet<ConversationMessage> ConversationMessages { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.HasPostgresEnum<ActivityStatus>();
+        modelBuilder.HasPostgresEnum<ConversationType>();
 
         modelBuilder.Entity<User>(entity =>
         {
@@ -50,6 +54,21 @@ public class MessagingAppContext : DbContext
             entity.HasKey(si => si.inviteCode);
             entity.Property(si => si.inviteCode).ValueGeneratedOnAdd();
             entity.Property(si => si.createdDate).ValueGeneratedOnAdd();
+        });
+
+        modelBuilder.Entity<Conversation>(entity =>
+        {
+            entity.Property(c => c.conversationType).HasDefaultValue(ConversationType.direct);
+        });
+
+        modelBuilder.Entity<ConversationMember>(entity =>
+        {
+            entity.HasKey(cm => new { cm.conversationID, cm.userID });
+        });
+
+        modelBuilder.Entity<ConversationMessage>(entity =>
+        {
+            entity.Property(cm => cm.timeSent).ValueGeneratedOnAdd();
         });
     }
 }
