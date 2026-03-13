@@ -108,16 +108,11 @@ public class FriendController : ModifiedControllerBase
             return BadRequest("Cannot be friends with yourself");
         }
 
-        Friend? request = await db.Friends.FirstOrDefaultAsync(friend => friend.sender == otherUser.id && friend.receiver == userId);
+        Friend? request = await db.Friends.FirstOrDefaultAsync(friend => friend.sender == otherUser.id && friend.receiver == userId && friend.status == FriendStatus.pending);
 
         if(request == null)
         {
             return NotFound("No pending friend request from user");
-        }
-
-        if(request.status != FriendStatus.pending)
-        {
-            return BadRequest("No pending friend request from user");
         }
 
         request.status = FriendStatus.friends;
@@ -156,7 +151,7 @@ public class FriendController : ModifiedControllerBase
             return BadRequest("Cannot be friends with yourself");
         }
 
-        Friend? request = await db.Friends.FirstOrDefaultAsync(friend => friend.sender == otherUser.id && friend.receiver == userId);
+        Friend? request = await db.Friends.FirstOrDefaultAsync(friend => friend.sender == otherUser.id && friend.receiver == userId && friend.status == FriendStatus.pending);
 
         if(request == null)
         {
