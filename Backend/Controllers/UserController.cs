@@ -181,13 +181,19 @@ public class UserController : ModifiedControllerBase
             return Unauthorized("Invalid credentials");
         }
 
+        if(hashResult == PasswordVerificationResult.SuccessRehashNeeded)
+        {
+            foundUser.passwordHash = passwordHasher.HashPassword(foundUser, updatePasswordRequest.currentPassword);
+            await db.SaveChangesAsync();
+        }
+
         foundUser.passwordHash = passwordHasher.HashPassword(foundUser, updatePasswordRequest.newPassword);
 
         List<RefreshToken> userTokens = await db.RefreshTokens.Where(rt => rt.userID == userId && !rt.revoked).ToListAsync();
 
         foreach(RefreshToken token in userTokens)
         {
-            await authService.RevokeRefreshToken(token);
+            token.revoked = true;
         }
 
         await db.SaveChangesAsync();

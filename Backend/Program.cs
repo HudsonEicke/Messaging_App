@@ -6,6 +6,7 @@ using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using Messaging_App.Configuration;
 using Messaging_App.Services;
+using Microsoft.AspNetCore.RateLimiting;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -30,8 +31,18 @@ builder.Services.AddAuthentication(options =>
         ValidateLifetime = true,
         ValidIssuer = jwtSettings.Issuer,
         ValidAudience = jwtSettings.Audience,
-        IssuerSigningKey = new SymmetricSecurityKey(secretKey)
+        IssuerSigningKey = new SymmetricSecurityKey(secretKey),
+        ClockSkew = TimeSpan.Zero
     };
+});
+
+builder.Services.AddRateLimiter(options =>
+{
+    options.AddFixedWindowLimiter("auth", opt =>
+    {
+        opt.PermitLimit = 10;
+        opt.Window = TimeSpan.FromMinutes(1);
+    });
 });
 
 // Add services to the container.
@@ -41,7 +52,7 @@ builder.Services.AddControllers();
 builder.Services.AddOpenApi();
 builder.Services.AddSingleton<JwtService>();
 builder.Services.AddSingleton<EncryptionService>();
-builder.Services.AddDbContext<MessagingAppContext>(options => options.UseNpgsql(builder.Configuration.GetConnectionString("MessagingAppContext"), options => options.MapEnum<ActivityStatus>("activitystatus")));
+builder.Services.AddDbContext<MessagingAppContext>(options => options.UseNpgsql(builder.Configuration.GetConnectionString("MessagingAppContext"), options => {options.MapEnum<ActivityStatus>("activitystatus"); options.MapEnum<ConversationType>("conversationtype"); options.MapEnum<FriendStatus>("friendstatus");}));
 builder.Services.AddAuthorization();
 builder.Services.AddScoped<AuthService>();
 

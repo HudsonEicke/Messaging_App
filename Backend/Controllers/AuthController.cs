@@ -7,6 +7,7 @@ using Messaging_App.Services;
 using System.Security.Claims;
 using Microsoft.Extensions.Options;
 using Messaging_App.Configuration;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace Messaging_App.Controllers;
 
@@ -29,6 +30,7 @@ public class AuthController : ControllerBase
 
     //REGISTER
     [HttpPost("register")]
+    [EnableRateLimiting("auth")]
     public async Task<ActionResult<AuthResult>> Register(RegisterRequest registerRequest)
     {
         AuthResult result = new AuthResult();
@@ -97,6 +99,7 @@ public class AuthController : ControllerBase
 
     //LOGIN
     [HttpPost("login")]
+    [EnableRateLimiting("auth")]
     public async Task<ActionResult<AuthResult>> Login(LoginRequest loginRequest)
     {
         AuthResult result = new AuthResult();
@@ -125,6 +128,12 @@ public class AuthController : ControllerBase
             result.success = false;
             result.message = "Invalid credentials";
             return Unauthorized(result);
+        }
+
+        if(hashResult == PasswordVerificationResult.SuccessRehashNeeded)
+        {
+            foundUser.passwordHash = passwordHasher.HashPassword(foundUser, loginRequest.password);
+            await db.SaveChangesAsync();
         }
 
         Claim[] claims = {new Claim(ClaimTypes.Name, foundUser.username), new Claim(ClaimTypes.NameIdentifier, foundUser.id.ToString())};
@@ -162,6 +171,15 @@ public class AuthController : ControllerBase
 
         if (foundToken.revoked)
         {
+            List<RefreshToken> allUserTokens = await db.RefreshTokens.Where(t => t.userID == foundToken.userID && !t.revoked).ToListAsync();
+
+            foreach(RefreshToken token in allUserTokens)
+            {
+                token.revoked = true;
+            }
+
+            await db.SaveChangesAsync();
+
             result.success = false;
             result.message = "Token has been revoked";
             return Unauthorized(result);
