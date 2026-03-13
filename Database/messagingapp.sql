@@ -111,7 +111,7 @@ create table ConversationMessages
     sender BIGINT NOT NULL REFERENCES Users(id) ON DELETE CASCADE,
     timeSent TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     edited BOOLEAN NOT NULL DEFAULT false,
-    replyToID BIGINT REFERENCES Messages(id)
+    replyToID BIGINT REFERENCES ConversationMessages(id)
 );
 
 --INDEXES
