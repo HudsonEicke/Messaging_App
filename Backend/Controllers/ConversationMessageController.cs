@@ -90,14 +90,7 @@ public class ConversationMessageController : ModifiedControllerBase
         {
             return Forbid();
         }
-
-        ConversationMember? foundMember = await db.ConversationMembers.AsNoTracking().FirstOrDefaultAsync(member => member.conversationID == foundMessage.conversationID && member.userID == userId);
-
-        if(foundMember == null && foundConversation.ownerID != userId)
-        {
-            return Forbid();
-        }
-
+        
         db.ConversationMessages.Remove(foundMessage);
 
         await db.SaveChangesAsync();

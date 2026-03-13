@@ -102,23 +102,16 @@ public class ConversationController : ModifiedControllerBase
             return Ok(result);
         }
         
-        List<User> members = new List<User>();
+        List<User> members = await db.Users.AsNoTracking().Where(user => createConversationRequest.memberUsernames.Contains(user.username)).ToListAsync();
 
-        foreach(string username in createConversationRequest.memberUsernames)
+        if(members.Count != createConversationRequest.memberUsernames.Count)
         {
-            User? foundUser = await db.Users.AsNoTracking().FirstOrDefaultAsync(user => user.username == username);
+            return NotFound();
+        }
 
-            if(foundUser == null)
-            {
-                return NotFound();
-            }
-
-            if(foundUser.id == userId)
-            {
-                return Forbid();
-            }
-
-            members.Add(foundUser);
+        if(members.Any(user => user.id == userId))
+        {
+            return Forbid();
         }
 
         newConversation = new Conversation();
