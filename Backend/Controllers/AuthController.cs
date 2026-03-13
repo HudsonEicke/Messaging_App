@@ -8,6 +8,8 @@ using System.Security.Claims;
 using Microsoft.Extensions.Options;
 using Messaging_App.Configuration;
 using Microsoft.AspNetCore.RateLimiting;
+using System.Security.Cryptography;
+using System.Text;
 
 namespace Messaging_App.Controllers;
 
@@ -85,7 +87,7 @@ public class AuthController : ControllerBase
 
         RefreshToken newToken = new RefreshToken();
         newToken.userID = newUser.id;
-        newToken.token = refreshToken;
+        newToken.token = Convert.ToBase64String(SHA256.HashData(Encoding.UTF8.GetBytes(refreshToken)));
         newToken.expiresDate = DateTime.UtcNow.AddDays(jwtSettings.RefreshTokenExpirationDays);
         await authService.SaveRefreshToken(newToken);
 
@@ -143,7 +145,7 @@ public class AuthController : ControllerBase
 
         RefreshToken newToken = new RefreshToken();
         newToken.userID = foundUser.id;
-        newToken.token = refreshToken;
+        newToken.token = Convert.ToBase64String(SHA256.HashData(Encoding.UTF8.GetBytes(refreshToken)));
         newToken.expiresDate = DateTime.UtcNow.AddDays(jwtSettings.RefreshTokenExpirationDays);
         await authService.SaveRefreshToken(newToken);
 
@@ -211,7 +213,7 @@ public class AuthController : ControllerBase
 
         RefreshToken newToken = new RefreshToken();
         newToken.userID = foundUser.id;
-        newToken.token = refreshToken;
+        newToken.token = Convert.ToBase64String(SHA256.HashData(Encoding.UTF8.GetBytes(refreshToken)));
         newToken.expiresDate = DateTime.UtcNow.AddDays(jwtSettings.RefreshTokenExpirationDays);
         await authService.SaveRefreshToken(newToken);
 

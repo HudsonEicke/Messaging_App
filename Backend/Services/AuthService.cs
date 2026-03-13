@@ -1,3 +1,5 @@
+using System.Security.Cryptography;
+using System.Text;
 using Messaging_App.Data;
 using Messaging_App.Models;
 using Microsoft.EntityFrameworkCore;
@@ -15,8 +17,8 @@ public class AuthService
 
     public async Task<RefreshToken?> GetStoredRefreshToken(string refreshToken)
     {
-        RefreshToken ? foundToken = await db.RefreshTokens.FirstOrDefaultAsync(token => token.token == refreshToken);
-
+        string hashedToken = Convert.ToBase64String(SHA256.HashData(Encoding.UTF8.GetBytes(refreshToken)));
+        RefreshToken? foundToken = await db.RefreshTokens.FirstOrDefaultAsync(token => token.token == hashedToken);
         return foundToken;
     }
 
