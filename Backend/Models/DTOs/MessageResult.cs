@@ -7,4 +7,5 @@ public class MessageResult
     public string senderUsername { get; set; } = string.Empty;
     public DateTimeOffset timeSent { get; set; }
     public bool edited { get; set; }
+    public long? replyToID { get; set; } = null;
 }

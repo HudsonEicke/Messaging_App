@@ -21,4 +21,7 @@ public class ConversationMessage
 
     [Column("edited")]
     public bool edited { get; set; }
+
+    [Column("replytoid")]
+    public long? replyToID { get; set; } = null;
 }

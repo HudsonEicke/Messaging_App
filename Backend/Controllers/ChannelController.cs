@@ -139,7 +139,7 @@ public class ChannelController : ModifiedControllerBase
             messageQuery = messageQuery.Where(message => message.id < before);
         }
 
-        List<MessageResult> results = await messageQuery.OrderByDescending(message => message.id).Take(MESSAGEGRABAMOUNT).Join(db.Users, message => message.sender, user => user.id, (message, user) => new MessageResult{id = message.id, messageText = encryptionService.Decrypt(message.messageText), senderUsername = user.username, edited = message.edited, timeSent = message.timeSent}).ToListAsync();
+        List<MessageResult> results = await messageQuery.OrderByDescending(message => message.id).Take(MESSAGEGRABAMOUNT).Join(db.Users, message => message.sender, user => user.id, (message, user) => new MessageResult{id = message.id, messageText = encryptionService.Decrypt(message.messageText), senderUsername = user.username, edited = message.edited, timeSent = message.timeSent, replyToID = message.replyToID}).ToListAsync();
 
         return Ok(results);
     }
@@ -178,6 +178,18 @@ public class ChannelController : ModifiedControllerBase
         newMessage.messageText = encryptionService.Encrypt(sendMessageRequest.messageText);
         newMessage.channelID = id;
         newMessage.sender = userId;
+
+        if(sendMessageRequest.replyToID != null)
+        {
+            bool replyExists = await db.Messages.AnyAsync(message => message.id == sendMessageRequest.replyToID && message.channelID == id);
+
+            if(!replyExists)
+            {
+                return BadRequest("Reply target message not found");
+            }
+
+            newMessage.replyToID = sendMessageRequest.replyToID;
+        }
 
         db.Messages.Add(newMessage);
 
