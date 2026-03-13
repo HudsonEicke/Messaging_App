@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Messaging_App.Controllers;
 
+//modified controller base for repeated blocks of code
 public class ModifiedControllerBase : ControllerBase
 {
     protected long? GetUserId()

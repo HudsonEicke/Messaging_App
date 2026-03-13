@@ -48,11 +48,13 @@ public class MessageController : ModifiedControllerBase
             return Forbid();
         }
 
+        //checks if the message is the same already
         if(encryptionService.Decrypt(foundMessage.messageText) == editMessageRequest.messageText)
         {
             return UnprocessableEntity("Message text is the same as the current message");
         }
 
+        //encrypts the message before storing in database
         foundMessage.messageText = encryptionService.Encrypt(editMessageRequest.messageText);
         foundMessage.edited = true;
 
@@ -85,6 +87,7 @@ public class MessageController : ModifiedControllerBase
             return NotFound();
         }
 
+        //checks if deleter is not sender or server owner
         if(foundMessage.sender != userId && foundServer.ownerID != userId)
         {
             return Forbid();

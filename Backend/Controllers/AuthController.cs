@@ -45,6 +45,7 @@ public class AuthController : ControllerBase
             return BadRequest(result);
         }
 
+        //finds if the user exists already
         bool usernameSearchResult = await db.Users.AnyAsync(user => user.username == registerRequest.username);
         bool emailSearchResult = await db.Users.AnyAsync(user => user.email == registerRequest.email);
 
@@ -67,12 +68,14 @@ public class AuthController : ControllerBase
             return Conflict(result);
         }
 
+        //adds the user to the database
         User newUser = new User();
 
         newUser.username = registerRequest.username;
         newUser.displayName = registerRequest.username;
         newUser.email = registerRequest.email;
 
+        //password hashing for safer password storage
         PasswordHasher<User> passwordHasher = new PasswordHasher<User>();
         newUser.passwordHash = passwordHasher.HashPassword(newUser, registerRequest.password);
 
@@ -80,6 +83,7 @@ public class AuthController : ControllerBase
 
         await db.SaveChangesAsync();
 
+        //generates a refresh token and access token for the user
         Claim[] claims = {new Claim(ClaimTypes.Name, newUser.username), new Claim(ClaimTypes.NameIdentifier, newUser.id.ToString())};
 
         string accessToken = jwtService.GenerateAccessToken(claims);
@@ -113,6 +117,7 @@ public class AuthController : ControllerBase
             return BadRequest(result);
         }
 
+        //tries to find the user
         User? foundUser = await db.Users.FirstOrDefaultAsync(user => user.username == loginRequest.username);
 
         if(foundUser == null)
@@ -122,6 +127,7 @@ public class AuthController : ControllerBase
             return Unauthorized(result);
         }
         
+        //checks if the users password matches hashed password
         PasswordHasher<User> passwordHasher = new PasswordHasher<User>();
         PasswordVerificationResult hashResult = passwordHasher.VerifyHashedPassword(foundUser, foundUser.passwordHash, loginRequest.password);
 
@@ -132,12 +138,14 @@ public class AuthController : ControllerBase
             return Unauthorized(result);
         }
 
+        //rehashes password to newer standard if required
         if(hashResult == PasswordVerificationResult.SuccessRehashNeeded)
         {
             foundUser.passwordHash = passwordHasher.HashPassword(foundUser, loginRequest.password);
             await db.SaveChangesAsync();
         }
 
+        //generates a refresh token and access token for the user
         Claim[] claims = {new Claim(ClaimTypes.Name, foundUser.username), new Claim(ClaimTypes.NameIdentifier, foundUser.id.ToString())};
 
         string accessToken = jwtService.GenerateAccessToken(claims);
@@ -171,6 +179,7 @@ public class AuthController : ControllerBase
             return Unauthorized(result);
         }
 
+        //if the refresh token may have been stolen revoke all tokens
         if (foundToken.revoked)
         {
             List<RefreshToken> allUserTokens = await db.RefreshTokens.Where(t => t.userID == foundToken.userID && !t.revoked).ToListAsync();
@@ -187,6 +196,7 @@ public class AuthController : ControllerBase
             return Unauthorized(result);
         }
 
+        //checks if the refresh token is expired
         if(foundToken.expiresDate < DateTime.UtcNow)
         {
             await authService.RevokeRefreshToken(foundToken);
@@ -204,6 +214,7 @@ public class AuthController : ControllerBase
             return Unauthorized(result);
         }
 
+        //generates a refresh token and access token for the user
         Claim[] claims = {new Claim(ClaimTypes.Name, foundUser.username), new Claim(ClaimTypes.NameIdentifier, foundUser.id.ToString())};
         
         string accessToken = jwtService.GenerateAccessToken(claims);
@@ -233,6 +244,7 @@ public class AuthController : ControllerBase
 
         RefreshToken ? token = await authService.GetStoredRefreshToken(logoutRequest.refreshToken);
 
+        //revokes old refresh token
         if(token != null)
         {
             await authService.RevokeRefreshToken(token);

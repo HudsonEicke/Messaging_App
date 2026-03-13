@@ -22,6 +22,7 @@ public class UserController : ModifiedControllerBase
         this.authService = authService;
     }
 
+    //detailed get user
     [HttpGet("me")]
     public async Task<ActionResult<UserDetailedResult>> GetMe()
     {
@@ -93,6 +94,7 @@ public class UserController : ModifiedControllerBase
         return Ok(result);
     }
 
+    //update profile
     [HttpPut("me")]
     public async Task<IActionResult> UpdateMe(UpdateMeRequest updateRequest)
     {
@@ -173,6 +175,7 @@ public class UserController : ModifiedControllerBase
             return NotFound();
         }
 
+        //checks if the users password was correct
         PasswordHasher<User> passwordHasher = new PasswordHasher<User>();
         PasswordVerificationResult hashResult = passwordHasher.VerifyHashedPassword(foundUser, foundUser.passwordHash, updatePasswordRequest.currentPassword);
 
@@ -187,8 +190,10 @@ public class UserController : ModifiedControllerBase
             await db.SaveChangesAsync();
         }
 
+        //updates the users password
         foundUser.passwordHash = passwordHasher.HashPassword(foundUser, updatePasswordRequest.newPassword);
 
+        //revokes all refresh tokens for user
         List<RefreshToken> userTokens = await db.RefreshTokens.Where(rt => rt.userID == userId && !rt.revoked).ToListAsync();
 
         foreach(RefreshToken token in userTokens)

@@ -96,6 +96,7 @@ public class ChannelController : ModifiedControllerBase
 
         await db.SaveChangesAsync();
 
+        //cleans up the order of channels
         List<Channel> remainingChannels = await db.Channels.Where(channel => channel.serverID == foundChannel.serverID).OrderBy(channel => channel.channelOrder).ToListAsync();
 
         for (int i = 0; i < remainingChannels.Count; i++)
@@ -125,6 +126,7 @@ public class ChannelController : ModifiedControllerBase
             return NotFound();
         }
 
+        //ensures the user is a member of the server
         ServerMember? foundMember = await db.ServerMembers.AsNoTracking().FirstOrDefaultAsync(member => member.serverID == foundChannel.serverID && member.userID == userId);
 
         if(foundMember == null)
@@ -132,8 +134,10 @@ public class ChannelController : ModifiedControllerBase
             return Forbid();
         }
 
+        //builds the query for getting messages
         IQueryable<Message> messageQuery = db.Messages.Where(message => message.channelID == id);
 
+        //will grab messages before specified id
         if(before != null)
         {
             messageQuery = messageQuery.Where(message => message.id < before);
@@ -179,8 +183,10 @@ public class ChannelController : ModifiedControllerBase
         newMessage.channelID = id;
         newMessage.sender = userId;
 
+        //checks if the message is replying to another message
         if(sendMessageRequest.replyToID != null)
         {
+            //makes sure message is apart of the server
             bool replyExists = await db.Messages.AnyAsync(message => message.id == sendMessageRequest.replyToID && message.channelID == id);
 
             if(!replyExists)
@@ -205,6 +211,7 @@ public class ChannelController : ModifiedControllerBase
         result.messageText = sendMessageRequest.messageText;
         result.senderUsername = username;
         result.timeSent = newMessage.timeSent;
+        result.replyToID = newMessage.replyToID;
 
         return Ok(result);
     }

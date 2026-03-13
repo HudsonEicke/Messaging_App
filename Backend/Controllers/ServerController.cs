@@ -68,6 +68,7 @@ public class ServerController : ModifiedControllerBase
 
         long userId = nullableUserId.Value;
 
+        //gets all the servers the user is in
         List<ServerResult> servers = await db.ServerMembers.AsNoTracking().Where(member => member.userID == userId).Join(db.Servers, member => member.serverID, server => server.id, (member, server) => new { server }).Join(db.Users, s => s.server.ownerID, user => user.id, (s, user) => new ServerResult{serverID = s.server.id, ownerUsername = user.username, serverName = s.server.serverName, iconUrl = s.server.iconUrl}).ToListAsync();
 
         return Ok(servers);
@@ -117,6 +118,7 @@ public class ServerController : ModifiedControllerBase
 
         long userId = nullableUserId.Value;
 
+        //checks if the user is a member of the server
         ServerMember? isMember = await db.ServerMembers.AsNoTracking().FirstOrDefaultAsync(members => members.serverID == id && members.userID == userId);
 
         if(isMember == null)
@@ -124,6 +126,7 @@ public class ServerController : ModifiedControllerBase
             return Forbid();
         }
 
+        //gets all members of a server
         List<UserResult> members = await db.ServerMembers.AsNoTracking().Where(member => member.serverID == id).Join(db.Users, member => member.userID, user => user.id, (member, user) => new UserResult{displayName = user.displayName, username = user.username, profileImageUrl = user.profileImageUrl, activityStatus = user.activityStatus, accountCreationTime = user.accountCreationTime}).ToListAsync();
 
         return Ok(members);
@@ -151,6 +154,7 @@ public class ServerController : ModifiedControllerBase
             return Forbid();
         }
 
+        //checks if the user is changing the name
         if(updateServerRequest.serverName != null)
         {
             string trimmed = updateServerRequest.serverName.Trim();
@@ -161,6 +165,7 @@ public class ServerController : ModifiedControllerBase
             }
         }
 
+        //checks if the user is changing the ico
         if(updateServerRequest.serverImageUrl != null)
         {
             foundServer.iconUrl = updateServerRequest.serverImageUrl;
@@ -232,6 +237,7 @@ public class ServerController : ModifiedControllerBase
 
         db.ServerMembers.Remove(foundMember);
 
+        //checks if the user was the server owner
         if(foundServer.ownerID == userId)
         {
             foundServer = await db.Servers.FirstOrDefaultAsync(server => server.id == id);
@@ -243,6 +249,7 @@ public class ServerController : ModifiedControllerBase
 
             ServerMember? newOwner = await db.ServerMembers.FirstOrDefaultAsync(member => member.serverID == id && member.userID != userId);
 
+            //deletes the server if no other members in the server
             if(newOwner == null)
             {
                 db.Servers.Remove(foundServer);
@@ -376,6 +383,7 @@ public class ServerController : ModifiedControllerBase
             return Forbid();
         }
 
+        //gets all of the channels in the server
         List<ChannelResult> results = await db.Channels.AsNoTracking().Where(channel => channel.serverID == id).OrderBy(channel => channel.channelOrder).Select(channel => new ChannelResult{channelID = channel.id, channelName = channel.channelName, channelOrder = channel.channelOrder}).ToListAsync();
 
         return Ok(results);

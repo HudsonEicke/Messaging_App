@@ -495,6 +495,7 @@ public class ConversationController : ModifiedControllerBase
         result.messageText = sendMessageRequest.messageText;
         result.senderUsername = username;
         result.timeSent = newMessage.timeSent;
+        result.replyToID = newMessage.replyToID;
 
         return Ok(result);
     }

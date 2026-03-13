@@ -46,6 +46,7 @@ public class FriendController : ModifiedControllerBase
 
         FriendRequestResult result = new FriendRequestResult();
 
+        //checks if either user has sent a request or not
         if(foundFriends.Count == 0)
         {
             Friend newFriendRequest = new Friend();
