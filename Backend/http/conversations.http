@@ -1,0 +1,67 @@
+@Messaging_App_HostAddress = https://localhost:7227
+@accessToken = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9uYW1lIjoidGVzdHVzZXIyIiwiaHR0cDovL3NjaGVtYXMueG1sc29hcC5vcmcvd3MvMjAwNS8wNS9pZGVudGl0eS9jbGFpbXMvbmFtZWlkZW50aWZpZXIiOiIyIiwiZXhwIjoxNzcyNjA4ODc0LCJpc3MiOiJodHRwOi8vbG9jYWxob3N0IiwiYXVkIjoiTWVzc2FnaW5nQXBwQVBJIn0.dvpDJjO_WHwK4kyO_8qCGweHSlu-N4UoLf0vElEFAiU
+@refreshToken = 1SL6rk15Oyw2K3b/oVFERmdg9LiMh9CvLN4gtKbmqck=
+@username=testuser
+@id=1
+
+###Conversation
+
+###Create a conversation
+POST {{Messaging_App_HostAddress}}/conversation/createconversation
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "conversationName": "Test",
+  "iconUrl": null,
+  "memberUsernames": ["testuser2"]
+}
+
+###Get all conversations for a user
+GET {{Messaging_App_HostAddress}}/conversation/conversations
+Authorization: Bearer {{accessToken}}
+
+###Get conversation by id
+GET {{Messaging_App_HostAddress}}/conversation/{{id}}
+Authorization: Bearer {{accessToken}}
+
+###Get the members of a conversation
+GET {{Messaging_App_HostAddress}}/conversation/{{id}}/members
+Authorization: Bearer {{accessToken}}
+
+###Add a user to a conversation
+POST {{Messaging_App_HostAddress}}/conversation/{{id}}/members/{{username}}
+Authorization: Bearer {{accessToken}}
+
+###Leave a conversation
+POST {{Messaging_App_HostAddress}}/conversation/{{id}}/leave
+Authorization: Bearer {{accessToken}}
+
+###Conversation Messages
+
+###Get all messages in a conversation
+GET {{Messaging_App_HostAddress}}/conversation/{{id}}/messages
+Authorization: Bearer {{accessToken}}
+
+###Send message in conversation
+POST {{Messaging_App_HostAddress}}/conversation/{{id}}/sendmessage
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "messageText": "Hello, Conversation!",
+  "replyToID": null
+}
+
+###Edit conversation message
+PUT {{Messaging_App_HostAddress}}/conversationmessage/{{id}}
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "messageText": "Hello, Everyone!"
+}
+
+###Delete conversation message
+DELETE {{Messaging_App_HostAddress}}/conversationmessage/{{id}}
+Authorization: Bearer {{accessToken}}

@@ -1,0 +1,38 @@
+@Messaging_App_HostAddress = https://localhost:7227
+@accessToken = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9uYW1lIjoidGVzdHVzZXIyIiwiaHR0cDovL3NjaGVtYXMueG1sc29hcC5vcmcvd3MvMjAwNS8wNS9pZGVudGl0eS9jbGFpbXMvbmFtZWlkZW50aWZpZXIiOiIyIiwiZXhwIjoxNzcyNjA4ODc0LCJpc3MiOiJodHRwOi8vbG9jYWxob3N0IiwiYXVkIjoiTWVzc2FnaW5nQXBwQVBJIn0.dvpDJjO_WHwK4kyO_8qCGweHSlu-N4UoLf0vElEFAiU
+@id = 1
+
+###Create channel
+POST {{Messaging_App_HostAddress}}/server/{{id}}/createchannel
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "channelName": "general"
+}
+
+###Get channels for server
+GET {{Messaging_App_HostAddress}}/server/{{id}}/channels
+Authorization: Bearer {{accessToken}}
+
+###Reorder channels
+PUT {{Messaging_App_HostAddress}}/server/{{id}}/channels/reorder
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "channelIDs": [1, 2, 3]
+}
+
+###Update channel info
+PUT {{Messaging_App_HostAddress}}/channel/{{id}}
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "channelName": "general2"
+}
+
+###Delete channel
+DELETE {{Messaging_App_HostAddress}}/channel/{{id}}
+Authorization: Bearer {{accessToken}}

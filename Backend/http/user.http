@@ -1,0 +1,45 @@
+@Messaging_App_HostAddress = https://localhost:7227
+@accessToken = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9uYW1lIjoidGVzdHVzZXIyIiwiaHR0cDovL3NjaGVtYXMueG1sc29hcC5vcmcvd3MvMjAwNS8wNS9pZGVudGl0eS9jbGFpbXMvbmFtZWlkZW50aWZpZXIiOiIyIiwiZXhwIjoxNzcyNjA4ODc0LCJpc3MiOiJodHRwOi8vbG9jYWxob3N0IiwiYXVkIjoiTWVzc2FnaW5nQXBwQVBJIn0.dvpDJjO_WHwK4kyO_8qCGweHSlu-N4UoLf0vElEFAiU
+@username = testuser
+@id = 1
+
+###Me
+GET {{Messaging_App_HostAddress}}/user/me
+Authorization: Bearer {{accessToken}}
+
+###Update me
+PUT {{Messaging_App_HostAddress}}/user/me
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "displayName": "TestUser",
+  "profileImageUrl": "https://example.com/image.jpg"
+}
+
+###Update password
+PUT {{Messaging_App_HostAddress}}/user/me/password
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "currentPassword": "Test",
+  "newPassword": "Test2"
+}
+
+###Update status
+PUT {{Messaging_App_HostAddress}}/user/me/status
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "newStatus": 0
+}
+
+###Get user by username
+GET {{Messaging_App_HostAddress}}/user/username/{{username}}
+Authorization: Bearer {{accessToken}}
+
+###Get user by id
+GET {{Messaging_App_HostAddress}}/user/{{id}}
+Authorization: Bearer {{accessToken}}

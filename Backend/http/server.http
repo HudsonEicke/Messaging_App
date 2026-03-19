@@ -1,0 +1,47 @@
+@Messaging_App_HostAddress = https://localhost:7227
+@accessToken = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9uYW1lIjoidGVzdHVzZXIyIiwiaHR0cDovL3NjaGVtYXMueG1sc29hcC5vcmcvd3MvMjAwNS8wNS9pZGVudGl0eS9jbGFpbXMvbmFtZWlkZW50aWZpZXIiOiIyIiwiZXhwIjoxNzcyNjA4ODc0LCJpc3MiOiJodHRwOi8vbG9jYWxob3N0IiwiYXVkIjoiTWVzc2FnaW5nQXBwQVBJIn0.dvpDJjO_WHwK4kyO_8qCGweHSlu-N4UoLf0vElEFAiU
+@username = testuser
+@id = 1
+
+###Create server
+POST {{Messaging_App_HostAddress}}/server/createserver
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "serverName": "Test Server"
+}
+
+###Get servers for user
+GET {{Messaging_App_HostAddress}}/server/servers
+Authorization: Bearer {{accessToken}}
+
+###Get server info
+GET {{Messaging_App_HostAddress}}/server/{{id}}
+Authorization: Bearer {{accessToken}}
+
+###Get server members
+GET {{Messaging_App_HostAddress}}/server/{{id}}/members
+Authorization: Bearer {{accessToken}}
+
+###Update server info
+PUT {{Messaging_App_HostAddress}}/server/{{id}}
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "serverName": "TestServer",
+  "serverImageUrl": "https://example.com/image.jpg"
+}
+
+###Delete server
+DELETE {{Messaging_App_HostAddress}}/server/{{id}}
+Authorization: Bearer {{accessToken}}
+
+###Leave server
+POST {{Messaging_App_HostAddress}}/server/{{id}}/leave
+Authorization: Bearer {{accessToken}}
+
+###Kick member
+DELETE {{Messaging_App_HostAddress}}/server/{{id}}/members/{{username}}
+Authorization: Bearer {{accessToken}}
