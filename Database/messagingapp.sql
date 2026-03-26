@@ -123,3 +123,4 @@ CREATE INDEX idx_serverinvites_serverid ON ServerInvites(serverID);
 CREATE INDEX idx_channels_serverid ON Channels(serverID);
 CREATE INDEX idx_conversationmembers_userid ON ConversationMembers(userID);
 CREATE INDEX idx_friends_receiver ON Friends(receiver);
+CREATE INDEX idx_refreshtokens_token ON RefreshTokens(token);
