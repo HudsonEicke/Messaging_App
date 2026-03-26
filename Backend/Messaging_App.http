@@ -76,7 +76,7 @@ Content-Type: application/json
 Authorization: Bearer {{accessToken}}
 
 {
-  "activityStatus": 0
+  "newStatus": 0
 }
 
 ###Get user info by username
@@ -181,7 +181,8 @@ Content-Type: application/json
 Authorization: Bearer {{accessToken}}
 
 {
-  "messageText": "Hello, world!"
+  "messageText": "Hello, world!",
+  "replyToID": null
 }
 
 ###Edit message
@@ -220,6 +221,112 @@ Authorization: Bearer {{accessToken}}
 ###Join server via invite
 POST {{Messaging_App_HostAddress}}/invite/{{code}}/join
 Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+
+###Conversation
+
+
+###Create a conversation
+POST {{Messaging_App_HostAddress}}/conversation/createconversation
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "conversationName": "Test",
+  "iconUrl": null,
+  "memberUsernames": ["testuser2"]
+}
+
+###Get all conversations for a user
+GET {{Messaging_App_HostAddress}}/conversation/conversations
+Authorization: Bearer {{accessToken}}
+
+###Get conversation by id
+GET {{Messaging_App_HostAddress}}/conversation/{{id}}
+Authorization: Bearer {{accessToken}}
+
+###Get the members of a conversation
+GET {{Messaging_App_HostAddress}}/conversation/{{id}}/members
+Authorization: Bearer {{accessToken}}
+
+###Add a user to a conversation
+POST {{Messaging_App_HostAddress}}/conversation/{{id}}/members/{{username}}
+Authorization: Bearer {{accessToken}}
+
+###Leave a conversation
+POST {{Messaging_App_HostAddress}}/conversation/{{id}}/leave
+Authorization: Bearer {{accessToken}}
+
+
+###Conversation messages
+
+
+###Get all messages in a conversation
+GET {{Messaging_App_HostAddress}}/conversation/{{id}}/messages
+Authorization: Bearer {{accessToken}}
+
+###Send message in conversation
+POST {{Messaging_App_HostAddress}}/conversation/{{id}}/sendmessage
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "messageText": "Hello, Conversation!",
+  "replyToID": null
+}
+
+###Edit conversation message
+PUT {{Messaging_App_HostAddress}}/conversationmessage/{{id}}
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "messageText": "Hello, Everyone!"
+}
+
+###Delete conversation message
+DELETE {{Messaging_App_HostAddress}}/conversationmessage/{{id}}
+Authorization: Bearer {{accessToken}}
+
+
+###FRIENDS
+
+
+###Send a friend request
+POST {{Messaging_App_HostAddress}}/friend/request/{{username}}
+Authorization: Bearer {{accessToken}}
+
+###Accept a friend request
+POST {{Messaging_App_HostAddress}}/friend/accept/{{username}}
+Authorization: Bearer {{accessToken}}
+
+###Decline a friend request
+POST {{Messaging_App_HostAddress}}/friend/decline/{{username}}
+Authorization: Bearer {{accessToken}}
+
+###Unfriend a user
+DELETE {{Messaging_App_HostAddress}}/friend/{{username}}
+Authorization: Bearer {{accessToken}}
+
+###Block a user
+POST {{Messaging_App_HostAddress}}/friend/block/{{username}}
+Authorization: Bearer {{accessToken}}
+
+###Unblock a user
+DELETE {{Messaging_App_HostAddress}}/friend/block/{{username}}
+Authorization: Bearer {{accessToken}}
+
+###Get all friends of a user
+GET {{Messaging_App_HostAddress}}/friend
+Authorization: Bearer {{accessToken}}
+
+###Get all pending friend requests
+GET {{Messaging_App_HostAddress}}/friend/pending
+Authorization: Bearer {{accessToken}}
+
+###Get all blocked users
+GET {{Messaging_App_HostAddress}}/friend/blocked
 Authorization: Bearer {{accessToken}}
 
 ###

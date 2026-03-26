@@ -1,0 +1,43 @@
+@Messaging_App_HostAddress = https://localhost:7227
+@accessToken = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9uYW1lIjoidGVzdHVzZXIyIiwiaHR0cDovL3NjaGVtYXMueG1sc29hcC5vcmcvd3MvMjAwNS8wNS9pZGVudGl0eS9jbGFpbXMvbmFtZWlkZW50aWZpZXIiOiIyIiwiZXhwIjoxNzcyNjA4ODc0LCJpc3MiOiJodHRwOi8vbG9jYWxob3N0IiwiYXVkIjoiTWVzc2FnaW5nQXBwQVBJIn0.dvpDJjO_WHwK4kyO_8qCGweHSlu-N4UoLf0vElEFAiU
+@refreshToken = 1SL6rk15Oyw2K3b/oVFERmdg9LiMh9CvLN4gtKbmqck=
+@username=testuser
+@id=1
+
+###Friends
+
+###Send a friend request
+POST {{Messaging_App_HostAddress}}/friend/request/{{username}}
+Authorization: Bearer {{accessToken}}
+
+###Accept a friend request
+POST {{Messaging_App_HostAddress}}/friend/accept/{{username}}
+Authorization: Bearer {{accessToken}}
+
+###Decline a friend request
+POST {{Messaging_App_HostAddress}}/friend/decline/{{username}}
+Authorization: Bearer {{accessToken}}
+
+###Unfriend a user
+DELETE {{Messaging_App_HostAddress}}/friend/{{username}}
+Authorization: Bearer {{accessToken}}
+
+###Block a user
+POST {{Messaging_App_HostAddress}}/friend/block/{{username}}
+Authorization: Bearer {{accessToken}}
+
+###Unblock a user
+DELETE {{Messaging_App_HostAddress}}/friend/block/{{username}}
+Authorization: Bearer {{accessToken}}
+
+###Get all friends of a user
+GET {{Messaging_App_HostAddress}}/friend
+Authorization: Bearer {{accessToken}}
+
+###Get all pending friend requests
+GET {{Messaging_App_HostAddress}}/friend/pending
+Authorization: Bearer {{accessToken}}
+
+###Get all blocked users
+GET {{Messaging_App_HostAddress}}/friend/blocked
+Authorization: Bearer {{accessToken}}

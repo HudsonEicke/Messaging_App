@@ -1,12 +1,11 @@
 --HOW TO USE
---run this command in your terminal
---psql -U YOURSQLUSERNAME -f PATH_TO_THIS_SCRIPT
---you will be prompted for your postgres password
-
+--open the pgadmin query tool
+--then run this command
 CREATE DATABASE messaging_app;
 
-\c messaging_app
-
+--then in pgadmin refresh the databases tab
+--then right click the messaging_app and select query tool
+--then paste these commands and run
 CREATE TYPE ACTIVITYSTATUS AS ENUM('online', 'away', 'dnd', 'offline');
 CREATE TYPE FRIENDSTATUS AS ENUM('pending', 'friends', 'blocked');
 CREATE TYPE CONVERSATIONTYPE AS ENUM('direct', 'group');

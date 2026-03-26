@@ -1,0 +1,39 @@
+@Messaging_App_HostAddress = https://localhost:7227
+@accessToken = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9uYW1lIjoidGVzdHVzZXIyIiwiaHR0cDovL3NjaGVtYXMueG1sc29hcC5vcmcvd3MvMjAwNS8wNS9pZGVudGl0eS9jbGFpbXMvbmFtZWlkZW50aWZpZXIiOiIyIiwiZXhwIjoxNzcyNjA4ODc0LCJpc3MiOiJodHRwOi8vbG9jYWxob3N0IiwiYXVkIjoiTWVzc2FnaW5nQXBwQVBJIn0.dvpDJjO_WHwK4kyO_8qCGweHSlu-N4UoLf0vElEFAiU
+@refreshToken = 1SL6rk15Oyw2K3b/oVFERmdg9LiMh9CvLN4gtKbmqck=
+
+###Register
+POST {{Messaging_App_HostAddress}}/auth/register
+Content-Type: application/json
+
+{
+  "username": "testuser2",
+  "email": "test2@email.com",
+  "password": "Test"
+}
+
+###Login
+POST {{Messaging_App_HostAddress}}/auth/login
+Content-Type: application/json
+
+{
+  "username": "testuser2",
+  "password": "Test"
+}
+
+###Refresh
+POST {{Messaging_App_HostAddress}}/auth/refresh
+Content-Type: application/json
+
+{
+  "refreshToken": "{{refreshToken}}",
+  "accessToken": "{{accessToken}}"
+}
+
+###Logout
+POST {{Messaging_App_HostAddress}}/auth/logout
+Content-Type: application/json
+
+{
+  "refreshToken": "{{refreshToken}}"
+}

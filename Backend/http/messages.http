@@ -1,0 +1,30 @@
+@Messaging_App_HostAddress = https://localhost:7227
+@accessToken = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9uYW1lIjoidGVzdHVzZXIyIiwiaHR0cDovL3NjaGVtYXMueG1sc29hcC5vcmcvd3MvMjAwNS8wNS9pZGVudGl0eS9jbGFpbXMvbmFtZWlkZW50aWZpZXIiOiIyIiwiZXhwIjoxNzcyNjA4ODc0LCJpc3MiOiJodHRwOi8vbG9jYWxob3N0IiwiYXVkIjoiTWVzc2FnaW5nQXBwQVBJIn0.dvpDJjO_WHwK4kyO_8qCGweHSlu-N4UoLf0vElEFAiU
+@id = 1
+
+###Get messages in channel
+GET {{Messaging_App_HostAddress}}/channel/{{id}}/messages
+Authorization: Bearer {{accessToken}}
+
+###Send message
+POST {{Messaging_App_HostAddress}}/channel/{{id}}/sendmessage
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "messageText": "Hello, world!",
+  "replyToID": null
+}
+
+###Edit message
+PUT {{Messaging_App_HostAddress}}/message/{{id}}
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "messageText": "Hello, everyone!"
+}
+
+###Delete message
+DELETE {{Messaging_App_HostAddress}}/message/{{id}}
+Authorization: Bearer {{accessToken}}
