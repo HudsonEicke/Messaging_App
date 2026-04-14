@@ -40,7 +40,7 @@ public class ChatHub : Hub
 
         foreach(long conversationId in conversationIds)
         {
-            string groupName = $"server_{conversationId}";
+            string groupName = $"conversation_{conversationId}";
             await Groups.AddToGroupAsync(Context.ConnectionId, groupName);
             groups.Add(groupName);
         }
