@@ -5,6 +5,8 @@ using Messaging_App.Data;
 using Microsoft.AspNetCore.Identity;
 using Messaging_App.Services;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.SignalR;
+using Messaging_App.Hubs;
 
 namespace Messaging_App.Controllers;
 
@@ -15,11 +17,13 @@ public class UserController : ModifiedControllerBase
 {
     private readonly MessagingAppContext db;
     private readonly AuthService authService;
+    private readonly IHubContext<ChatHub> hubContext;
 
-    public UserController(MessagingAppContext db, AuthService authService)
+    public UserController(MessagingAppContext db, AuthService authService, IHubContext<ChatHub> hubContext)
     {
         this.db = db;
         this.authService = authService;
+        this.hubContext = hubContext;
     }
 
     //detailed get user
@@ -137,6 +141,16 @@ public class UserController : ModifiedControllerBase
 
         await db.SaveChangesAsync();
 
+        List<long> serverIds = await db.ServerMembers.AsNoTracking().Where(member => member.userID == userId).Select(member => member.serverID).ToListAsync();
+
+        List<long> conversationIds = await db.ConversationMembers.AsNoTracking().Where(member => member.userID == userId).Select(member => member.conversationID).ToListAsync();
+
+        List<string> groups = new List<string>();
+        groups.AddRange(serverIds.Select(id => $"server_{id}"));
+        groups.AddRange(conversationIds.Select(id => $"conversation_{id}"));
+
+        await hubContext.Clients.Groups(groups).SendAsync("UserUpdated", foundUser.username, foundUser.displayName, foundUser.profileImageUrl);
+
         UserResult result = new UserResult();
 
         result.displayName = foundUser.displayName;
@@ -231,6 +245,16 @@ public class UserController : ModifiedControllerBase
         foundUser.activityStatus = statusRequest.newStatus;
 
         await db.SaveChangesAsync();
+
+        List<long> serverIds = await db.ServerMembers.AsNoTracking().Where(member => member.userID == userId).Select(member => member.serverID).ToListAsync();
+
+        List<long> conversationIds = await db.ConversationMembers.AsNoTracking().Where(member => member.userID == userId).Select(member => member.conversationID).ToListAsync();
+
+        List<string> groups = new List<string>();
+        groups.AddRange(serverIds.Select(id => $"server_{id}"));
+        groups.AddRange(conversationIds.Select(id => $"conversation_{id}"));
+
+        await hubContext.Clients.Groups(groups).SendAsync("UserStatusChanged", foundUser.username, foundUser.activityStatus);
 
         return Ok();
     }
