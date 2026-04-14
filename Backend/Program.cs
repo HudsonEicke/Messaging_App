@@ -7,6 +7,7 @@ using System.Text;
 using Messaging_App.Configuration;
 using Messaging_App.Services;
 using Microsoft.AspNetCore.RateLimiting;
+using Messaging_App.Hubs;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -15,6 +16,7 @@ var secretKey = Encoding.UTF8.GetBytes(jwtSettings.SecretKey);
 
 builder.Services.Configure<JwtSettings>(builder.Configuration.GetSection("JwtSettings"));
 builder.Services.Configure<EncryptionSettings>(builder.Configuration.GetSection("EncryptionSettings"));
+builder.Services.AddSignalR();
 
 builder.Services.AddAuthentication(options =>
 {
@@ -33,6 +35,18 @@ builder.Services.AddAuthentication(options =>
         ValidAudience = jwtSettings.Audience,
         IssuerSigningKey = new SymmetricSecurityKey(secretKey),
         ClockSkew = TimeSpan.Zero
+    };
+
+    options.Events = new JwtBearerEvents
+    {
+        OnMessageReceived = context =>
+        {
+            var token = context.Request.Query["access_token"];
+            if (!string.IsNullOrEmpty(token) && context.Request.Path.StartsWithSegments("/hubs/chat"))
+                context.Token = token;
+
+            return Task.CompletedTask;
+        }
     };
 });
 
@@ -70,5 +84,5 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
-
+app.MapHub<ChatHub>("/hubs/chat");
 app.Run();
