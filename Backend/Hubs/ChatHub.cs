@@ -12,6 +12,8 @@ public class ChatHub : Hub
 {
     private readonly MessagingAppContext db;
     private static readonly ConcurrentDictionary<string, HashSet<string>> _connectionGroups = new();
+    private static readonly ConcurrentDictionary<long, HashSet<string>> _userConnections = new();
+
 
     public ChatHub(MessagingAppContext db)
     {
@@ -21,6 +23,7 @@ public class ChatHub : Hub
     public override async Task OnConnectedAsync()
     {
         long userId = long.Parse(Context.User!.FindFirst(ClaimTypes.NameIdentifier)!.Value);
+        _userConnections.AddOrUpdate(userId, new HashSet<string> { Context.ConnectionId }, (key, existing) => { existing.Add(Context.ConnectionId); return existing; });
 
         HashSet<string> groups = new HashSet<string>();
 
@@ -49,7 +52,17 @@ public class ChatHub : Hub
 
     public override Task OnDisconnectedAsync(Exception? exception)
     {
+        long userId = long.Parse(Context.User!.FindFirst(ClaimTypes.NameIdentifier)!.Value);
+
         _connectionGroups.TryRemove(Context.ConnectionId, out _);
+
+        if (_userConnections.TryGetValue(userId, out HashSet<string>? connections))
+        {
+            connections.Remove(Context.ConnectionId);
+            if (connections.Count == 0)
+                _userConnections.TryRemove(userId, out _);
+        }
+
         return base.OnDisconnectedAsync(exception);
     }
 
@@ -66,4 +79,14 @@ public class ChatHub : Hub
 
         await Clients.OthersInGroup(groupName).SendAsync("UserTyping", username, isTyping);
     }
+
+    public static async Task RemoveUserFromGroup(IHubContext<ChatHub> hubContext, long userId, string groupName)
+    {
+        if (!_userConnections.TryGetValue(userId, out HashSet<string>? connections))
+            return;
+
+        foreach (string connectionId in connections)
+            await hubContext.Groups.RemoveFromGroupAsync(connectionId, groupName);
+    }
+
 }

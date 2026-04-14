@@ -3,6 +3,8 @@ using Microsoft.EntityFrameworkCore;
 using Messaging_App.Models;
 using Messaging_App.Data;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.SignalR;
+using Messaging_App.Hubs;
 
 namespace Messaging_App.Controllers;
 
@@ -12,10 +14,12 @@ namespace Messaging_App.Controllers;
 public class ServerController : ModifiedControllerBase
 {
     private readonly MessagingAppContext db;
+    private readonly IHubContext<ChatHub> hubContext;
 
-    public ServerController(MessagingAppContext db)
+    public ServerController(MessagingAppContext db, IHubContext<ChatHub> hubContext)
     {
         this.db = db;
+        this.hubContext = hubContext;
     }
 
     //Server API
@@ -186,6 +190,8 @@ public class ServerController : ModifiedControllerBase
         result.ownerUsername = owner.username;
         result.iconUrl = foundServer.iconUrl;
 
+        await hubContext.Clients.Group($"server_{foundServer.id}").SendAsync("ServerUpdated", foundServer.serverName, foundServer.iconUrl);
+
         return Ok(result);
     }
 
@@ -210,6 +216,13 @@ public class ServerController : ModifiedControllerBase
         {
             return Forbid();
         }
+
+        List<long> memberIds = await db.ServerMembers.AsNoTracking().Where(member => member.serverID == id).Select(member => member.userID).ToListAsync();
+
+        await hubContext.Clients.Group($"server_{foundServer.id}").SendAsync("ServerDeleted", foundServer.id);
+
+        foreach (long memberId in memberIds)
+            await ChatHub.RemoveUserFromGroup(hubContext, memberId, $"server_{foundServer.id}");
 
         db.Servers.Remove(foundServer);
         await db.SaveChangesAsync();
@@ -236,6 +249,8 @@ public class ServerController : ModifiedControllerBase
         }
 
         db.ServerMembers.Remove(foundMember);
+        
+        string? newOwnerUsername = null;
 
         //checks if the user was the server owner
         if(foundServer.ownerID == userId)
@@ -252,15 +267,27 @@ public class ServerController : ModifiedControllerBase
             //deletes the server if no other members in the server
             if(newOwner == null)
             {
+                await ChatHub.RemoveUserFromGroup(hubContext, userId, $"server_{id}");
                 db.Servers.Remove(foundServer);
+                await db.SaveChangesAsync();
+                return NoContent();
             }
             else
             {
                 foundServer.ownerID = newOwner.userID;
+
+                newOwnerUsername = await db.Users.AsNoTracking().Where(user => user.id == newOwner.userID).Select(user=> user.username).FirstOrDefaultAsync();
             }
         }
 
         await db.SaveChangesAsync();
+
+        if(newOwnerUsername != null)
+            await hubContext.Clients.Group($"server_{id}").SendAsync("OwnerChanged", newOwnerUsername);
+
+        await hubContext.Clients.Group($"server_{id}").SendAsync("MemberLeft", GetUsername());
+        await ChatHub.RemoveUserFromGroup(hubContext, userId, $"server_{id}");
+
         return NoContent();
     }
 
@@ -309,6 +336,9 @@ public class ServerController : ModifiedControllerBase
 
         await db.SaveChangesAsync();
 
+        await hubContext.Clients.Group($"server_{id}").SendAsync("MemberKicked", foundUser.username);
+        await ChatHub.RemoveUserFromGroup(hubContext, foundUser.id, $"server_{id}");
+
         return NoContent();
     }
 
@@ -355,6 +385,8 @@ public class ServerController : ModifiedControllerBase
         result.channelID = newChannel.id;
         result.channelName = newChannel.channelName;
         result.channelOrder = newChannel.channelOrder;
+
+        await hubContext.Clients.Group($"server_{id}").SendAsync("ChannelCreated", result);
 
         return Ok(result);
     }
@@ -431,6 +463,8 @@ public class ServerController : ModifiedControllerBase
         }
 
         await db.SaveChangesAsync();
+
+        await hubContext.Clients.Group($"server_{id}").SendAsync("ChannelsReordered", reorderChannelRequest.channelIDs);
 
         return NoContent();
     }
