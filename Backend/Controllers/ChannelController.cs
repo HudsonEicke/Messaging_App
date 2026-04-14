@@ -4,6 +4,8 @@ using Messaging_App.Models;
 using Messaging_App.Data;
 using Messaging_App.Services;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.SignalR;
+using Messaging_App.Hubs;
 
 namespace Messaging_App.Controllers;
 
@@ -14,12 +16,14 @@ public class ChannelController : ModifiedControllerBase
 {
     private readonly MessagingAppContext db;
     private readonly EncryptionService encryptionService;
+    private readonly IHubContext<ChatHub> hubContext;
     private const int MESSAGEGRABAMOUNT = 50;
 
-    public ChannelController(MessagingAppContext db, EncryptionService encryptionService)
+    public ChannelController(MessagingAppContext db, EncryptionService encryptionService, IHubContext<ChatHub> hubContext)
     {
         this.db = db;
         this.encryptionService = encryptionService;
+        this.hubContext = hubContext;
     }
 
     [HttpPut("{id}")]
@@ -59,6 +63,8 @@ public class ChannelController : ModifiedControllerBase
         foundChannel.channelName = updateChannelRequest.channelName.Trim();
 
         await db.SaveChangesAsync();
+
+        await hubContext.Clients.Group($"server_{foundServer.id}").SendAsync("ChannelUpdated", foundChannel.id, foundChannel.channelName);
 
         return NoContent();
     }
@@ -105,6 +111,8 @@ public class ChannelController : ModifiedControllerBase
         }
 
         await db.SaveChangesAsync();
+
+        await hubContext.Clients.Group($"server_{foundServer.id}").SendAsync("ChannelDeleted", foundChannel.id);
 
         return NoContent();
     }
@@ -212,6 +220,8 @@ public class ChannelController : ModifiedControllerBase
         result.senderUsername = username;
         result.timeSent = newMessage.timeSent;
         result.replyToID = newMessage.replyToID;
+
+        await hubContext.Clients.Group($"server_{foundChannel.serverID}").SendAsync("ReceiveChannelMessage", foundChannel.serverID, result);
 
         return Ok(result);
     }
