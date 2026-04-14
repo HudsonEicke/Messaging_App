@@ -89,4 +89,13 @@ public class ChatHub : Hub
             await hubContext.Groups.RemoveFromGroupAsync(connectionId, groupName);
     }
 
+    public static async Task AddUserToGroup(IHubContext<ChatHub> hubContext, long userId, string groupName)
+    {
+        if (!_userConnections.TryGetValue(userId, out HashSet<string>? connections))
+            return;
+
+        foreach (string connectionId in connections)
+            await hubContext.Groups.AddToGroupAsync(connectionId, groupName);
+    }
+
 }
