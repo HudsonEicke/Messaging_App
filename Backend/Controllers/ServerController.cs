@@ -54,6 +54,8 @@ public class ServerController : ModifiedControllerBase
 
         await db.SaveChangesAsync();
 
+        await ChatHub.AddUserToGroup(hubContext, userId, $"server_{newServer.id}");
+
         CreateServerResult result = new CreateServerResult();
 
         result.serverID = newServer.id;

@@ -3,6 +3,8 @@ using Microsoft.EntityFrameworkCore;
 using Messaging_App.Models;
 using Messaging_App.Data;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.SignalR;
+using Messaging_App.Hubs;
 
 namespace Messaging_App.Controllers;
 
@@ -12,10 +14,12 @@ namespace Messaging_App.Controllers;
 public class InviteController : ModifiedControllerBase
 {
     private readonly MessagingAppContext db;
+    private readonly IHubContext<ChatHub> hubContext;
 
-    public InviteController(MessagingAppContext db)
+    public InviteController(MessagingAppContext db, IHubContext<ChatHub> hubContext)
     {
         this.db = db;
+        this.hubContext = hubContext;
     }
 
     [HttpPost("{code}/join")]
@@ -74,6 +78,10 @@ public class InviteController : ModifiedControllerBase
         {
             return NotFound();
         }
+
+        await ChatHub.AddUserToGroup(hubContext, userId, $"server_{foundInvite.serverID}");
+        string? username = GetUsername();
+        await hubContext.Clients.Group($"server_{foundInvite.serverID}").SendAsync("MemberJoined", username);
 
         ServerResult result = new ServerResult();
         result.serverID = foundServer.id;
