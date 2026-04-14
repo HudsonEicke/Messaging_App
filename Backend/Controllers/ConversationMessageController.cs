@@ -4,7 +4,8 @@ using Messaging_App.Models;
 using Messaging_App.Data;
 using Messaging_App.Services;
 using Microsoft.AspNetCore.Authorization;
-using System.Text;
+using Microsoft.AspNetCore.SignalR;
+using Messaging_App.Hubs;
 
 namespace Messaging_App.Controllers;
 
@@ -15,11 +16,13 @@ public class ConversationMessageController : ModifiedControllerBase
 {
     private readonly MessagingAppContext db;
     private readonly EncryptionService encryptionService;
+    private readonly IHubContext<ChatHub> hubContext;
 
-    public ConversationMessageController(MessagingAppContext db, EncryptionService encryptionService)
+    public ConversationMessageController(MessagingAppContext db, EncryptionService encryptionService, IHubContext<ChatHub> hubContext)
     {
         this.db = db;
         this.encryptionService = encryptionService;
+        this.hubContext = hubContext;
     }
 
     [HttpPut("{id}")]
@@ -61,6 +64,8 @@ public class ConversationMessageController : ModifiedControllerBase
 
         await db.SaveChangesAsync();
 
+        await hubContext.Clients.Group($"conversation_{foundMessage.conversationID}").SendAsync("ConversationMessageEdited", foundMessage.conversationID, foundMessage.id, editMessageRequest.messageText);
+
         return NoContent();
     }
 
@@ -97,6 +102,8 @@ public class ConversationMessageController : ModifiedControllerBase
         db.ConversationMessages.Remove(foundMessage);
 
         await db.SaveChangesAsync();
+
+        await hubContext.Clients.Group($"conversation_{foundMessage.conversationID}").SendAsync("ConversationMessageDeleted", foundMessage.conversationID, foundMessage.id);
 
         return NoContent();
     }

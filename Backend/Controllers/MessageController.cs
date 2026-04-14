@@ -4,6 +4,8 @@ using Messaging_App.Models;
 using Messaging_App.Data;
 using Messaging_App.Services;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.SignalR;
+using Messaging_App.Hubs;
 
 namespace Messaging_App.Controllers;
 
@@ -14,11 +16,13 @@ public class MessageController : ModifiedControllerBase
 {
     private readonly MessagingAppContext db;
     private readonly EncryptionService encryptionService;
+    private readonly IHubContext<ChatHub> hubContext;
 
-    public MessageController(MessagingAppContext db, EncryptionService encryptionService)
+    public MessageController(MessagingAppContext db, EncryptionService encryptionService, IHubContext<ChatHub> hubContext)
     {
         this.db = db;
         this.encryptionService = encryptionService;
+        this.hubContext = hubContext;
     }
 
     [HttpPut("{id}")]
@@ -60,6 +64,11 @@ public class MessageController : ModifiedControllerBase
 
         await db.SaveChangesAsync();
 
+        Channel? foundChannel = await db.Channels.AsNoTracking().FirstOrDefaultAsync(channel => channel.id == foundMessage.channelID);
+
+        if(foundChannel != null)
+            await hubContext.Clients.Group($"server_{foundChannel.serverID}").SendAsync("ChannelMessageEdited", foundMessage.channelID, foundMessage.id, editMessageRequest.messageText);
+
         return NoContent();
     }
 
@@ -96,6 +105,8 @@ public class MessageController : ModifiedControllerBase
         db.Messages.Remove(foundMessage);
 
         await db.SaveChangesAsync();
+
+        await hubContext.Clients.Group($"server_{foundServer.id}").SendAsync("ChannelMessageDeleted", foundMessage.channelID, foundMessage.id);
 
         return NoContent();
     }
