@@ -1,0 +1,2566 @@
+{
+  "info": {
+    "_postman_id": "ab2a32d3-8717-47bc-bdba-c9058c2158dc",
+    "name": "Messaging_App",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "53160070",
+    "_collection_link": "https://go.postman.co/collection/53160070-ab2a32d3-8717-47bc-bdba-c9058c2158dc?source=collection_link"
+  },
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Register",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var json = pm.response.json();\r",
+                  "pm.collectionVariables.set(\"accessToken\", json.accessToken);\r",
+                  "pm.collectionVariables.set(\"refreshToken\", json.refreshToken);"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"username\": \"testuser\",\r\n  \"email\": \"test@email.com\",\r\n  \"password\": \"Test\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{Messaging_App_HostAddress}}/auth/register",
+              "host": [
+                "{{Messaging_App_HostAddress}}"
+              ],
+              "path": [
+                "auth",
+                "register"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var json = pm.response.json();\r",
+                  "pm.collectionVariables.set(\"accessToken\", json.accessToken);\r",
+                  "pm.collectionVariables.set(\"refreshToken\", json.refreshToken);"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"username\": \"testuser\",\r\n  \"password\": \"Test\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{Messaging_App_HostAddress}}/auth/login",
+              "host": [
+                "{{Messaging_App_HostAddress}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Refresh",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var json = pm.response.json();\r",
+                  "pm.collectionVariables.set(\"accessToken\", json.accessToken);\r",
+                  "pm.collectionVariables.set(\"refreshToken\", json.refreshToken);"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"refreshToken\": \"{{refreshToken}}\",\r\n  \"accessToken\": \"{{accessToken}}\"\r\n}\r\n",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{Messaging_App_HostAddress}}/auth/refresh",
+              "host": [
+                "{{Messaging_App_HostAddress}}"
+              ],
+              "path": [
+                "auth",
+                "refresh"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"refreshToken\": \"{{refreshToken}}\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{Messaging_App_HostAddress}}/auth/logout",
+              "host": [
+                "{{Messaging_App_HostAddress}}"
+              ],
+              "path": [
+                "auth",
+                "logout"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "User",
+      "item": [
+        {
+          "name": "Me",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{Messaging_App_HostAddress}}/user/me",
+              "host": [
+                "{{Messaging_App_HostAddress}}"
+              ],
+              "path": [
+                "user",
+                "me"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Me",
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"displayName\": \"TestUser\",\r\n  \"profileImageUrl\": \"https://example.com/image.jpg\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{Messaging_App_HostAddress}}/user/me",
+              "host": [
+                "{{Messaging_App_HostAddress}}"
+              ],
+              "path": [
+                "user",
+                "me"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Password",
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"currentPassword\": \"Test\",\r\n  \"newPassword\": \"Test2\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{Messaging_App_HostAddress}}/user/me/password",
+              "host": [
+                "{{Messaging_App_HostAddress}}"
+              ],
+              "path": [
+                "user",
+                "me",
+                "password"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Status",
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"newStatus\": 0\r\n}"
+            },
+            "url": {
+              "raw": "{{Messaging_App_HostAddress}}/user/me/status",
+              "host": [
+                "{{Messaging_App_HostAddress}}"
+              ],
+              "path": [
+                "user",
+                "me",
+                "status"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get User by Username",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{Messaging_App_HostAddress}}/user/username/{{username}}",
+              "host": [
+                "{{Messaging_App_HostAddress}}"
+              ],
+              "path": [
+                "user",
+                "username",
+                "{{username}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get User by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{Messaging_App_HostAddress}}/user/{{userID}}",
+              "host": [
+                "{{Messaging_App_HostAddress}}"
+              ],
+              "path": [
+                "user",
+                "{{userID}}"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Server",
+      "item": [
+        {
+          "name": "Create Server",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"serverName\": \"Test Server\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{Messaging_App_HostAddress}}/server/createserver",
+              "host": [
+                "{{Messaging_App_HostAddress}}"
+              ],
+              "path": [
+                "server",
+                "createserver"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Servers",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{Messaging_App_HostAddress}}/server/servers",
+              "host": [
+                "{{Messaging_App_HostAddress}}"
+              ],
+              "path": [
+                "server",
+                "servers"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Server by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{Messaging_App_HostAddress}}/server/{{serverID}}",
+              "host": [
+                "{{Messaging_App_HostAddress}}"
+              ],
+              "path": [
+                "server",
+                "{{serverID}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Server Members",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{Messaging_App_HostAddress}}/server/{{serverID}}/members",
+              "host": [
+                "{{Messaging_App_HostAddress}}"
+              ],
+              "path": [
+                "server",
+                "{{serverID}}",
+                "members"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Server",
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"serverName\": \"TestServer\",\r\n  \"serverImageUrl\": \"https://example.com/image.jpg\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{Messaging_App_HostAddress}}/server/{{serverID}}",
+              "host": [
+                "{{Messaging_App_HostAddress}}"
+              ],
+              "path": [
+                "server",
+                "{{serverID}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Server",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{Messaging_App_HostAddress}}/server/{{serverID}}",
+              "host": [
+                "{{Messaging_App_HostAddress}}"
+              ],
+              "path": [
+                "server",
+                "{{serverID}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Leave Server",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{Messaging_App_HostAddress}}/server/{{serverID}}/leave",
+              "host": [
+                "{{Messaging_App_HostAddress}}"
+              ],
+              "path": [
+                "server",
+                "{{serverID}}",
+                "leave"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Kick Member",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{Messaging_App_HostAddress}}/server/{{serverID}}/members/{{username}}",
+              "host": [
+                "{{Messaging_App_HostAddress}}"
+              ],
+              "path": [
+                "server",
+                "{{serverID}}",
+                "members",
+                "{{username}}"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Channels",
+      "item": [
+        {
+          "name": "Create Channel",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"channelName\": \"general\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{Messaging_App_HostAddress}}/server/{{serverID}}/createchannel",
+              "host": [
+                "{{Messaging_App_HostAddress}}"
+              ],
+              "path": [
+                "server",
+                "{{serverID}}",
+                "createchannel"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Channels",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{Messaging_App_HostAddress}}/server/{{serverID}}/channels",
+              "host": [
+                "{{Messaging_App_HostAddress}}"
+              ],
+              "path": [
+                "server",
+                "{{serverID}}",
+                "channels"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Reorder Channels",
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"channelIDs\": [3, 2, 1]\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{Messaging_App_HostAddress}}/server/{{serverID}}/channels/reorder",
+              "host": [
+                "{{Messaging_App_HostAddress}}"
+              ],
+              "path": [
+                "server",
+                "{{serverID}}",
+                "channels",
+                "reorder"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Channel",
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"channelName\": \"general2\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{Messaging_App_HostAddress}}/channel/{{channelID}}",
+              "host": [
+                "{{Messaging_App_HostAddress}}"
+              ],
+              "path": [
+                "channel",
+                "{{channelID}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Channel",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{Messaging_App_HostAddress}}/channel/{{channelID}}",
+              "host": [
+                "{{Messaging_App_HostAddress}}"
+              ],
+              "path": [
+                "channel",
+                "{{channelID}}"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Messages",
+      "item": [
+        {
+          "name": "Get Messages in Channel",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{Messaging_App_HostAddress}}/channel/{{channelID}}/messages",
+              "host": [
+                "{{Messaging_App_HostAddress}}"
+              ],
+              "path": [
+                "channel",
+                "{{channelID}}",
+                "messages"
+              ],
+              "query": [
+                {
+                  "key": "before",
+                  "value": "{{beforeMessageID}}",
+                  "type": "text",
+                  "disabled": true
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Send Message",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"messageText\": \"Hello, world!\",\r\n  \"replyToID\": null\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{Messaging_App_HostAddress}}/channel/{{channelID}}/sendmessage",
+              "host": [
+                "{{Messaging_App_HostAddress}}"
+              ],
+              "path": [
+                "channel",
+                "{{channelID}}",
+                "sendmessage"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Edit Message",
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"messageText\": \"Hello, everyone!\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{Messaging_App_HostAddress}}/message/{{messageID}}",
+              "host": [
+                "{{Messaging_App_HostAddress}}"
+              ],
+              "path": [
+                "message",
+                "{{messageID}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Message",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{Messaging_App_HostAddress}}/message/{{messageID}}",
+              "host": [
+                "{{Messaging_App_HostAddress}}"
+              ],
+              "path": [
+                "message",
+                "{{messageID}}"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Invites",
+      "item": [
+        {
+          "name": "Create Invite",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var json = pm.response.json();\r",
+                  "pm.collectionVariables.set(\"inviteCode\", json.inviteCode);"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"expiresDate\": null,\r\n  \"maxUses\": null\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{Messaging_App_HostAddress}}/server/{{serverID}}/invite",
+              "host": [
+                "{{Messaging_App_HostAddress}}"
+              ],
+              "path": [
+                "server",
+                "{{serverID}}",
+                "invite"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Invites",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{Messaging_App_HostAddress}}/server/{{serverID}}/invites",
+              "host": [
+                "{{Messaging_App_HostAddress}}"
+              ],
+              "path": [
+                "server",
+                "{{serverID}}",
+                "invites"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Invite",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{Messaging_App_HostAddress}}/server/{{serverID}}/invite/{{inviteCode}}",
+              "host": [
+                "{{Messaging_App_HostAddress}}"
+              ],
+              "path": [
+                "server",
+                "{{serverID}}",
+                "invite",
+                "{{inviteCode}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Join Server",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{Messaging_App_HostAddress}}/invite/{{inviteCode}}/join",
+              "host": [
+                "{{Messaging_App_HostAddress}}"
+              ],
+              "path": [
+                "invite",
+                "{{inviteCode}}",
+                "join"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Conversations",
+      "item": [
+        {
+          "name": "Create Conversation",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"conversationName\": \"Test\",\r\n  \"iconUrl\": null,\r\n  \"memberUsernames\": [\"testuser2\"]\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{Messaging_App_HostAddress}}/conversation/createconversation",
+              "host": [
+                "{{Messaging_App_HostAddress}}"
+              ],
+              "path": [
+                "conversation",
+                "createconversation"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Conversations",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{Messaging_App_HostAddress}}/conversation/conversations",
+              "host": [
+                "{{Messaging_App_HostAddress}}"
+              ],
+              "path": [
+                "conversation",
+                "conversations"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Conversation by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{Messaging_App_HostAddress}}/conversation/{{conversationID}}",
+              "host": [
+                "{{Messaging_App_HostAddress}}"
+              ],
+              "path": [
+                "conversation",
+                "{{conversationID}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Conversation Members",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{Messaging_App_HostAddress}}/conversation/{{conversationID}}/members",
+              "host": [
+                "{{Messaging_App_HostAddress}}"
+              ],
+              "path": [
+                "conversation",
+                "{{conversationID}}",
+                "members"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Add Member",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{Messaging_App_HostAddress}}/conversation/{{conversationID}}/members/{{username}}",
+              "host": [
+                "{{Messaging_App_HostAddress}}"
+              ],
+              "path": [
+                "conversation",
+                "{{conversationID}}",
+                "members",
+                "{{username}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Leave Conversation",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{Messaging_App_HostAddress}}/conversation/{{conversationID}}/leave",
+              "host": [
+                "{{Messaging_App_HostAddress}}"
+              ],
+              "path": [
+                "conversation",
+                "{{conversationID}}",
+                "leave"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Messages in Conversation",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{Messaging_App_HostAddress}}/conversation/{{conversationID}}/messages",
+              "host": [
+                "{{Messaging_App_HostAddress}}"
+              ],
+              "path": [
+                "conversation",
+                "{{conversationID}}",
+                "messages"
+              ],
+              "query": [
+                {
+                  "key": "before",
+                  "value": "{{conversationMessageID}}",
+                  "type": "text",
+                  "disabled": true
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Send Conversation Message",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"messageText\": \"Hello, Conversation!\",\r\n  \"replyToID\": null\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{Messaging_App_HostAddress}}/conversation/{{conversationID}}/sendmessage",
+              "host": [
+                "{{Messaging_App_HostAddress}}"
+              ],
+              "path": [
+                "conversation",
+                "{{conversationID}}",
+                "sendmessage"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Edit Conversation Message",
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"messageText\": \"Hello, Everyone!\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{Messaging_App_HostAddress}}/conversationmessage/{{conversationMessageID}}",
+              "host": [
+                "{{Messaging_App_HostAddress}}"
+              ],
+              "path": [
+                "conversationmessage",
+                "{{conversationMessageID}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Conversation Message",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{Messaging_App_HostAddress}}/conversationmessage/{{conversationMessageID}}",
+              "host": [
+                "{{Messaging_App_HostAddress}}"
+              ],
+              "path": [
+                "conversationmessage",
+                "{{conversationMessageID}}"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Friends",
+      "item": [
+        {
+          "name": "Send Friend Request",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{Messaging_App_HostAddress}}/friend/request/{{username}}",
+              "host": [
+                "{{Messaging_App_HostAddress}}"
+              ],
+              "path": [
+                "friend",
+                "request",
+                "{{username}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Accept Friend Request",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{Messaging_App_HostAddress}}/friend/accept/{{username}}",
+              "host": [
+                "{{Messaging_App_HostAddress}}"
+              ],
+              "path": [
+                "friend",
+                "accept",
+                "{{username}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Decline Friend Request",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{Messaging_App_HostAddress}}/friend/decline/{{username}}",
+              "host": [
+                "{{Messaging_App_HostAddress}}"
+              ],
+              "path": [
+                "friend",
+                "decline",
+                "{{username}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Unfriend",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{Messaging_App_HostAddress}}/friend/{{username}}",
+              "host": [
+                "{{Messaging_App_HostAddress}}"
+              ],
+              "path": [
+                "friend",
+                "{{username}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Block",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{Messaging_App_HostAddress}}/friend/block/{{username}}",
+              "host": [
+                "{{Messaging_App_HostAddress}}"
+              ],
+              "path": [
+                "friend",
+                "block",
+                "{{username}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Unblock",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{Messaging_App_HostAddress}}/friend/block/{{username}}",
+              "host": [
+                "{{Messaging_App_HostAddress}}"
+              ],
+              "path": [
+                "friend",
+                "block",
+                "{{username}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Friends",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{Messaging_App_HostAddress}}/friend",
+              "host": [
+                "{{Messaging_App_HostAddress}}"
+              ],
+              "path": [
+                "friend"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Pending",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{Messaging_App_HostAddress}}/friend/pending",
+              "host": [
+                "{{Messaging_App_HostAddress}}"
+              ],
+              "path": [
+                "friend",
+                "pending"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Blocked",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{Messaging_App_HostAddress}}/friend/blocked",
+              "host": [
+                "{{Messaging_App_HostAddress}}"
+              ],
+              "path": [
+                "friend",
+                "blocked"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "User B Endpoints",
+      "item": [
+        {
+          "name": "Auth",
+          "item": [
+            {
+              "name": "RegisterB",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "var json = pm.response.json();\r",
+                      "pm.collectionVariables.set(\"accessToken_B\", json.accessToken);\r",
+                      "pm.collectionVariables.set(\"refreshToken_B\", json.refreshToken);"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "noauth"
+                },
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n  \"username\": \"testuser2\",\r\n  \"email\": \"test2@email.com\",\r\n  \"password\": \"Test\"\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{Messaging_App_HostAddress}}/auth/register",
+                  "host": [
+                    "{{Messaging_App_HostAddress}}"
+                  ],
+                  "path": [
+                    "auth",
+                    "register"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "LoginB",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "var json = pm.response.json();\r",
+                      "pm.collectionVariables.set(\"accessToken_B\", json.accessToken);\r",
+                      "pm.collectionVariables.set(\"refreshToken_B\", json.refreshToken);"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "noauth"
+                },
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n  \"username\": \"testuser2\",\r\n  \"password\": \"Test\"\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{Messaging_App_HostAddress}}/auth/login",
+                  "host": [
+                    "{{Messaging_App_HostAddress}}"
+                  ],
+                  "path": [
+                    "auth",
+                    "login"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "RefreshB",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "var json = pm.response.json();\r",
+                      "pm.collectionVariables.set(\"accessToken_B\", json.accessToken);\r",
+                      "pm.collectionVariables.set(\"refreshToken_B\", json.refreshToken);"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "noauth"
+                },
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n  \"refreshToken\": \"{{refreshToken_B}}\",\r\n  \"accessToken\": \"{{accessToken_B}}\"\r\n}\r\n",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{Messaging_App_HostAddress}}/auth/refresh",
+                  "host": [
+                    "{{Messaging_App_HostAddress}}"
+                  ],
+                  "path": [
+                    "auth",
+                    "refresh"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "LogoutB",
+              "request": {
+                "auth": {
+                  "type": "noauth"
+                },
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n  \"refreshToken\": \"{{refreshToken_B}}\"\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{Messaging_App_HostAddress}}/auth/logout",
+                  "host": [
+                    "{{Messaging_App_HostAddress}}"
+                  ],
+                  "path": [
+                    "auth",
+                    "logout"
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "User Copy",
+          "item": [
+            {
+              "name": "Me",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{Messaging_App_HostAddress}}/user/me",
+                  "host": [
+                    "{{Messaging_App_HostAddress}}"
+                  ],
+                  "path": [
+                    "user",
+                    "me"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Update Me",
+              "request": {
+                "method": "PUT",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n  \"displayName\": \"TestUser\",\r\n  \"profileImageUrl\": \"https://example.com/image.jpg\"\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{Messaging_App_HostAddress}}/user/me",
+                  "host": [
+                    "{{Messaging_App_HostAddress}}"
+                  ],
+                  "path": [
+                    "user",
+                    "me"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Update Password",
+              "request": {
+                "method": "PUT",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n  \"currentPassword\": \"Test\",\r\n  \"newPassword\": \"Test2\"\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{Messaging_App_HostAddress}}/user/me/password",
+                  "host": [
+                    "{{Messaging_App_HostAddress}}"
+                  ],
+                  "path": [
+                    "user",
+                    "me",
+                    "password"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Update Status",
+              "request": {
+                "method": "PUT",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n  \"newStatus\": 0\r\n}"
+                },
+                "url": {
+                  "raw": "{{Messaging_App_HostAddress}}/user/me/status",
+                  "host": [
+                    "{{Messaging_App_HostAddress}}"
+                  ],
+                  "path": [
+                    "user",
+                    "me",
+                    "status"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Get User by Username",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{Messaging_App_HostAddress}}/user/username/{{username}}",
+                  "host": [
+                    "{{Messaging_App_HostAddress}}"
+                  ],
+                  "path": [
+                    "user",
+                    "username",
+                    "{{username}}"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Get User by ID",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{Messaging_App_HostAddress}}/user/{{userID}}",
+                  "host": [
+                    "{{Messaging_App_HostAddress}}"
+                  ],
+                  "path": [
+                    "user",
+                    "{{userID}}"
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "Server",
+          "item": [
+            {
+              "name": "Create Server",
+              "request": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n  \"serverName\": \"Test Server\"\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{Messaging_App_HostAddress}}/server/createserver",
+                  "host": [
+                    "{{Messaging_App_HostAddress}}"
+                  ],
+                  "path": [
+                    "server",
+                    "createserver"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Get Servers",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{Messaging_App_HostAddress}}/server/servers",
+                  "host": [
+                    "{{Messaging_App_HostAddress}}"
+                  ],
+                  "path": [
+                    "server",
+                    "servers"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Get Server by ID",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{Messaging_App_HostAddress}}/server/{{serverID}}",
+                  "host": [
+                    "{{Messaging_App_HostAddress}}"
+                  ],
+                  "path": [
+                    "server",
+                    "{{serverID}}"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Get Server Members",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{Messaging_App_HostAddress}}/server/{{serverID}}/members",
+                  "host": [
+                    "{{Messaging_App_HostAddress}}"
+                  ],
+                  "path": [
+                    "server",
+                    "{{serverID}}",
+                    "members"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Update Server",
+              "request": {
+                "method": "PUT",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n  \"serverName\": \"TestServer\",\r\n  \"serverImageUrl\": \"https://example.com/image.jpg\"\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{Messaging_App_HostAddress}}/server/{{serverID}}",
+                  "host": [
+                    "{{Messaging_App_HostAddress}}"
+                  ],
+                  "path": [
+                    "server",
+                    "{{serverID}}"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Delete Server",
+              "request": {
+                "method": "DELETE",
+                "header": [],
+                "url": {
+                  "raw": "{{Messaging_App_HostAddress}}/server/{{serverID}}",
+                  "host": [
+                    "{{Messaging_App_HostAddress}}"
+                  ],
+                  "path": [
+                    "server",
+                    "{{serverID}}"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Leave Server",
+              "request": {
+                "method": "POST",
+                "header": [],
+                "url": {
+                  "raw": "{{Messaging_App_HostAddress}}/server/{{serverID}}/leave",
+                  "host": [
+                    "{{Messaging_App_HostAddress}}"
+                  ],
+                  "path": [
+                    "server",
+                    "{{serverID}}",
+                    "leave"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Kick Member",
+              "request": {
+                "method": "DELETE",
+                "header": [],
+                "url": {
+                  "raw": "{{Messaging_App_HostAddress}}/server/{{serverID}}/members/{{username}}",
+                  "host": [
+                    "{{Messaging_App_HostAddress}}"
+                  ],
+                  "path": [
+                    "server",
+                    "{{serverID}}",
+                    "members",
+                    "{{username}}"
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "Channels",
+          "item": [
+            {
+              "name": "Create Channel",
+              "request": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n  \"channelName\": \"general\"\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{Messaging_App_HostAddress}}/server/{{serverID}}/createchannel",
+                  "host": [
+                    "{{Messaging_App_HostAddress}}"
+                  ],
+                  "path": [
+                    "server",
+                    "{{serverID}}",
+                    "createchannel"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Get Channels",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{Messaging_App_HostAddress}}/server/{{serverID}}/channels",
+                  "host": [
+                    "{{Messaging_App_HostAddress}}"
+                  ],
+                  "path": [
+                    "server",
+                    "{{serverID}}",
+                    "channels"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Reorder Channels",
+              "request": {
+                "method": "PUT",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n  \"channelIDs\": [3, 2, 1]\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{Messaging_App_HostAddress}}/server/{{serverID}}/channels/reorder",
+                  "host": [
+                    "{{Messaging_App_HostAddress}}"
+                  ],
+                  "path": [
+                    "server",
+                    "{{serverID}}",
+                    "channels",
+                    "reorder"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Update Channel",
+              "request": {
+                "method": "PUT",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n  \"channelName\": \"general2\"\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{Messaging_App_HostAddress}}/channel/{{channelID}}",
+                  "host": [
+                    "{{Messaging_App_HostAddress}}"
+                  ],
+                  "path": [
+                    "channel",
+                    "{{channelID}}"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Delete Channel",
+              "request": {
+                "method": "DELETE",
+                "header": [],
+                "url": {
+                  "raw": "{{Messaging_App_HostAddress}}/channel/{{channelID}}",
+                  "host": [
+                    "{{Messaging_App_HostAddress}}"
+                  ],
+                  "path": [
+                    "channel",
+                    "{{channelID}}"
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "Messages",
+          "item": [
+            {
+              "name": "Get Messages in Channel",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{Messaging_App_HostAddress}}/channel/{{channelID}}/messages",
+                  "host": [
+                    "{{Messaging_App_HostAddress}}"
+                  ],
+                  "path": [
+                    "channel",
+                    "{{channelID}}",
+                    "messages"
+                  ],
+                  "query": [
+                    {
+                      "key": "before",
+                      "value": "{{beforeMessageID}}",
+                      "type": "text",
+                      "disabled": true
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Send Message",
+              "request": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n  \"messageText\": \"Hello, world!\",\r\n  \"replyToID\": null\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{Messaging_App_HostAddress}}/channel/{{channelID}}/sendmessage",
+                  "host": [
+                    "{{Messaging_App_HostAddress}}"
+                  ],
+                  "path": [
+                    "channel",
+                    "{{channelID}}",
+                    "sendmessage"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Edit Message",
+              "request": {
+                "method": "PUT",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n  \"messageText\": \"Hello, everyone!\"\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{Messaging_App_HostAddress}}/message/{{messageID}}",
+                  "host": [
+                    "{{Messaging_App_HostAddress}}"
+                  ],
+                  "path": [
+                    "message",
+                    "{{messageID}}"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Delete Message",
+              "request": {
+                "method": "DELETE",
+                "header": [],
+                "url": {
+                  "raw": "{{Messaging_App_HostAddress}}/message/{{messageID}}",
+                  "host": [
+                    "{{Messaging_App_HostAddress}}"
+                  ],
+                  "path": [
+                    "message",
+                    "{{messageID}}"
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "Invites",
+          "item": [
+            {
+              "name": "Create Invite",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "var json = pm.response.json();\r",
+                      "pm.collectionVariables.set(\"inviteCode\", json.inviteCode);"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n  \"expiresDate\": null,\r\n  \"maxUses\": null\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{Messaging_App_HostAddress}}/server/{{serverID}}/invite",
+                  "host": [
+                    "{{Messaging_App_HostAddress}}"
+                  ],
+                  "path": [
+                    "server",
+                    "{{serverID}}",
+                    "invite"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Get Invites",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{Messaging_App_HostAddress}}/server/{{serverID}}/invites",
+                  "host": [
+                    "{{Messaging_App_HostAddress}}"
+                  ],
+                  "path": [
+                    "server",
+                    "{{serverID}}",
+                    "invites"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Delete Invite",
+              "request": {
+                "method": "DELETE",
+                "header": [],
+                "url": {
+                  "raw": "{{Messaging_App_HostAddress}}/server/{{serverID}}/invite/{{inviteCode}}",
+                  "host": [
+                    "{{Messaging_App_HostAddress}}"
+                  ],
+                  "path": [
+                    "server",
+                    "{{serverID}}",
+                    "invite",
+                    "{{inviteCode}}"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Join Server",
+              "request": {
+                "method": "POST",
+                "header": [],
+                "url": {
+                  "raw": "{{Messaging_App_HostAddress}}/invite/{{inviteCode}}/join",
+                  "host": [
+                    "{{Messaging_App_HostAddress}}"
+                  ],
+                  "path": [
+                    "invite",
+                    "{{inviteCode}}",
+                    "join"
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "Conversations",
+          "item": [
+            {
+              "name": "Create Conversation",
+              "request": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n  \"conversationName\": \"Test\",\r\n  \"iconUrl\": null,\r\n  \"memberUsernames\": [\"testuser2\"]\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{Messaging_App_HostAddress}}/conversation/createconversation",
+                  "host": [
+                    "{{Messaging_App_HostAddress}}"
+                  ],
+                  "path": [
+                    "conversation",
+                    "createconversation"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Get Conversations",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{Messaging_App_HostAddress}}/conversation/conversations",
+                  "host": [
+                    "{{Messaging_App_HostAddress}}"
+                  ],
+                  "path": [
+                    "conversation",
+                    "conversations"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Get Conversation by ID",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{Messaging_App_HostAddress}}/conversation/{{conversationID}}",
+                  "host": [
+                    "{{Messaging_App_HostAddress}}"
+                  ],
+                  "path": [
+                    "conversation",
+                    "{{conversationID}}"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Get Conversation Members",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{Messaging_App_HostAddress}}/conversation/{{conversationID}}/members",
+                  "host": [
+                    "{{Messaging_App_HostAddress}}"
+                  ],
+                  "path": [
+                    "conversation",
+                    "{{conversationID}}",
+                    "members"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Add Member",
+              "request": {
+                "method": "POST",
+                "header": [],
+                "url": {
+                  "raw": "{{Messaging_App_HostAddress}}/conversation/{{conversationID}}/members/{{username}}",
+                  "host": [
+                    "{{Messaging_App_HostAddress}}"
+                  ],
+                  "path": [
+                    "conversation",
+                    "{{conversationID}}",
+                    "members",
+                    "{{username}}"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Leave Conversation",
+              "request": {
+                "method": "POST",
+                "header": [],
+                "url": {
+                  "raw": "{{Messaging_App_HostAddress}}/conversation/{{conversationID}}/leave",
+                  "host": [
+                    "{{Messaging_App_HostAddress}}"
+                  ],
+                  "path": [
+                    "conversation",
+                    "{{conversationID}}",
+                    "leave"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Get Messages in Conversation",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{Messaging_App_HostAddress}}/conversation/{{conversationID}}/messages",
+                  "host": [
+                    "{{Messaging_App_HostAddress}}"
+                  ],
+                  "path": [
+                    "conversation",
+                    "{{conversationID}}",
+                    "messages"
+                  ],
+                  "query": [
+                    {
+                      "key": "before",
+                      "value": "{{conversationMessageID}}",
+                      "type": "text",
+                      "disabled": true
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Send Conversation Message",
+              "request": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n  \"messageText\": \"Hello, Conversation!\",\r\n  \"replyToID\": null\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{Messaging_App_HostAddress}}/conversation/{{conversationID}}/sendmessage",
+                  "host": [
+                    "{{Messaging_App_HostAddress}}"
+                  ],
+                  "path": [
+                    "conversation",
+                    "{{conversationID}}",
+                    "sendmessage"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Edit Conversation Message",
+              "request": {
+                "method": "PUT",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n  \"messageText\": \"Hello, Everyone!\"\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{Messaging_App_HostAddress}}/conversationmessage/{{conversationMessageID}}",
+                  "host": [
+                    "{{Messaging_App_HostAddress}}"
+                  ],
+                  "path": [
+                    "conversationmessage",
+                    "{{conversationMessageID}}"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Delete Conversation Message",
+              "request": {
+                "method": "DELETE",
+                "header": [],
+                "url": {
+                  "raw": "{{Messaging_App_HostAddress}}/conversationmessage/{{conversationMessageID}}",
+                  "host": [
+                    "{{Messaging_App_HostAddress}}"
+                  ],
+                  "path": [
+                    "conversationmessage",
+                    "{{conversationMessageID}}"
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "Friends",
+          "item": [
+            {
+              "name": "Send Friend Request",
+              "request": {
+                "method": "POST",
+                "header": [],
+                "url": {
+                  "raw": "{{Messaging_App_HostAddress}}/friend/request/{{username}}",
+                  "host": [
+                    "{{Messaging_App_HostAddress}}"
+                  ],
+                  "path": [
+                    "friend",
+                    "request",
+                    "{{username}}"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Accept Friend Request",
+              "request": {
+                "method": "POST",
+                "header": [],
+                "url": {
+                  "raw": "{{Messaging_App_HostAddress}}/friend/accept/{{username}}",
+                  "host": [
+                    "{{Messaging_App_HostAddress}}"
+                  ],
+                  "path": [
+                    "friend",
+                    "accept",
+                    "{{username}}"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Decline Friend Request",
+              "request": {
+                "method": "POST",
+                "header": [],
+                "url": {
+                  "raw": "{{Messaging_App_HostAddress}}/friend/decline/{{username}}",
+                  "host": [
+                    "{{Messaging_App_HostAddress}}"
+                  ],
+                  "path": [
+                    "friend",
+                    "decline",
+                    "{{username}}"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Unfriend",
+              "request": {
+                "method": "DELETE",
+                "header": [],
+                "url": {
+                  "raw": "{{Messaging_App_HostAddress}}/friend/{{username}}",
+                  "host": [
+                    "{{Messaging_App_HostAddress}}"
+                  ],
+                  "path": [
+                    "friend",
+                    "{{username}}"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Block",
+              "request": {
+                "method": "POST",
+                "header": [],
+                "url": {
+                  "raw": "{{Messaging_App_HostAddress}}/friend/block/{{username}}",
+                  "host": [
+                    "{{Messaging_App_HostAddress}}"
+                  ],
+                  "path": [
+                    "friend",
+                    "block",
+                    "{{username}}"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Unblock",
+              "request": {
+                "method": "DELETE",
+                "header": [],
+                "url": {
+                  "raw": "{{Messaging_App_HostAddress}}/friend/block/{{username}}",
+                  "host": [
+                    "{{Messaging_App_HostAddress}}"
+                  ],
+                  "path": [
+                    "friend",
+                    "block",
+                    "{{username}}"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Get Friends",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{Messaging_App_HostAddress}}/friend",
+                  "host": [
+                    "{{Messaging_App_HostAddress}}"
+                  ],
+                  "path": [
+                    "friend"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Get Pending",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{Messaging_App_HostAddress}}/friend/pending",
+                  "host": [
+                    "{{Messaging_App_HostAddress}}"
+                  ],
+                  "path": [
+                    "friend",
+                    "pending"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Get Blocked",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{Messaging_App_HostAddress}}/friend/blocked",
+                  "host": [
+                    "{{Messaging_App_HostAddress}}"
+                  ],
+                  "path": [
+                    "friend",
+                    "blocked"
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        }
+      ],
+      "auth": {
+        "type": "bearer",
+        "bearer": [
+          {
+            "key": "token",
+            "value": "{{accessToken_B}}",
+            "type": "string"
+          }
+        ]
+      },
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "packages": {},
+            "requests": {},
+            "exec": [
+              ""
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "packages": {},
+            "requests": {},
+            "exec": [
+              ""
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{accessToken}}",
+        "type": "string"
+      }
+    ]
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "packages": {},
+        "requests": {},
+        "exec": [
+          ""
+        ]
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "packages": {},
+        "requests": {},
+        "exec": [
+          ""
+        ]
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "Messaging_App_HostAddress",
+      "value": ""
+    },
+    {
+      "key": "accessToken",
+      "value": ""
+    },
+    {
+      "key": "refreshToken",
+      "value": ""
+    },
+    {
+      "key": "accessToken_B",
+      "value": ""
+    },
+    {
+      "key": "refreshToken_B",
+      "value": ""
+    },
+    {
+      "key": "username",
+      "value": ""
+    },
+    {
+      "key": "userID",
+      "value": ""
+    },
+    {
+      "key": "serverID",
+      "value": ""
+    },
+    {
+      "key": "channelID",
+      "value": ""
+    },
+    {
+      "key": "messageID",
+      "value": ""
+    },
+    {
+      "key": "beforeMessageID",
+      "value": ""
+    },
+    {
+      "key": "inviteCode",
+      "value": ""
+    },
+    {
+      "key": "conversationID",
+      "value": ""
+    },
+    {
+      "key": "conversationMessageID",
+      "value": ""
+    }
+  ]
+}
