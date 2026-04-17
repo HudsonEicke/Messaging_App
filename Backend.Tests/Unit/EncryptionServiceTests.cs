@@ -1,3 +1,4 @@
+using System.Security.Cryptography;
 using Messaging_App.Configuration;
 using Messaging_App.Services;
 using Microsoft.Extensions.Options;
@@ -68,5 +69,23 @@ public class EncryptionServiceTests
 
         //assert
         Assert.IsType<FormatException>(exception);
+    }
+
+    [Fact]
+    public void Decrypt_WithTamperedCipherText_ThrowsCryptographicException()
+    {
+        //arrange
+        string original = "Hello, unit testing!";
+        string encrypted = encryptionService.Encrypt(original);
+
+        byte[] fullBytes = Convert.FromBase64String(encrypted);
+        fullBytes[fullBytes.Length - 1] ^= 0xFF;
+        string tampered = Convert.ToBase64String(fullBytes);
+
+        //act
+        Exception? exception = Record.Exception(() => encryptionService.Decrypt(tampered));
+
+        //assert
+        Assert.IsType<CryptographicException>(exception);
     }
 }
