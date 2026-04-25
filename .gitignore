@@ -483,3 +483,5 @@ $RECYCLE.BIN/
 
 # Prevents sensitive database data from being pushed
 Backend/appsettings.Development.json
+Backend/appsettings.Production.json
+Backend.Tests/appsettings.Development.json

@@ -12,7 +12,6 @@ public class TestWebApplicationFactory : WebApplicationFactory<Program>
         {
             config.AddInMemoryCollection(new Dictionary<string, string?>
             {
-                ["ConnectionStrings:MessagingAppContext"] = Environment.GetEnvironmentVariable("TEST_DB_CONNECTION") ?? "Host=localhost;Database=messaging_app_test;Username=postgres;Password=changeme",
                 ["JwtSettings:SecretKey"] = "test-secret-key-32-chars-minimum!",
                 ["JwtSettings:Issuer"] = "http://localhost",
                 ["JwtSettings:Audience"] = "MessagingAppAPI",
@@ -20,6 +19,9 @@ public class TestWebApplicationFactory : WebApplicationFactory<Program>
                 ["JwtSettings:RefreshTokenExpirationDays"] = "7",
                 ["EncryptionSettings:SecretKey"] = "test-encryption-key-32-chars-min"
             });
+
+            string localSettings = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "appsettings.Development.json"));
+            config.AddJsonFile(localSettings, optional: true);
         });
     }
 }
