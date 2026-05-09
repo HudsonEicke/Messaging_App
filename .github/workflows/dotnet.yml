@@ -50,3 +50,9 @@ jobs:
       run: dotnet test --no-build --verbosity normal
       env:
         ConnectionStrings__MessagingAppContext: "Host=localhost;Database=messaging_app_test;Username=postgres;Password=postgres"
+        JwtSettings__SecretKey: "test-secret-key-32-chars-minimum!"
+        JwtSettings__Issuer: "http://localhost"
+        JwtSettings__Audience: "MessagingAppAPI"
+        JwtSettings__AccessTokenExpirationMinutes: "15"
+        JwtSettings__RefreshTokenExpirationDays: "7"
+        EncryptionSettings__SecretKey: "test-encryption-key-32-chars-min"
