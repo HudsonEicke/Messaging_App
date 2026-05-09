@@ -90,7 +90,10 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
-app.UseRateLimiter();
+if (!app.Environment.IsDevelopment())
+{
+    app.UseRateLimiter();
+}
 app.UseCors("frontend");
 app.UseAuthentication();
 app.UseAuthorization();
@@ -98,3 +101,5 @@ app.UseAuthorization();
 app.MapControllers();
 app.MapHub<ChatHub>("/hubs/chat");
 app.Run();
+
+public partial class Program { }
