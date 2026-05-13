@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using Messaging_App.Data;
+using Messaging_App.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
@@ -47,23 +48,48 @@ public class ChatHub : Hub
 
         _connectionGroups[Context.ConnectionId] = groups;
 
+        User? user = await db.Users.FirstOrDefaultAsync(u => u.id == userId);
+
+        if (user != null && user.activityStatus == ActivityStatus.offline)
+        {
+            user.activityStatus = ActivityStatus.online;
+            await db.SaveChangesAsync();
+            await Clients.Groups(groups.ToList()).SendAsync("UserStatusChanged", user.username, user.activityStatus);
+        }
+
         await base.OnConnectedAsync();
     }
 
-    public override Task OnDisconnectedAsync(Exception? exception)
+    public override async Task OnDisconnectedAsync(Exception? exception)
     {
         long userId = long.Parse(Context.User!.FindFirst(ClaimTypes.NameIdentifier)!.Value);
 
-        _connectionGroups.TryRemove(Context.ConnectionId, out _);
+        _connectionGroups.TryRemove(Context.ConnectionId, out HashSet<string>? groups);
 
+        bool isLastConnection = false;
         if (_userConnections.TryGetValue(userId, out HashSet<string>? connections))
         {
             connections.Remove(Context.ConnectionId);
             if (connections.Count == 0)
+            {
                 _userConnections.TryRemove(userId, out _);
+                isLastConnection = true;
+            }
         }
 
-        return base.OnDisconnectedAsync(exception);
+        if (isLastConnection && groups != null)
+        {
+            User? user = await db.Users.FirstOrDefaultAsync(u => u.id == userId);
+            
+            if (user != null)
+            {
+                user.activityStatus = ActivityStatus.offline;
+                await db.SaveChangesAsync();
+                await Clients.Groups(groups.ToList()).SendAsync("UserStatusChanged", user.username, user.activityStatus);
+            }
+        }
+
+        await base.OnDisconnectedAsync(exception);
     }
 
     public async Task SendTypingIndicator(string groupName, bool isTyping)
