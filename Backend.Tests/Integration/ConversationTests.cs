@@ -521,4 +521,72 @@ public class ConversationTests : IClassFixture<TestWebApplicationFactory>
         //assert
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
     }
+
+    //UPDATE CONVERSATION
+    [Fact]
+    public async Task UpdateConversation_AsMemberWithValidData_ReturnsNoContent()
+    {
+        //arrange
+        string ownerToken = await RegisterAndGetToken("cvupdowner", "cvupdowner@email.com");
+        string memberToken = await RegisterAndGetToken("cvupdmem", "cvupdmem@email.com");
+        await RegisterAndGetToken("cvupdmem2", "cvupdmem2@email.com");
+        HttpResponseMessage createResponse = await client.SendAsync(CreateRequest(HttpMethod.Post, "/conversation/createconversation", ownerToken, new CreateConversationRequest { memberUsernames = ["cvupdmem", "cvupdmem2"] }), TestContext.Current.CancellationToken);
+        CreateConversationResult? conv = await createResponse.Content.ReadFromJsonAsync<CreateConversationResult>(TestContext.Current.CancellationToken);
+
+        //act
+        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Put, $"/conversation/{conv!.conversationID}", memberToken, new UpdateConversationRequest { conversationName = "Updated Name" }), TestContext.Current.CancellationToken);
+
+        //assert
+        Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task UpdateConversation_OnDirectConversation_ReturnsBadRequest()
+    {
+        //arrange
+        (string tokenA, _, long conversationId) = await CreateDmConversation("cvupddmA", "cvupddmB");
+
+        //act
+        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Put, $"/conversation/{conversationId}", tokenA, new UpdateConversationRequest { conversationName = "New Name" }), TestContext.Current.CancellationToken);
+
+        //assert
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task UpdateConversation_WhenNotMember_ReturnsForbidden()
+    {
+        //arrange
+        (string ownerToken, long conversationId) = await CreateGroupConversation("cvupdnotmown", ["cvupdnotmmem", "cvupdnotmmem2"]);
+        string nonMemberToken = await RegisterAndGetToken("cvupdnonem", "cvupdnonem@email.com");
+
+        //act
+        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Put, $"/conversation/{conversationId}", nonMemberToken, new UpdateConversationRequest { conversationName = "Hacked Name" }), TestContext.Current.CancellationToken);
+
+        //assert
+        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task UpdateConversation_WithNonExistentConversation_ReturnsNotFound()
+    {
+        //arrange
+        string token = await RegisterAndGetToken("cvupdnotf", "cvupdnotf@email.com");
+
+        //act
+        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Put, "/conversation/999999999", token, new UpdateConversationRequest { conversationName = "New Name" }), TestContext.Current.CancellationToken);
+
+        //assert
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task UpdateConversation_WithoutToken_ReturnsUnauthorized()
+    {
+        //act
+        HttpResponseMessage response = await client.PutAsJsonAsync("/conversation/1", new UpdateConversationRequest { conversationName = "New Name" }, TestContext.Current.CancellationToken);
+
+        //assert
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+    }
 }

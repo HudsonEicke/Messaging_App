@@ -251,6 +251,57 @@ public class ConversationController : ModifiedControllerBase
         return Ok(result);
     }
     
+    [HttpPut("{id}")]
+    public async Task<IActionResult> UpdateConversation(long id, UpdateConversationRequest updateConversationRequest)
+    {
+        long? nullableUserId = GetUserId();
+        
+        if(nullableUserId == null) 
+            return Unauthorized();
+
+        long userId = nullableUserId.Value;
+
+        Conversation? foundConversation = await db.Conversations.FirstOrDefaultAsync(conversation => conversation.id == id);
+
+        if(foundConversation == null)
+        {
+            return NotFound();
+        }
+
+        if(foundConversation.conversationType == ConversationType.direct)
+        {
+            return BadRequest();
+        }
+
+        ConversationMember? isMember = await db.ConversationMembers.AsNoTracking().FirstOrDefaultAsync(member => member.conversationID == id && member.userID == userId);
+
+        if(isMember == null)
+        {
+            return Forbid();
+        }
+
+        if(updateConversationRequest.conversationName != null)
+        {
+            string trimmed = updateConversationRequest.conversationName.Trim();
+
+            if(!string.IsNullOrWhiteSpace(trimmed))
+            {
+                foundConversation.conversationName = trimmed;
+            }
+        }
+
+        if(updateConversationRequest.conversationImageUrl != null)
+        {
+            foundConversation.iconUrl = updateConversationRequest.conversationImageUrl;
+        }
+
+        await db.SaveChangesAsync();
+
+        await hubContext.Clients.Group($"conversation_{id}").SendAsync("ConversationUpdated", foundConversation.conversationName, foundConversation.iconUrl);
+
+        return NoContent();
+    }
+
     [HttpGet("{id}/members")]
     public async Task<ActionResult<List<UserResult>>> GetConversationMembers(long id)
     {
