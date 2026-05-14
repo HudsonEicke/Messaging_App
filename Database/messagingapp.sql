@@ -1,6 +1,6 @@
 --HOW TO USE
 --run this command in your terminal
---psql -U YOURSQLUSERNAME -f PATH_TO_THIS_SCRIPT
+--psql -U YOURSQLUSERNAME -d postgres -f PATH_TO_THIS_SCRIPT
 --you will be prompted for your postgres password
 
 CREATE DATABASE messaging_app;
