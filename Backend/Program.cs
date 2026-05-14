@@ -11,7 +11,7 @@ using Messaging_App.Hubs;
 
 var builder = WebApplication.CreateBuilder(args);
 
-var jwtSettings = builder.Configuration.GetSection("JwtSettings").Get<JwtSettings>();
+var jwtSettings = builder.Configuration.GetSection("JwtSettings").Get<JwtSettings>() ?? throw new InvalidOperationException("JwtSettings is not configured.");
 var secretKey = Encoding.UTF8.GetBytes(jwtSettings.SecretKey);
 
 builder.Services.Configure<JwtSettings>(builder.Configuration.GetSection("JwtSettings"));
