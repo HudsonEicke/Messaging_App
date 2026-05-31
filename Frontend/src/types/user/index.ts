@@ -1,5 +1,5 @@
-export * from './UserResult';
-export * from './UserDetailedResult';
+export * from './UserResponse';
+export * from './UserDetailedResponse';
 export * from './UpdateMeRequest';
 export * from './UpdatePasswordRequest';
 export * from './UpdateStatusRequest';

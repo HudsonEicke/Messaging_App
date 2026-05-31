@@ -1,6 +1,6 @@
 import type { ActivityStatus } from "../enums";
 
-export interface UserDetailedResult
+export interface UserDetailedResponse
 {
     displayName: string;
     username: string;
