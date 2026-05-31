@@ -172,9 +172,9 @@ public class ServerController : ModifiedControllerBase
         }
 
         //checks if the user is changing the ico
-        if(updateServerRequest.serverImageUrl != null)
+        if(updateServerRequest.iconUrl != null)
         {
-            foundServer.iconUrl = updateServerRequest.serverImageUrl;
+            foundServer.iconUrl = updateServerRequest.iconUrl;
         }
 
         await db.SaveChangesAsync();

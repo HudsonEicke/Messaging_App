@@ -290,9 +290,9 @@ public class ConversationController : ModifiedControllerBase
             }
         }
 
-        if(updateConversationRequest.conversationImageUrl != null)
+        if(updateConversationRequest.iconUrl != null)
         {
-            foundConversation.iconUrl = updateConversationRequest.conversationImageUrl;
+            foundConversation.iconUrl = updateConversationRequest.iconUrl;
         }
 
         await db.SaveChangesAsync();
