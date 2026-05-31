@@ -3,3 +3,4 @@ export * from './enums/index';
 export * from './user/index';
 export * from './server/index';
 export * from './channel/index';
+export * from './message/index';
