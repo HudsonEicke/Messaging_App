@@ -4,3 +4,6 @@ export * from './user/index';
 export * from './server/index';
 export * from './channel/index';
 export * from './message/index';
+export * from './invite/index';
+export * from './conversation/index';
+export * from './friend/index';
