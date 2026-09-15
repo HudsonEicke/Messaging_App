@@ -1,13 +1,17 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import ProtectedRoute from './components/ProtectedRoute';
+import GuestRoute from './components/GuestRoute';
+import { LoginPage } from '@/pages/login';
 
 function App()
 {
     return (
         <BrowserRouter>
             <Routes>
-                <Route path="/login" element={<div>Login</div>} />
-                <Route path="/register" element={<div>Register</div>} />
+                <Route element={<GuestRoute />}>
+                    <Route path="/login" element={<LoginPage />} />
+                    <Route path="/register" element={<div>Register</div>} />
+                </Route>
                 <Route element={<ProtectedRoute />}>
                     <Route path="/chat" element={<div>Chat</div>} />
                 </Route>
