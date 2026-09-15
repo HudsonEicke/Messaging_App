@@ -1,18 +1,56 @@
-import { createSlice } from '@reduxjs/toolkit';
+import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import type { PayloadAction } from '@reduxjs/toolkit';
+import { login as loginRequest } from '@/services/authService';
+import type { LoginRequest } from '@/types';
+
+const ACCESS_TOKEN_KEY = 'accessToken';
+const REFRESH_TOKEN_KEY = 'refreshToken';
+
+const persistTokens = (accessToken: string, refreshToken: string) => {
+    localStorage.setItem(ACCESS_TOKEN_KEY, accessToken);
+    localStorage.setItem(REFRESH_TOKEN_KEY, refreshToken);
+};
+
+const clearPersistedTokens = () => {
+    localStorage.removeItem(ACCESS_TOKEN_KEY);
+    localStorage.removeItem(REFRESH_TOKEN_KEY);
+};
 
 interface AuthState
 {
     accessToken: string | null;
     refreshToken: string | null;
     isAuthenticated: boolean;
+    status: 'idle' | 'loading' | 'succeeded' | 'failed';
+    error: string | null;
 }
 
+const storedAccessToken = localStorage.getItem(ACCESS_TOKEN_KEY);
+const storedRefreshToken = localStorage.getItem(REFRESH_TOKEN_KEY);
+
 const initialState: AuthState = {
-    accessToken: null,
-    refreshToken: null,
-    isAuthenticated: false
+    accessToken: storedAccessToken,
+    refreshToken: storedRefreshToken,
+    isAuthenticated: !!storedRefreshToken,
+    status: 'idle',
+    error: null
 };
+
+export const login = createAsyncThunk<
+    { accessToken: string; refreshToken: string },
+    LoginRequest,
+    { rejectValue: string }
+>('auth/login', async (request, { rejectWithValue }) => {
+    try
+    {
+        const { accessToken, refreshToken } = await loginRequest(request);
+        return { accessToken, refreshToken };
+    }
+    catch
+    {
+        return rejectWithValue('Invalid username or password');
+    }
+});
 
 const authSlice = createSlice({
     name: 'auth',
@@ -22,12 +60,32 @@ const authSlice = createSlice({
             state.accessToken = action.payload.accessToken;
             state.refreshToken = action.payload.refreshToken;
             state.isAuthenticated = true;
+            persistTokens(action.payload.accessToken, action.payload.refreshToken);
         },
         clearTokens: (state) => {
             state.accessToken = null;
             state.refreshToken = null;
             state.isAuthenticated = false;
+            clearPersistedTokens();
         }
+    },
+    extraReducers: (builder) => {
+        builder
+            .addCase(login.pending, (state) => {
+                state.status = 'loading';
+                state.error = null;
+            })
+            .addCase(login.fulfilled, (state, action) => {
+                state.status = 'succeeded';
+                state.accessToken = action.payload.accessToken;
+                state.refreshToken = action.payload.refreshToken;
+                state.isAuthenticated = true;
+                persistTokens(action.payload.accessToken, action.payload.refreshToken);
+            })
+            .addCase(login.rejected, (state, action) => {
+                state.status = 'failed';
+                state.error = action.payload ?? 'Login failed';
+            });
     }
 });
 
