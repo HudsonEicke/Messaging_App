@@ -1,7 +1,17 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import type { PayloadAction } from '@reduxjs/toolkit';
-import { login as loginRequest } from '@/services/authService';
-import type { LoginRequest } from '@/types';
+import axios from 'axios';
+import { login as loginRequest, register as registerRequest } from '@/services/authService';
+import type { LoginRequest, RegisterRequest } from '@/types';
+
+const getErrorMessage = (err: unknown, fallback: string): string => {
+    if (axios.isAxiosError(err) && typeof err.response?.data?.message === 'string')
+    {
+        return err.response.data.message;
+    }
+
+    return fallback;
+};
 
 const ACCESS_TOKEN_KEY = 'accessToken';
 const REFRESH_TOKEN_KEY = 'refreshToken';
@@ -46,9 +56,25 @@ export const login = createAsyncThunk<
         const { accessToken, refreshToken } = await loginRequest(request);
         return { accessToken, refreshToken };
     }
-    catch
+    catch (err)
     {
-        return rejectWithValue('Invalid username or password');
+        return rejectWithValue(getErrorMessage(err, 'Invalid username or password'));
+    }
+});
+
+export const register = createAsyncThunk<
+    { accessToken: string; refreshToken: string },
+    RegisterRequest,
+    { rejectValue: string }
+>('auth/register', async (request, { rejectWithValue }) => {
+    try
+    {
+        const { accessToken, refreshToken } = await registerRequest(request);
+        return { accessToken, refreshToken };
+    }
+    catch (err)
+    {
+        return rejectWithValue(getErrorMessage(err, 'Could not create account'));
     }
 });
 
@@ -85,6 +111,21 @@ const authSlice = createSlice({
             .addCase(login.rejected, (state, action) => {
                 state.status = 'failed';
                 state.error = action.payload ?? 'Login failed';
+            })
+            .addCase(register.pending, (state) => {
+                state.status = 'loading';
+                state.error = null;
+            })
+            .addCase(register.fulfilled, (state, action) => {
+                state.status = 'succeeded';
+                state.accessToken = action.payload.accessToken;
+                state.refreshToken = action.payload.refreshToken;
+                state.isAuthenticated = true;
+                persistTokens(action.payload.accessToken, action.payload.refreshToken);
+            })
+            .addCase(register.rejected, (state, action) => {
+                state.status = 'failed';
+                state.error = action.payload ?? 'Registration failed';
             });
     }
 });

@@ -1,8 +1,8 @@
 import { useCallback } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import type { AppDispatch, RootState } from '@/store/store';
-import { login as loginThunk, clearTokens } from '@/store/authSlice';
-import type { LoginRequest } from '@/types';
+import { login as loginThunk, register as registerThunk, clearTokens } from '@/store/authSlice';
+import type { LoginRequest, RegisterRequest } from '@/types';
 
 export const useAuth = () =>
 {
@@ -14,9 +14,14 @@ export const useAuth = () =>
         [dispatch]
     );
 
+    const register = useCallback(
+        (details: RegisterRequest) => dispatch(registerThunk(details)).unwrap(),
+        [dispatch]
+    );
+
     const logout = useCallback(() => {
         dispatch(clearTokens());
     }, [dispatch]);
 
-    return { login, logout, isAuthenticated, status, error };
+    return { login, register, logout, isAuthenticated, status, error };
 };

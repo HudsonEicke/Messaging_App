@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import ProtectedRoute from './components/ProtectedRoute';
 import GuestRoute from './components/GuestRoute';
 import { LoginPage } from '@/pages/login';
+import { RegisterPage } from '@/pages/register';
 
 function App()
 {
@@ -10,7 +11,7 @@ function App()
             <Routes>
                 <Route element={<GuestRoute />}>
                     <Route path="/login" element={<LoginPage />} />
-                    <Route path="/register" element={<div>Register</div>} />
+                    <Route path="/register" element={<RegisterPage />} />
                 </Route>
                 <Route element={<ProtectedRoute />}>
                     <Route path="/chat" element={<div>Chat</div>} />
