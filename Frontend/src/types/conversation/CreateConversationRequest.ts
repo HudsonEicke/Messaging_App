@@ -1,6 +1,6 @@
 export interface CreateConversationRequest
 {
-    conversationName: string;
+    conversationName?: string;
     iconUrl?: string;
     memberUsernames: string[];
 }

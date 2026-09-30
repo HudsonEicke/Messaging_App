@@ -5,6 +5,6 @@ export interface ConversationResult
     id: number;
     ownerUsername?: string;
     conversationName: string;
-    iconUrl: string;
+    iconUrl?: string;
     conversationType: ConversationType;
 }
