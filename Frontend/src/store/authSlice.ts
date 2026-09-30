@@ -1,17 +1,8 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import type { PayloadAction } from '@reduxjs/toolkit';
-import axios from 'axios';
 import { login as loginRequest, register as registerRequest } from '@/services/authService';
+import { getApiError } from '@/lib/utils';
 import type { LoginRequest, RegisterRequest } from '@/types';
-
-const getErrorMessage = (err: unknown, fallback: string): string => {
-    if (axios.isAxiosError(err) && typeof err.response?.data?.message === 'string')
-    {
-        return err.response.data.message;
-    }
-
-    return fallback;
-};
 
 const ACCESS_TOKEN_KEY = 'accessToken';
 const REFRESH_TOKEN_KEY = 'refreshToken';
@@ -58,7 +49,7 @@ export const login = createAsyncThunk<
     }
     catch (err)
     {
-        return rejectWithValue(getErrorMessage(err, 'Invalid username or password'));
+        return rejectWithValue(getApiError(err, 'Invalid username or password').message);
     }
 });
 
@@ -74,7 +65,7 @@ export const register = createAsyncThunk<
     }
     catch (err)
     {
-        return rejectWithValue(getErrorMessage(err, 'Could not create account'));
+        return rejectWithValue(getApiError(err, 'Could not create account').message);
     }
 });
 
