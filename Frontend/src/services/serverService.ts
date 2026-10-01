@@ -64,3 +64,8 @@ export const getInvites = async(id: number): Promise<InviteResponse[]> => {
 export const deleteInvite = async(id: number, code: string): Promise<void> => {
     await api.delete(`/server/${id}/invite/${code}`);
 };
+
+export const joinServer = async(code: string): Promise<ServerResponse> => {
+    const { data } = await api.post<ServerResponse>(`/invite/${code}/join`);
+    return data;
+};

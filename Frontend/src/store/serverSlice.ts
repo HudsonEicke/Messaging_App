@@ -5,7 +5,7 @@ import type { ApiError } from '@/lib/utils';
 import { getApiError } from '@/lib/utils';
 import { clearTokens } from './authSlice';
 import { updateChannel, deleteChannel } from './channelSlice';
-import { getServers, getServer, createServer as createServerRequest, updateServer as updateServerRequest, deleteServer as deleteServerRequest, leaveServer as leaveServerRequest, getServerMembers, kickMember as kickMemberRequest, getChannels, createChannel as createChannelRequest, reorderChannels as reorderChannelsRequest, getInvites, createInvite as createInviteRequest, deleteInvite as deleteInviteRequest } from '@/services/serverService';
+import { getServers, getServer, createServer as createServerRequest, updateServer as updateServerRequest, deleteServer as deleteServerRequest, leaveServer as leaveServerRequest, getServerMembers, kickMember as kickMemberRequest, getChannels, createChannel as createChannelRequest, reorderChannels as reorderChannelsRequest, getInvites, createInvite as createInviteRequest, deleteInvite as deleteInviteRequest, joinServer as joinServerRequest } from '@/services/serverService';
 
 interface ServerState
 {
@@ -63,6 +63,17 @@ export const createServer = createAsyncThunk<ServerResponse, CreateServerRequest
     catch (error)
     {
         return rejectWithValue(getApiError(error, 'Could not create server'));
+    }
+});
+
+export const joinServer = createAsyncThunk<ServerResponse, string, { rejectValue: ApiError }>('server/joinServer', async (code, { rejectWithValue }) => {
+    try
+    {
+        return await joinServerRequest(code);
+    }
+    catch (error)
+    {
+        return rejectWithValue(getApiError(error, 'Could not join server'));
     }
 });
 
@@ -254,6 +265,12 @@ const serverSlice = createSlice({
             })
             .addCase(createServer.rejected, (state, action) => {
                 state.error = action.payload ?? { message: 'Could not create server' };
+            })
+            .addCase(joinServer.fulfilled, (state, action) => {
+                state.servers.push(action.payload);
+            })
+            .addCase(joinServer.rejected, (state, action) => {
+                state.error = action.payload ?? { message: 'Could not join server' };
             })
             .addCase(updateServer.fulfilled, (state, action) => {
                 const index = state.servers.findIndex(server => server.serverID === action.payload.serverID);
