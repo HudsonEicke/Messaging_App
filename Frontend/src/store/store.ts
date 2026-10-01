@@ -4,6 +4,7 @@ import userReducer from './userSlice'
 import conversationReducer from './conversationSlice'
 import serverReducer from './serverSlice'
 import channelReducer from './channelSlice'
+import friendReducer from './friendSlice'
 
 export const store = configureStore({
     reducer: {
@@ -11,7 +12,8 @@ export const store = configureStore({
         user: userReducer,
         conversation: conversationReducer,
         server: serverReducer,
-        channel: channelReducer
+        channel: channelReducer,
+        friend: friendReducer
     }
 });
 
