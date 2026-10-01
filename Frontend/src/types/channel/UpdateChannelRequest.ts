@@ -1,4 +1,4 @@
 export interface UpdateChannelRequest
 {
-    channelName?: string;
+    channelName: string;
 }

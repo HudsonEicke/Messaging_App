@@ -4,6 +4,7 @@ import type { ChannelResponse, CreateChannelRequest, CreateInviteRequest, Create
 import type { ApiError } from '@/lib/utils';
 import { getApiError } from '@/lib/utils';
 import { clearTokens } from './authSlice';
+import { updateChannel, deleteChannel } from './channelSlice';
 import { getServers, getServer, createServer as createServerRequest, updateServer as updateServerRequest, deleteServer as deleteServerRequest, leaveServer as leaveServerRequest, getServerMembers, kickMember as kickMemberRequest, getChannels, createChannel as createChannelRequest, reorderChannels as reorderChannelsRequest, getInvites, createInvite as createInviteRequest, deleteInvite as deleteInviteRequest } from '@/services/serverService';
 
 interface ServerState
@@ -332,6 +333,28 @@ const serverSlice = createSlice({
             })
             .addCase(reorderChannels.rejected, (state, action) => {
                 state.error = action.payload ?? { message: 'Could not reorder channels' };
+            })
+            // updateChannel and deleteChannel are channelSlice thunks, but the channel list lives here
+            .addCase(updateChannel.fulfilled, (state, action) => {
+                const { serverID, channelID, channelName } = action.payload;
+                const channel = state.channelsByServer[serverID]?.find(channel => channel.channelID === channelID);
+
+                if (channel)
+                {
+                    channel.channelName = channelName;
+                }
+            })
+            .addCase(deleteChannel.fulfilled, (state, action) => {
+                const { serverID, channelID } = action.payload;
+                const channels = state.channelsByServer[serverID];
+
+                if (channels)
+                {
+                    // matches the backend, which renumbers channelOrder after a delete
+                    state.channelsByServer[serverID] = channels
+                        .filter(channel => channel.channelID !== channelID)
+                        .map((channel, index) => ({ ...channel, channelOrder: index }));
+                }
             })
             .addCase(fetchInvites.fulfilled, (state, action) => {
                 state.invitesByServer[action.payload.serverID] = action.payload.invites;

@@ -3,13 +3,15 @@ import authReducer from './authSlice';
 import userReducer from './userSlice'
 import conversationReducer from './conversationSlice'
 import serverReducer from './serverSlice'
+import channelReducer from './channelSlice'
 
 export const store = configureStore({
     reducer: {
         auth: authReducer,
         user: userReducer,
         conversation: conversationReducer,
-        server: serverReducer
+        server: serverReducer,
+        channel: channelReducer
     }
 });
 
