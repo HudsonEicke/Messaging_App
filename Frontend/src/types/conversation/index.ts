@@ -1,4 +1,4 @@
-export * from './ConversationResult';
+export * from './ConversationResponse';
 export * from './CreateConversationRequest';
-export * from './CreateConversationResult';
+export * from './CreateConversationResponse';
 export * from './UpdateConversationRequest';

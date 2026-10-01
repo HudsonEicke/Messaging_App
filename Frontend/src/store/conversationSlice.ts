@@ -1,6 +1,6 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import type { PayloadAction } from '@reduxjs/toolkit';
-import type { ConversationResult, CreateConversationRequest, MessageResponse, SendMessageRequest, UpdateConversationRequest, UserResponse } from '@/types';
+import type { ConversationResponse, CreateConversationRequest, MessageResponse, SendMessageRequest, UpdateConversationRequest, UserResponse } from '@/types';
 import type { ApiError } from '@/lib/utils';
 import { getApiError } from '@/lib/utils';
 import { clearTokens } from './authSlice';
@@ -10,7 +10,7 @@ const MESSAGE_PAGE_SIZE = 50;
 
 interface ConversationState
 {
-    conversations: ConversationResult[];
+    conversations: ConversationResponse[];
     activeConversationID: number | null;
     messagesByConversation: Record<number, MessageResponse[]>;
     hasMoreMessages: Record<number, boolean>;
@@ -29,7 +29,7 @@ const initialState: ConversationState = {
     error: null
 };
 
-export const fetchConversations = createAsyncThunk<ConversationResult[], void, { rejectValue: ApiError }>('conversation/fetchConversations', async (_, { rejectWithValue }) => {
+export const fetchConversations = createAsyncThunk<ConversationResponse[], void, { rejectValue: ApiError }>('conversation/fetchConversations', async (_, { rejectWithValue }) => {
     try
     {
         return await getConversations();
@@ -40,7 +40,7 @@ export const fetchConversations = createAsyncThunk<ConversationResult[], void, {
     }
 });
 
-export const createConversation = createAsyncThunk<ConversationResult, CreateConversationRequest, { rejectValue: ApiError }>('conversation/createConversation', async (request, { rejectWithValue }) => {
+export const createConversation = createAsyncThunk<ConversationResponse, CreateConversationRequest, { rejectValue: ApiError }>('conversation/createConversation', async (request, { rejectWithValue }) => {
     try
     {
         const result = await createConversationRequest(request);
@@ -59,7 +59,7 @@ export const createConversation = createAsyncThunk<ConversationResult, CreateCon
     }
 });
 
-export const updateConversation = createAsyncThunk<ConversationResult, { id: number; request: UpdateConversationRequest }, { rejectValue: ApiError }>('conversation/updateConversation', async ({ id, request }, { rejectWithValue }) => {
+export const updateConversation = createAsyncThunk<ConversationResponse, { id: number; request: UpdateConversationRequest }, { rejectValue: ApiError }>('conversation/updateConversation', async ({ id, request }, { rejectWithValue }) => {
     try
     {
         await updateConversationRequest(id, request);

@@ -1,3 +1,3 @@
-export * from './InviteResult';
+export * from './InviteResponse';
 export * from './CreateInviteRequest';
-export * from './CreateInviteResult';
+export * from './CreateInviteResponse';

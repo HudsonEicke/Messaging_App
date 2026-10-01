@@ -1,1 +1,1 @@
-export * from './FriendRequestResult';
+export * from './FriendRequestResponse';

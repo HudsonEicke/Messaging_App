@@ -1,6 +1,6 @@
 import { ConversationType } from '../enums'
 
-export interface ConversationResult
+export interface ConversationResponse
 {
     id: number;
     ownerUsername?: string;

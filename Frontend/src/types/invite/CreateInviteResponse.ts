@@ -1,4 +1,4 @@
-export interface CreateInviteResult
+export interface CreateInviteResponse
 {
     inviteCode: string;
     expiresDate?: string;

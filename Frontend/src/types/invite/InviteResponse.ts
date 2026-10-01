@@ -1,4 +1,4 @@
-export interface InviteResult
+export interface InviteResponse
 {
     inviteCode: string;
     createdByUsername: string;

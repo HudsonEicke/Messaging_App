@@ -1,18 +1,18 @@
 import api from "./api";
-import type { ConversationResult, CreateConversationRequest, CreateConversationResult, UpdateConversationRequest, MessageResponse, UserResponse, SendMessageRequest, SendMessageResponse, EditMessageRequest } from "@/types";
+import type { ConversationResponse, CreateConversationRequest, CreateConversationResponse, UpdateConversationRequest, MessageResponse, UserResponse, SendMessageRequest, SendMessageResponse, EditMessageRequest } from "@/types";
 
-export const createConversation = async(request: CreateConversationRequest): Promise<CreateConversationResult> => {
-    const { data } = await api.post<CreateConversationResult>('/conversation/createconversation', request);
+export const createConversation = async(request: CreateConversationRequest): Promise<CreateConversationResponse> => {
+    const { data } = await api.post<CreateConversationResponse>('/conversation/createconversation', request);
     return data;
 };
 
-export const getConversations = async(): Promise<ConversationResult[]> => {
-    const { data } = await api.get<ConversationResult[]>('/conversation/conversations');
+export const getConversations = async(): Promise<ConversationResponse[]> => {
+    const { data } = await api.get<ConversationResponse[]>('/conversation/conversations');
     return data;
 };
 
-export const getConversation = async(id: number): Promise<ConversationResult> => {
-    const { data } = await api.get<ConversationResult>(`/conversation/${id}`);
+export const getConversation = async(id: number): Promise<ConversationResponse> => {
+    const { data } = await api.get<ConversationResponse>(`/conversation/${id}`);
     return data;
 };
 

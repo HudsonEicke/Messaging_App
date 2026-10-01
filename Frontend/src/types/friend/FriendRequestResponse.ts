@@ -1,6 +1,6 @@
 import { FriendStatus } from "../enums";
 
-export interface FriendRequestResult
+export interface FriendRequestResponse
 {
     status: FriendStatus;
 }
