@@ -1,5 +1,4 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
-import type { PayloadAction } from '@reduxjs/toolkit';
 import type { MessageResponse, SendMessageRequest } from '@/types';
 import type { ApiError } from '@/lib/utils';
 import { getApiError } from '@/lib/utils';
@@ -10,7 +9,6 @@ const MESSAGE_PAGE_SIZE = 50;
 
 interface ChannelState
 {
-    activeChannelID: number | null;
     messagesByChannel: Record<number, MessageResponse[]>;
     hasMoreMessages: Record<number, boolean>;
     status: 'idle' | 'loading' | 'succeeded' | 'failed';
@@ -18,7 +16,6 @@ interface ChannelState
 }
 
 const initialState: ChannelState = {
-    activeChannelID: null,
     messagesByChannel: {},
     hasMoreMessages: {},
     status: 'idle',
@@ -117,11 +114,7 @@ export const deleteMessage = createAsyncThunk<{ channelID: number; messageID: nu
 const channelSlice = createSlice({
     name: 'channel',
     initialState,
-    reducers: {
-        setActiveChannel: (state, action: PayloadAction<number | null>) => {
-            state.activeChannelID = action.payload;
-        }
-    },
+    reducers: {},
     extraReducers: (builder) => {
         builder
             // clearTokens fires on logout and when the token refresh fails, so reset everything
@@ -134,11 +127,6 @@ const channelSlice = createSlice({
 
                 delete state.messagesByChannel[channelID];
                 delete state.hasMoreMessages[channelID];
-
-                if (state.activeChannelID === channelID)
-                {
-                    state.activeChannelID = null;
-                }
             })
             .addCase(deleteChannel.rejected, (state, action) => {
                 state.error = action.payload ?? { message: 'Could not delete channel' };
@@ -203,5 +191,4 @@ const channelSlice = createSlice({
     }
 });
 
-export const { setActiveChannel } = channelSlice.actions;
 export default channelSlice.reducer;

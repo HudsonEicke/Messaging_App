@@ -1,5 +1,4 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
-import type { PayloadAction } from '@reduxjs/toolkit';
 import type { ChannelResponse, CreateChannelRequest, CreateInviteRequest, CreateInviteResponse, CreateServerRequest, InviteResponse, ServerResponse, UpdateServerRequest, UserResponse } from '@/types';
 import type { ApiError } from '@/lib/utils';
 import { getApiError } from '@/lib/utils';
@@ -10,7 +9,6 @@ import { getServers, getServer, createServer as createServerRequest, updateServe
 interface ServerState
 {
     servers: ServerResponse[];
-    activeServerID: number | null;
     channelsByServer: Record<number, ChannelResponse[]>;
     membersByServer: Record<number, UserResponse[]>;
     invitesByServer: Record<number, InviteResponse[]>;
@@ -20,7 +18,6 @@ interface ServerState
 
 const initialState: ServerState = {
     servers: [],
-    activeServerID: null,
     channelsByServer: {},
     membersByServer: {},
     invitesByServer: {},
@@ -34,11 +31,6 @@ const removeServer = (state: ServerState, serverID: number) => {
     delete state.channelsByServer[serverID];
     delete state.membersByServer[serverID];
     delete state.invitesByServer[serverID];
-
-    if (state.activeServerID === serverID)
-    {
-        state.activeServerID = null;
-    }
 };
 
 export const fetchServers = createAsyncThunk<ServerResponse[], void, { rejectValue: ApiError }>('server/fetchServers', async (_, { rejectWithValue }) => {
@@ -239,11 +231,7 @@ export const deleteInvite = createAsyncThunk<{ serverID: number; code: string },
 const serverSlice = createSlice({
     name: 'server',
     initialState,
-    reducers: {
-        setActiveServer: (state, action: PayloadAction<number | null>) => {
-            state.activeServerID = action.payload;
-        }
-    },
+    reducers: {},
     extraReducers: (builder) => {
         builder
             // clearTokens fires on logout and when the token refresh fails, so reset everything
@@ -400,5 +388,4 @@ const serverSlice = createSlice({
     }
 });
 
-export const { setActiveServer } = serverSlice.actions;
 export default serverSlice.reducer;

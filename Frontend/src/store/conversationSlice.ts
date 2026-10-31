@@ -1,5 +1,4 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
-import type { PayloadAction } from '@reduxjs/toolkit';
 import type { ConversationResponse, CreateConversationRequest, MessageResponse, SendMessageRequest, UpdateConversationRequest, UserResponse } from '@/types';
 import type { ApiError } from '@/lib/utils';
 import { getApiError } from '@/lib/utils';
@@ -11,7 +10,6 @@ const MESSAGE_PAGE_SIZE = 50;
 interface ConversationState
 {
     conversations: ConversationResponse[];
-    activeConversationID: number | null;
     messagesByConversation: Record<number, MessageResponse[]>;
     hasMoreMessages: Record<number, boolean>;
     membersByConversation: Record<number, UserResponse[]>;
@@ -21,7 +19,6 @@ interface ConversationState
 
 const initialState: ConversationState = {
     conversations: [],
-    activeConversationID: null,
     messagesByConversation: {},
     hasMoreMessages: {},
     membersByConversation: {},
@@ -179,11 +176,7 @@ export const addMember = createAsyncThunk<{ conversationID: number; member: User
 const conversationSlice = createSlice({
     name: 'conversation',
     initialState,
-    reducers: {
-        setActiveConversation: (state, action: PayloadAction<number | null>) => {
-            state.activeConversationID = action.payload;
-        }
-    },
+    reducers: {},
     extraReducers: (builder) => {
         builder
             .addCase(clearTokens, () => initialState)
@@ -223,11 +216,6 @@ const conversationSlice = createSlice({
                 delete state.messagesByConversation[id];
                 delete state.hasMoreMessages[id];
                 delete state.membersByConversation[id];
-
-                if (state.activeConversationID === id)
-                {
-                    state.activeConversationID = null;
-                }
             })
             .addCase(leaveConversation.rejected, (state, action) => {
                 state.error = action.payload ?? { message: 'Could not leave conversation' };
@@ -307,5 +295,4 @@ const conversationSlice = createSlice({
     }
 });
 
-export const { setActiveConversation } = conversationSlice.actions;
 export default conversationSlice.reducer;
