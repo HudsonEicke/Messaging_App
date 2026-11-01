@@ -33,7 +33,7 @@ export const RegisterForm = () =>
         {
             const { confirmPassword, ...request } = values;
             await registerUser(request);
-            navigate("/chat");
+            navigate("/channels/@me");
         }
         catch (err)
         {

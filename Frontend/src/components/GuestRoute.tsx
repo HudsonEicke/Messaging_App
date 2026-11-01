@@ -5,7 +5,7 @@ const GuestRoute = () =>
 {
     const { isAuthenticated } = useAuth();
 
-    return isAuthenticated ? <Navigate to="/chat" /> : <Outlet />;
+    return isAuthenticated ? <Navigate to="/channels/@me" /> : <Outlet />;
 };
 
 export default GuestRoute;

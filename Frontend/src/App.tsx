@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import ProtectedRoute from './components/ProtectedRoute';
 import GuestRoute from './components/GuestRoute';
+import AppShell from './components/layout/AppShell';
 import { LoginPage } from '@/pages/login';
 import { RegisterPage } from '@/pages/register';
 
@@ -14,7 +15,11 @@ function App()
                     <Route path="/register" element={<RegisterPage />} />
                 </Route>
                 <Route element={<ProtectedRoute />}>
-                    <Route path="/chat" element={<div>Chat</div>} />
+                    <Route element={<AppShell />}>
+                        <Route path="/channels/@me" element={<div>home</div>} />
+                        <Route path="/channels/@me/:conversationId" element={<div>conversation</div>} />
+                        <Route path="/channels/:serverId/:channelId" element={<div>channel</div>} />
+                    </Route>
                 </Route>
                 <Route path="*" element={<Navigate to="/login" />} />
             </Routes>

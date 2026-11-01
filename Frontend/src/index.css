@@ -16,6 +16,10 @@
     --color-sidebar-primary: var(--sidebar-primary);
     --color-sidebar-foreground: var(--sidebar-foreground);
     --color-sidebar: var(--sidebar);
+    --color-status-online: var(--status-online);
+    --color-status-away: var(--status-away);
+    --color-status-dnd: var(--status-dnd);
+    --color-status-offline: var(--status-offline);
     --color-chart-5: var(--chart-5);
     --color-chart-4: var(--chart-4);
     --color-chart-3: var(--chart-3);
@@ -81,6 +85,11 @@
     --sidebar-accent-foreground: oklch(0.205 0 0);
     --sidebar-border: oklch(0.922 0 0);
     --sidebar-ring: oklch(0.606 0.25 292.717);
+    /* activity status colours, shared by light and dark mode */
+    --status-online: #22c55e;
+    --status-away: #f59e0b;
+    --status-dnd: #ef4444;
+    --status-offline: #8585b2;
 }
 
 .dark {

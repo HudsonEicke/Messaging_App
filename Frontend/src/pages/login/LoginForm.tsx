@@ -31,7 +31,7 @@ export const LoginForm = () =>
         try
         {
             await login(values);
-            navigate("/chat");
+            navigate("/channels/@me");
         }
         catch
         {
