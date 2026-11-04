@@ -4,7 +4,7 @@
 @code = 019cb7aa-e2e9-7e78-8501-c97f8ae38506
 
 ###Create invite
-POST {{Messaging_App_HostAddress}}/server/{{id}}/invite
+POST {{Messaging_App_HostAddress}}/servers/{{id}}/invites
 Content-Type: application/json
 Authorization: Bearer {{accessToken}}
 
@@ -14,19 +14,19 @@ Authorization: Bearer {{accessToken}}
 }
 
 ###Get invites for server
-GET {{Messaging_App_HostAddress}}/server/{{id}}/invites
+GET {{Messaging_App_HostAddress}}/servers/{{id}}/invites
 Authorization: Bearer {{accessToken}}
 
 ###Delete invite
-DELETE {{Messaging_App_HostAddress}}/server/{{id}}/invite/{{code}}
+DELETE {{Messaging_App_HostAddress}}/servers/{{id}}/invites/{{code}}
 Authorization: Bearer {{accessToken}}
 
 ###Join server via invite
-POST {{Messaging_App_HostAddress}}/invite/{{code}}/join
+POST {{Messaging_App_HostAddress}}/invites/{{code}}/join
 Content-Type: application/json
 Authorization: Bearer {{accessToken}}
 
 
 ###Preview invite
-GET {{Messaging_App_HostAddress}}/invite/{{code}}
+GET {{Messaging_App_HostAddress}}/invites/{{code}}
 Authorization: Bearer {{accessToken}}

@@ -14,7 +14,7 @@ using System.Text;
 namespace Messaging_App.Controllers;
 
 [ApiController]
-[Route("[controller]")]
+[Route("auth")]
 public class AuthController : ControllerBase
 {
     private readonly MessagingAppContext db;
@@ -41,6 +41,14 @@ public class AuthController : ControllerBase
         if(string.IsNullOrWhiteSpace(registerRequest.username) || string.IsNullOrWhiteSpace(registerRequest.password) || string.IsNullOrWhiteSpace(registerRequest.email))
         {
             result.message = "All fields must not be empty";
+            result.success = false;
+            return BadRequest(result);
+        }
+
+        //"me" is reserved because routes like /servers/{id}/members/me refer to the logged in user
+        if(string.Equals(registerRequest.username, "me", StringComparison.OrdinalIgnoreCase))
+        {
+            result.message = "That username is reserved";
             result.success = false;
             return BadRequest(result);
         }

@@ -42,7 +42,7 @@ public class ChannelTests : IClassFixture<TestWebApplicationFactory>
     private async Task<(string token, long serverId)> CreateServerAndGetId(string username)
     {
         string token = await RegisterAndGetToken(username, $"{username}@email.com");
-        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Post, "/server/createserver", token, new CreateServerRequest { serverName = $"{username}server" }), TestContext.Current.CancellationToken);
+        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Post, "/servers", token, new CreateServerRequest { serverName = $"{username}server" }), TestContext.Current.CancellationToken);
         CreateServerResult? result = await response.Content.ReadFromJsonAsync<CreateServerResult>(TestContext.Current.CancellationToken);
         return (token, result!.serverID);
     }
@@ -51,15 +51,15 @@ public class ChannelTests : IClassFixture<TestWebApplicationFactory>
     {
         (string ownerToken, long serverId) = await CreateServerAndGetId(ownerUsername);
         string memberToken = await RegisterAndGetToken(memberUsername, $"{memberUsername}@email.com");
-        HttpResponseMessage inviteResponse = await client.SendAsync(CreateRequest(HttpMethod.Post, $"/server/{serverId}/invite", ownerToken, new CreateInviteRequest()), TestContext.Current.CancellationToken);
+        HttpResponseMessage inviteResponse = await client.SendAsync(CreateRequest(HttpMethod.Post, $"/servers/{serverId}/invites", ownerToken, new CreateInviteRequest()), TestContext.Current.CancellationToken);
         CreateInviteResult? inviteResult = await inviteResponse.Content.ReadFromJsonAsync<CreateInviteResult>(TestContext.Current.CancellationToken);
-        await client.SendAsync(CreateRequest(HttpMethod.Post, $"/invite/{inviteResult!.inviteCode}/join", memberToken), TestContext.Current.CancellationToken);
+        await client.SendAsync(CreateRequest(HttpMethod.Post, $"/invites/{inviteResult!.inviteCode}/join", memberToken), TestContext.Current.CancellationToken);
         return (ownerToken, memberToken, serverId);
     }
 
     private async Task<long> CreateChannel(string ownerToken, long serverId, string channelName)
     {
-        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Post, $"/server/{serverId}/createchannel", ownerToken, new CreateChannelRequest { channelName = channelName }), TestContext.Current.CancellationToken);
+        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Post, $"/servers/{serverId}/channels", ownerToken, new CreateChannelRequest { channelName = channelName }), TestContext.Current.CancellationToken);
         CreateChannelResult? result = await response.Content.ReadFromJsonAsync<CreateChannelResult>(TestContext.Current.CancellationToken);
         return result!.channelID;
     }
@@ -72,7 +72,7 @@ public class ChannelTests : IClassFixture<TestWebApplicationFactory>
         (string token, long serverId) = await CreateServerAndGetId("chcreatechan");
 
         //act
-        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Post, $"/server/{serverId}/createchannel", token, new CreateChannelRequest { channelName = "general" }), TestContext.Current.CancellationToken);
+        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Post, $"/servers/{serverId}/channels", token, new CreateChannelRequest { channelName = "general" }), TestContext.Current.CancellationToken);
         CreateChannelResult? result = await response.Content.ReadFromJsonAsync<CreateChannelResult>(TestContext.Current.CancellationToken);
 
         //assert
@@ -89,7 +89,7 @@ public class ChannelTests : IClassFixture<TestWebApplicationFactory>
         (_, string memberToken, long serverId) = await CreateServerWithMember("chchannonownr", "chchannonmem");
 
         //act
-        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Post, $"/server/{serverId}/createchannel", memberToken, new CreateChannelRequest { channelName = "general" }),TestContext.Current.CancellationToken);
+        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Post, $"/servers/{serverId}/channels", memberToken, new CreateChannelRequest { channelName = "general" }),TestContext.Current.CancellationToken);
 
         //assert
         Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
@@ -102,7 +102,7 @@ public class ChannelTests : IClassFixture<TestWebApplicationFactory>
         (string token, long serverId) = await CreateServerAndGetId("chchanempty");
 
         //act
-        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Post, $"/server/{serverId}/createchannel", token, new CreateChannelRequest { channelName = "" }),TestContext.Current.CancellationToken);
+        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Post, $"/servers/{serverId}/channels", token, new CreateChannelRequest { channelName = "" }),TestContext.Current.CancellationToken);
 
         //assert
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
@@ -115,7 +115,7 @@ public class ChannelTests : IClassFixture<TestWebApplicationFactory>
         string token = await RegisterAndGetToken("chchannelnoserv", "chchannelnoserv@email.com");
 
         //act
-        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Post, "/server/999999999/createchannel", token, new CreateChannelRequest { channelName = "general" }),TestContext.Current.CancellationToken);
+        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Post, "/servers/999999999/channels", token, new CreateChannelRequest { channelName = "general" }),TestContext.Current.CancellationToken);
 
         //assert
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
@@ -125,7 +125,7 @@ public class ChannelTests : IClassFixture<TestWebApplicationFactory>
     public async Task CreateChannel_WithoutToken_ReturnsUnauthorized()
     {
         //act
-        HttpResponseMessage response = await client.PostAsJsonAsync("/server/1/createchannel",new CreateChannelRequest { channelName = "general" }, TestContext.Current.CancellationToken);
+        HttpResponseMessage response = await client.PostAsJsonAsync("/servers/1/channels",new CreateChannelRequest { channelName = "general" }, TestContext.Current.CancellationToken);
 
         //assert
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
@@ -140,7 +140,7 @@ public class ChannelTests : IClassFixture<TestWebApplicationFactory>
         await CreateChannel(token, serverId, "general");
 
         //act
-        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Get, $"/server/{serverId}/channels", token), TestContext.Current.CancellationToken);
+        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Get, $"/servers/{serverId}/channels", token), TestContext.Current.CancellationToken);
         List<ChannelResult>? result = await response.Content.ReadFromJsonAsync<List<ChannelResult>>(TestContext.Current.CancellationToken);
 
         //assert
@@ -158,7 +158,7 @@ public class ChannelTests : IClassFixture<TestWebApplicationFactory>
         string nonMemberToken = await RegisterAndGetToken("chgetchannonem", "chgetchannonem@email.com");
 
         //act
-        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Get, $"/server/{serverId}/channels", nonMemberToken), TestContext.Current.CancellationToken);
+        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Get, $"/servers/{serverId}/channels", nonMemberToken), TestContext.Current.CancellationToken);
 
         //assert
         Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
@@ -171,7 +171,7 @@ public class ChannelTests : IClassFixture<TestWebApplicationFactory>
         string token = await RegisterAndGetToken("chgetchannoserv", "chgetchannoserv@email.com");
 
         //act
-        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Get, "/server/999999999/channels", token), TestContext.Current.CancellationToken);
+        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Get, "/servers/999999999/channels", token), TestContext.Current.CancellationToken);
 
         //assert
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
@@ -181,7 +181,7 @@ public class ChannelTests : IClassFixture<TestWebApplicationFactory>
     public async Task GetChannels_WithoutToken_ReturnsUnauthorized()
     {
         //act
-        HttpResponseMessage response = await client.GetAsync("/server/1/channels", TestContext.Current.CancellationToken);
+        HttpResponseMessage response = await client.GetAsync("/servers/1/channels", TestContext.Current.CancellationToken);
 
         //assert
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
@@ -197,7 +197,7 @@ public class ChannelTests : IClassFixture<TestWebApplicationFactory>
         long channelId2 = await CreateChannel(token, serverId, "random");
 
         //act
-        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Put, $"/server/{serverId}/channels/reorder", token, new ReorderChannelRequest { channelIDs = new List<long> { channelId2, channelId1 } }),TestContext.Current.CancellationToken);
+        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Put, $"/servers/{serverId}/channels/order", token, new ReorderChannelRequest { channelIDs = new List<long> { channelId2, channelId1 } }),TestContext.Current.CancellationToken);
 
         //assert
         Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
@@ -211,7 +211,7 @@ public class ChannelTests : IClassFixture<TestWebApplicationFactory>
         long channelId = await CreateChannel(ownerToken, serverId, "general");
 
         //act
-        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Put, $"/server/{serverId}/channels/reorder", memberToken,    new ReorderChannelRequest { channelIDs = new List<long> { channelId } }),TestContext.Current.CancellationToken);
+        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Put, $"/servers/{serverId}/channels/order", memberToken,    new ReorderChannelRequest { channelIDs = new List<long> { channelId } }),TestContext.Current.CancellationToken);
 
         //assert
         Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
@@ -225,7 +225,7 @@ public class ChannelTests : IClassFixture<TestWebApplicationFactory>
         long channelId = await CreateChannel(token, serverId, "general");
 
         //act
-        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Put, $"/server/{serverId}/channels/reorder", token, new ReorderChannelRequest { channelIDs = new List<long> { channelId, 99999L } }),TestContext.Current.CancellationToken);
+        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Put, $"/servers/{serverId}/channels/order", token, new ReorderChannelRequest { channelIDs = new List<long> { channelId, 99999L } }),TestContext.Current.CancellationToken);
 
         //assert
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
@@ -235,7 +235,7 @@ public class ChannelTests : IClassFixture<TestWebApplicationFactory>
     public async Task ReorderChannels_WithoutToken_ReturnsUnauthorized()
     {
         //act
-        HttpResponseMessage response = await client.PutAsJsonAsync("/server/1/channels/reorder",new ReorderChannelRequest { channelIDs = new List<long> { 1L } }, TestContext.Current.CancellationToken);
+        HttpResponseMessage response = await client.PutAsJsonAsync("/servers/1/channels/order",new ReorderChannelRequest { channelIDs = new List<long> { 1L } }, TestContext.Current.CancellationToken);
 
         //assert
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
@@ -250,7 +250,7 @@ public class ChannelTests : IClassFixture<TestWebApplicationFactory>
         long channelId = await CreateChannel(token, serverId, "general");
 
         //act
-        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Put, $"/channel/{channelId}", token, new UpdateChannelRequest { channelName = "updated" }),TestContext.Current.CancellationToken);
+        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Patch, $"/channels/{channelId}", token, new UpdateChannelRequest { channelName = "updated" }),TestContext.Current.CancellationToken);
 
         //assert
         Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
@@ -264,7 +264,7 @@ public class ChannelTests : IClassFixture<TestWebApplicationFactory>
         long channelId = await CreateChannel(ownerToken, serverId, "general");
 
         //act
-        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Put, $"/channel/{channelId}", memberToken, new UpdateChannelRequest { channelName = "hacked" }),TestContext.Current.CancellationToken);
+        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Patch, $"/channels/{channelId}", memberToken, new UpdateChannelRequest { channelName = "hacked" }),TestContext.Current.CancellationToken);
 
         //assert
         Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
@@ -278,7 +278,7 @@ public class ChannelTests : IClassFixture<TestWebApplicationFactory>
         long channelId = await CreateChannel(token, serverId, "general");
 
         //act
-        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Put, $"/channel/{channelId}", token, new UpdateChannelRequest { channelName = "" }),TestContext.Current.CancellationToken);
+        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Patch, $"/channels/{channelId}", token, new UpdateChannelRequest { channelName = "" }),TestContext.Current.CancellationToken);
 
         //assert
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
@@ -291,7 +291,7 @@ public class ChannelTests : IClassFixture<TestWebApplicationFactory>
         string token = await RegisterAndGetToken("chupdchannotf", "chupdchannotf@email.com");
 
         //act
-        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Put, "/channel/999999999", token, new UpdateChannelRequest { channelName = "updated" }),TestContext.Current.CancellationToken);
+        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Patch, "/channels/999999999", token, new UpdateChannelRequest { channelName = "updated" }),TestContext.Current.CancellationToken);
 
         //assert
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
@@ -301,7 +301,7 @@ public class ChannelTests : IClassFixture<TestWebApplicationFactory>
     public async Task UpdateChannel_WithoutToken_ReturnsUnauthorized()
     {
         //act
-        HttpResponseMessage response = await client.PutAsJsonAsync("/channel/1",new UpdateChannelRequest { channelName = "updated" }, TestContext.Current.CancellationToken);
+        HttpResponseMessage response = await client.PatchAsJsonAsync("/channels/1",new UpdateChannelRequest { channelName = "updated" }, TestContext.Current.CancellationToken);
 
         //assert
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
@@ -316,7 +316,7 @@ public class ChannelTests : IClassFixture<TestWebApplicationFactory>
         long channelId = await CreateChannel(token, serverId, "general");
 
         //act
-        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Delete, $"/channel/{channelId}", token), TestContext.Current.CancellationToken);
+        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Delete, $"/channels/{channelId}", token), TestContext.Current.CancellationToken);
 
         //assert
         Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
@@ -330,7 +330,7 @@ public class ChannelTests : IClassFixture<TestWebApplicationFactory>
         long channelId = await CreateChannel(ownerToken, serverId, "general");
 
         //act
-        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Delete, $"/channel/{channelId}", memberToken), TestContext.Current.CancellationToken);
+        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Delete, $"/channels/{channelId}", memberToken), TestContext.Current.CancellationToken);
 
         //assert
         Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
@@ -343,7 +343,7 @@ public class ChannelTests : IClassFixture<TestWebApplicationFactory>
         string token = await RegisterAndGetToken("chdelchannotf", "chdelchannotf@email.com");
 
         //act
-        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Delete, "/channel/999999999", token), TestContext.Current.CancellationToken);
+        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Delete, "/channels/999999999", token), TestContext.Current.CancellationToken);
 
         //assert
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
@@ -353,7 +353,7 @@ public class ChannelTests : IClassFixture<TestWebApplicationFactory>
     public async Task DeleteChannel_WithoutToken_ReturnsUnauthorized()
     {
         //act
-        HttpResponseMessage response = await client.DeleteAsync("/channel/1", TestContext.Current.CancellationToken);
+        HttpResponseMessage response = await client.DeleteAsync("/channels/1", TestContext.Current.CancellationToken);
 
         //assert
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);

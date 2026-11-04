@@ -10,7 +10,7 @@ namespace Messaging_App.Controllers;
 
 [Authorize]
 [ApiController]
-[Route("[controller]")]
+[Route("servers")]
 public class ServerController : ModifiedControllerBase
 {
     private readonly MessagingAppContext db;
@@ -24,7 +24,7 @@ public class ServerController : ModifiedControllerBase
 
     //Server API
 
-    [HttpPost("createserver")]
+    [HttpPost]
     public async Task<ActionResult<CreateServerResult>> CreateServer(CreateServerRequest createServerRequest)
     {
         if(string.IsNullOrWhiteSpace(createServerRequest.serverName))
@@ -62,7 +62,7 @@ public class ServerController : ModifiedControllerBase
         return Ok(result);
     }
 
-    [HttpGet("servers")]
+    [HttpGet]
     public async Task<ActionResult<List<ServerResult>>> GetServers()
     {
         long? nullableUserId = GetUserId();
@@ -78,7 +78,7 @@ public class ServerController : ModifiedControllerBase
         return Ok(servers);
     }
 
-    [HttpGet("{id}")]
+    [HttpGet("{id:long}")]
     public async Task<ActionResult<ServerResult>> GetServer(long id)
     {
         long? nullableUserId = GetUserId();
@@ -120,7 +120,7 @@ public class ServerController : ModifiedControllerBase
         return Ok(result);
     }
 
-    [HttpGet("{id}/members")]
+    [HttpGet("{id:long}/members")]
     public async Task<ActionResult<List<UserResult>>> GetServerMembers(long id)
     {
         long? nullableUserId = GetUserId();
@@ -144,7 +144,7 @@ public class ServerController : ModifiedControllerBase
         return Ok(members);
     }
 
-    [HttpPut("{id}")]
+    [HttpPatch("{id:long}")]
     public async Task<IActionResult> UpdateServer(long id, UpdateServerRequest updateServerRequest)
     {
         long? nullableUserId = GetUserId();
@@ -203,7 +203,7 @@ public class ServerController : ModifiedControllerBase
         return Ok(result);
     }
 
-    [HttpDelete("{id}")]
+    [HttpDelete("{id:long}")]
     public async Task<IActionResult> DeleteServer(long id)
     {
         long? nullableUserId = GetUserId();
@@ -238,7 +238,7 @@ public class ServerController : ModifiedControllerBase
         return NoContent();
     }
 
-    [HttpPost("{id}/leave")]
+    [HttpDelete("{id:long}/members/me")]
     public async Task<IActionResult> LeaveServer(long id)
     {
         long? nullableUserId = GetUserId();
@@ -299,7 +299,7 @@ public class ServerController : ModifiedControllerBase
         return NoContent();
     }
 
-    [HttpDelete("{id}/members/{username}")]
+    [HttpDelete("{id:long}/members/{username}")]
     public async Task<IActionResult> KickUser(long id, string username)
     {
         long? nullableUserId = GetUserId();
@@ -352,7 +352,7 @@ public class ServerController : ModifiedControllerBase
 
     //Channel API
 
-    [HttpPost("{id}/createchannel")]
+    [HttpPost("{id:long}/channels")]
     public async Task<ActionResult<CreateChannelResult>> CreateChannel(long id, CreateChannelRequest createChannelRequest)
     {
         if(string.IsNullOrWhiteSpace(createChannelRequest.channelName))
@@ -399,7 +399,7 @@ public class ServerController : ModifiedControllerBase
         return Ok(result);
     }
 
-    [HttpGet("{id}/channels")]
+    [HttpGet("{id:long}/channels")]
     public async Task<ActionResult<List<ChannelResult>>> GetChannels(long id)
     {
         long? nullableUserId = GetUserId();
@@ -429,7 +429,7 @@ public class ServerController : ModifiedControllerBase
         return Ok(results);
     }
 
-    [HttpPut("{id}/channels/reorder")]
+    [HttpPut("{id:long}/channels/order")]
     public async Task<IActionResult> ReorderChannels(long id, ReorderChannelRequest reorderChannelRequest)
     {
         long? nullableUserId = GetUserId();
@@ -478,7 +478,7 @@ public class ServerController : ModifiedControllerBase
     }
 
     //Invite API
-    [HttpPost("{id}/invite")]
+    [HttpPost("{id:long}/invites")]
     public async Task<ActionResult<CreateInviteResult>> CreateInvite(long id, CreateInviteRequest createInviteRequest)
     {
         long? nullableUserId = GetUserId();
@@ -513,7 +513,7 @@ public class ServerController : ModifiedControllerBase
         return Ok(result);
     }
 
-    [HttpGet("{id}/invites")]
+    [HttpGet("{id:long}/invites")]
     public async Task<ActionResult<List<InviteResult>>> GetInvites(long id)
     {
         long? nullableUserId = GetUserId();
@@ -540,7 +540,7 @@ public class ServerController : ModifiedControllerBase
         return Ok(results);
     }
 
-    [HttpDelete("{id}/invite/{code}")]
+    [HttpDelete("{id:long}/invites/{code:guid}")]
     public async Task<IActionResult> DeleteInvite(long id, Guid code)
     {
         long? nullableUserId = GetUserId();

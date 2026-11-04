@@ -11,7 +11,7 @@ namespace Messaging_App.Controllers;
 
 [Authorize]
 [ApiController]
-[Route("[controller]")]
+[Route("conversation-messages")]
 public class ConversationMessageController : ModifiedControllerBase
 {
     private readonly MessagingAppContext db;
@@ -25,7 +25,7 @@ public class ConversationMessageController : ModifiedControllerBase
         this.hubContext = hubContext;
     }
 
-    [HttpPut("{id}")]
+    [HttpPatch("{id:long}")]
     public async Task<IActionResult> EditMessage(long id, EditMessageRequest editMessageRequest)
     {
         if(string.IsNullOrWhiteSpace(editMessageRequest.messageText))
@@ -69,7 +69,7 @@ public class ConversationMessageController : ModifiedControllerBase
         return NoContent();
     }
 
-    [HttpDelete("{id}")]
+    [HttpDelete("{id:long}")]
     public async Task<IActionResult> DeleteMessage(long id)
     {
         long? userId = GetUserId();

@@ -10,7 +10,7 @@ namespace Messaging_App.Controllers;
 
 [Authorize]
 [ApiController]
-[Route("[controller]")]
+[Route("friends")]
 public class FriendController : ModifiedControllerBase
 {
     private readonly MessagingAppContext db;
@@ -20,9 +20,16 @@ public class FriendController : ModifiedControllerBase
         this.db = db;
     }
 
-    [HttpPost("request/{username}")]
-    public async Task<ActionResult<FriendRequestResult>> SendRequest(string username)
+    [HttpPost("requests")]
+    public async Task<ActionResult<FriendRequestResult>> SendRequest(FriendRequestRequest friendRequest)
     {
+        if(string.IsNullOrWhiteSpace(friendRequest.username))
+        {
+            return BadRequest("Username is required");
+        }
+
+        string username = friendRequest.username;
+
         long? nullableUserId = GetUserId();
         
         if(nullableUserId == null)
@@ -87,7 +94,7 @@ public class FriendController : ModifiedControllerBase
         return Ok(result);
     }
 
-    [HttpPost("accept/{username}")]
+    [HttpPost("requests/{username}/accept")]
     public async Task<ActionResult<UserResult>> AcceptRequest(string username)
     {
         long? nullableUserId = GetUserId();
@@ -130,7 +137,7 @@ public class FriendController : ModifiedControllerBase
         return Ok(result);
     }
 
-    [HttpPost("decline/{username}")]
+    [HttpDelete("requests/{username}")]
     public async Task<IActionResult> DeclineRequest(string username)
     {
         long? nullableUserId = GetUserId();
@@ -202,7 +209,7 @@ public class FriendController : ModifiedControllerBase
         return NoContent();
     }
 
-    [HttpPost("block/{username}")]
+    [HttpPut("blocked/{username}")]
     public async Task<IActionResult> BlockUser(string username)
     {
         long? nullableUserId = GetUserId();
@@ -250,7 +257,7 @@ public class FriendController : ModifiedControllerBase
         return NoContent();
     }
 
-    [HttpDelete("block/{username}")]
+    [HttpDelete("blocked/{username}")]
     public async Task<IActionResult> UnBlockUser(string username)
     {
         long? nullableUserId = GetUserId();
@@ -301,7 +308,7 @@ public class FriendController : ModifiedControllerBase
         return Ok(results);
     }
 
-    [HttpGet("pending")]
+    [HttpGet("requests")]
     public async Task<ActionResult<List<UserResult>>> GetPendingFriends()
     {
         long? nullableUserId = GetUserId();

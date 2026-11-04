@@ -108,6 +108,24 @@ public class AuthTests : IClassFixture<TestWebApplicationFactory>
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
     }
 
+    [Fact]
+    public async Task Register_WithReservedUsername_ReturnsBadRequest()
+    {
+        //arrange
+        RegisterRequest request = new RegisterRequest
+        {
+            username = "Me",
+            email = "reservedme@email.com",
+            password = "Test123!"
+        };
+
+        //act
+        HttpResponseMessage response = await client.PostAsJsonAsync("/auth/register", request, TestContext.Current.CancellationToken);
+
+        //assert
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
     //LOGIN
     [Fact]
     public async Task Login_WithValidCredentials_ReturnsOkWithTokens()

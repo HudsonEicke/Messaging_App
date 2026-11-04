@@ -11,7 +11,7 @@ namespace Messaging_App.Controllers;
 
 [Authorize]
 [ApiController]
-[Route("[controller]")]
+[Route("invites")]
 public class InviteController : ModifiedControllerBase
 {
     private readonly MessagingAppContext db;
@@ -23,7 +23,7 @@ public class InviteController : ModifiedControllerBase
         this.hubContext = hubContext;
     }
 
-    [HttpGet("{code}")]
+    [HttpGet("{code:guid}")]
     public async Task<ActionResult<InvitePreviewResult>> GetInvitePreview(Guid code)
     {
         ServerInvite? foundInvite = await db.ServerInvites.AsNoTracking().FirstOrDefaultAsync(invite => invite.inviteCode == code);
@@ -54,7 +54,7 @@ public class InviteController : ModifiedControllerBase
         return Ok(result);
     }
 
-    [HttpPost("{code}/join")]
+    [HttpPost("{code:guid}/join")]
     public async Task<ActionResult<ServerResult>> JoinServer(Guid code)
     {
         long? nullableUserId = GetUserId();

@@ -4,11 +4,11 @@
 @id = 1
 
 ###Me
-GET {{Messaging_App_HostAddress}}/user/me
+GET {{Messaging_App_HostAddress}}/users/me
 Authorization: Bearer {{accessToken}}
 
 ###Update me
-PUT {{Messaging_App_HostAddress}}/user/me
+PATCH {{Messaging_App_HostAddress}}/users/me
 Content-Type: application/json
 Authorization: Bearer {{accessToken}}
 
@@ -18,7 +18,7 @@ Authorization: Bearer {{accessToken}}
 }
 
 ###Update password
-PUT {{Messaging_App_HostAddress}}/user/me/password
+PUT {{Messaging_App_HostAddress}}/users/me/password
 Content-Type: application/json
 Authorization: Bearer {{accessToken}}
 
@@ -28,7 +28,7 @@ Authorization: Bearer {{accessToken}}
 }
 
 ###Update status
-PUT {{Messaging_App_HostAddress}}/user/me/status
+PUT {{Messaging_App_HostAddress}}/users/me/status
 Content-Type: application/json
 Authorization: Bearer {{accessToken}}
 
@@ -37,9 +37,9 @@ Authorization: Bearer {{accessToken}}
 }
 
 ###Get user by username
-GET {{Messaging_App_HostAddress}}/user/username/{{username}}
+GET {{Messaging_App_HostAddress}}/users/username/{{username}}
 Authorization: Bearer {{accessToken}}
 
 ###Get user by id
-GET {{Messaging_App_HostAddress}}/user/{{id}}
+GET {{Messaging_App_HostAddress}}/users/{{id}}
 Authorization: Bearer {{accessToken}}

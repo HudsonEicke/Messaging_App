@@ -43,14 +43,14 @@ public class ConversationMessageTests : IClassFixture<TestWebApplicationFactory>
     {
         string tokenA = await RegisterAndGetToken(usernameA, $"{usernameA}@email.com");
         string tokenB = await RegisterAndGetToken(usernameB, $"{usernameB}@email.com");
-        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Post, "/conversation/createconversation", tokenA, new CreateConversationRequest { memberUsernames = [usernameB] }),TestContext.Current.CancellationToken);
+        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Post, "/conversations", tokenA, new CreateConversationRequest { memberUsernames = [usernameB] }),TestContext.Current.CancellationToken);
         CreateConversationResult? result = await response.Content.ReadFromJsonAsync<CreateConversationResult>(TestContext.Current.CancellationToken);
         return (tokenA, tokenB, result!.conversationID);
     }
 
     private async Task<long> SendConversationMessage(string token, long conversationId, string messageText)
     {
-        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Post, $"/conversation/{conversationId}/sendmessage", token, new SendMessageRequest { messageText = messageText }),TestContext.Current.CancellationToken);
+        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Post, $"/conversations/{conversationId}/messages", token, new SendMessageRequest { messageText = messageText }),TestContext.Current.CancellationToken);
         SendMessageResult? result = await response.Content.ReadFromJsonAsync<SendMessageResult>(TestContext.Current.CancellationToken);
         return result!.id;
     }
@@ -63,7 +63,7 @@ public class ConversationMessageTests : IClassFixture<TestWebApplicationFactory>
         (string tokenA, _, long conversationId) = await CreateDmConversation("cmgetmsgs", "cmgetmsgsb");
 
         //act
-        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Get, $"/conversation/{conversationId}/messages", tokenA),TestContext.Current.CancellationToken);
+        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Get, $"/conversations/{conversationId}/messages", tokenA),TestContext.Current.CancellationToken);
         List<MessageResult>? result = await response.Content.ReadFromJsonAsync<List<MessageResult>>(TestContext.Current.CancellationToken);
 
         //assert
@@ -80,7 +80,7 @@ public class ConversationMessageTests : IClassFixture<TestWebApplicationFactory>
         await SendConversationMessage(tokenA, conversationId, "Hello world");
 
         //act
-        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Get, $"/conversation/{conversationId}/messages", tokenA),TestContext.Current.CancellationToken);
+        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Get, $"/conversations/{conversationId}/messages", tokenA),TestContext.Current.CancellationToken);
         List<MessageResult>? result = await response.Content.ReadFromJsonAsync<List<MessageResult>>(TestContext.Current.CancellationToken);
 
         //assert
@@ -99,7 +99,7 @@ public class ConversationMessageTests : IClassFixture<TestWebApplicationFactory>
         string nonMemberToken = await RegisterAndGetToken("cmgetmsgsnonem", "cmgetmsgsnonem@email.com");
 
         //act
-        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Get, $"/conversation/{conversationId}/messages", nonMemberToken),TestContext.Current.CancellationToken);
+        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Get, $"/conversations/{conversationId}/messages", nonMemberToken),TestContext.Current.CancellationToken);
 
         //assert
         Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
@@ -112,7 +112,7 @@ public class ConversationMessageTests : IClassFixture<TestWebApplicationFactory>
         string token = await RegisterAndGetToken("cmgetmsgsnotf", "cmgetmsgsnotf@email.com");
 
         //act
-        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Get, "/conversation/999999999/messages", token),TestContext.Current.CancellationToken);
+        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Get, "/conversations/999999999/messages", token),TestContext.Current.CancellationToken);
 
         //assert
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
@@ -122,7 +122,7 @@ public class ConversationMessageTests : IClassFixture<TestWebApplicationFactory>
     public async Task GetConversationMessages_WithoutToken_ReturnsUnauthorized()
     {
         //act
-        HttpResponseMessage response = await client.GetAsync("/conversation/1/messages", TestContext.Current.CancellationToken);
+        HttpResponseMessage response = await client.GetAsync("/conversations/1/messages", TestContext.Current.CancellationToken);
 
         //assert
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
@@ -136,7 +136,7 @@ public class ConversationMessageTests : IClassFixture<TestWebApplicationFactory>
         (string tokenA, _, long conversationId) = await CreateDmConversation("cmsendmsg", "cmsendmsgb");
 
         //act
-        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Post, $"/conversation/{conversationId}/sendmessage", tokenA, new SendMessageRequest { messageText = "Hello world" }),TestContext.Current.CancellationToken);
+        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Post, $"/conversations/{conversationId}/messages", tokenA, new SendMessageRequest { messageText = "Hello world" }),TestContext.Current.CancellationToken);
         SendMessageResult? result = await response.Content.ReadFromJsonAsync<SendMessageResult>(TestContext.Current.CancellationToken);
 
         //assert
@@ -155,7 +155,7 @@ public class ConversationMessageTests : IClassFixture<TestWebApplicationFactory>
         long originalMessageId = await SendConversationMessage(tokenA, conversationId, "Original message");
 
         //act
-        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Post, $"/conversation/{conversationId}/sendmessage", tokenA, new SendMessageRequest { messageText = "Reply", replyToID = originalMessageId }),TestContext.Current.CancellationToken);
+        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Post, $"/conversations/{conversationId}/messages", tokenA, new SendMessageRequest { messageText = "Reply", replyToID = originalMessageId }),TestContext.Current.CancellationToken);
         SendMessageResult? result = await response.Content.ReadFromJsonAsync<SendMessageResult>(TestContext.Current.CancellationToken);
 
         //assert
@@ -172,7 +172,7 @@ public class ConversationMessageTests : IClassFixture<TestWebApplicationFactory>
         string nonMemberToken = await RegisterAndGetToken("cmsendmsgnonem", "cmsendmsgnonem@email.com");
 
         //act
-        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Post, $"/conversation/{conversationId}/sendmessage", nonMemberToken, new SendMessageRequest { messageText = "Hello" }),TestContext.Current.CancellationToken);
+        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Post, $"/conversations/{conversationId}/messages", nonMemberToken, new SendMessageRequest { messageText = "Hello" }),TestContext.Current.CancellationToken);
 
         //assert
         Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
@@ -185,7 +185,7 @@ public class ConversationMessageTests : IClassFixture<TestWebApplicationFactory>
         (string tokenA, _, long conversationId) = await CreateDmConversation("cmsendmsgempty", "cmsendmsgemptyb");
 
         //act
-        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Post, $"/conversation/{conversationId}/sendmessage", tokenA, new SendMessageRequest { messageText = "" }),TestContext.Current.CancellationToken);
+        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Post, $"/conversations/{conversationId}/messages", tokenA, new SendMessageRequest { messageText = "" }),TestContext.Current.CancellationToken);
 
         //assert
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
@@ -198,7 +198,7 @@ public class ConversationMessageTests : IClassFixture<TestWebApplicationFactory>
         string token = await RegisterAndGetToken("cmsendmsgnotf", "cmsendmsgnotf@email.com");
 
         //act
-        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Post, "/conversation/999999999/sendmessage", token, new SendMessageRequest { messageText = "Hello" }),TestContext.Current.CancellationToken);
+        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Post, "/conversations/999999999/messages", token, new SendMessageRequest { messageText = "Hello" }),TestContext.Current.CancellationToken);
 
         //assert
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
@@ -208,7 +208,7 @@ public class ConversationMessageTests : IClassFixture<TestWebApplicationFactory>
     public async Task SendConversationMessage_WithoutToken_ReturnsUnauthorized()
     {
         //act
-        HttpResponseMessage response = await client.PostAsJsonAsync("/conversation/1/sendmessage",new SendMessageRequest { messageText = "Hello" }, TestContext.Current.CancellationToken);
+        HttpResponseMessage response = await client.PostAsJsonAsync("/conversations/1/messages",new SendMessageRequest { messageText = "Hello" }, TestContext.Current.CancellationToken);
 
         //assert
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
@@ -223,7 +223,7 @@ public class ConversationMessageTests : IClassFixture<TestWebApplicationFactory>
         long messageId = await SendConversationMessage(tokenA, conversationId, "Original text");
 
         //act
-        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Put, $"/conversationmessage/{messageId}", tokenA, new EditMessageRequest { messageText = "Edited text" }),TestContext.Current.CancellationToken);
+        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Patch, $"/conversation-messages/{messageId}", tokenA, new EditMessageRequest { messageText = "Edited text" }),TestContext.Current.CancellationToken);
 
         //assert
         Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
@@ -237,7 +237,7 @@ public class ConversationMessageTests : IClassFixture<TestWebApplicationFactory>
         long messageId = await SendConversationMessage(tokenA, conversationId, "A's message");
 
         //act
-        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Put, $"/conversationmessage/{messageId}", tokenB, new EditMessageRequest { messageText = "Edited by B" }),TestContext.Current.CancellationToken);
+        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Patch, $"/conversation-messages/{messageId}", tokenB, new EditMessageRequest { messageText = "Edited by B" }),TestContext.Current.CancellationToken);
 
         //assert
         Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
@@ -251,7 +251,7 @@ public class ConversationMessageTests : IClassFixture<TestWebApplicationFactory>
         long messageId = await SendConversationMessage(tokenA, conversationId, "Hello");
 
         //act
-        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Put, $"/conversationmessage/{messageId}", tokenA, new EditMessageRequest { messageText = "" }),TestContext.Current.CancellationToken);
+        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Patch, $"/conversation-messages/{messageId}", tokenA, new EditMessageRequest { messageText = "" }),TestContext.Current.CancellationToken);
 
         //assert
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
@@ -265,7 +265,7 @@ public class ConversationMessageTests : IClassFixture<TestWebApplicationFactory>
         long messageId = await SendConversationMessage(tokenA, conversationId, "Hello");
 
         //act
-        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Put, $"/conversationmessage/{messageId}", tokenA, new EditMessageRequest { messageText = "Hello" }),TestContext.Current.CancellationToken);
+        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Patch, $"/conversation-messages/{messageId}", tokenA, new EditMessageRequest { messageText = "Hello" }),TestContext.Current.CancellationToken);
 
         //assert
         Assert.Equal(HttpStatusCode.UnprocessableEntity, response.StatusCode);
@@ -278,7 +278,7 @@ public class ConversationMessageTests : IClassFixture<TestWebApplicationFactory>
         string token = await RegisterAndGetToken("cmeditmsgnotf", "cmeditmsgnotf@email.com");
 
         //act
-        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Put, "/conversationmessage/999999999", token, new EditMessageRequest { messageText = "Edited text" }),TestContext.Current.CancellationToken);
+        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Patch, "/conversation-messages/999999999", token, new EditMessageRequest { messageText = "Edited text" }),TestContext.Current.CancellationToken);
 
         //assert
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
@@ -288,7 +288,7 @@ public class ConversationMessageTests : IClassFixture<TestWebApplicationFactory>
     public async Task EditConversationMessage_WithoutToken_ReturnsUnauthorized()
     {
         //act
-        HttpResponseMessage response = await client.PutAsJsonAsync("/conversationmessage/1",new EditMessageRequest { messageText = "Edited" }, TestContext.Current.CancellationToken);
+        HttpResponseMessage response = await client.PatchAsJsonAsync("/conversation-messages/1",new EditMessageRequest { messageText = "Edited" }, TestContext.Current.CancellationToken);
 
         //assert
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
@@ -303,7 +303,7 @@ public class ConversationMessageTests : IClassFixture<TestWebApplicationFactory>
         long messageId = await SendConversationMessage(tokenA, conversationId, "Hello");
 
         //act
-        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Delete, $"/conversationmessage/{messageId}", tokenA),TestContext.Current.CancellationToken);
+        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Delete, $"/conversation-messages/{messageId}", tokenA),TestContext.Current.CancellationToken);
 
         //assert
         Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
@@ -316,13 +316,13 @@ public class ConversationMessageTests : IClassFixture<TestWebApplicationFactory>
         string ownerToken = await RegisterAndGetToken("cmdelasowner", "cmdelasowner@email.com");
         string memberToken = await RegisterAndGetToken("cmdelasownermem", "cmdelasownermem@email.com");
         await RegisterAndGetToken("cmdelasownerm2", "cmdelasownerm2@email.com");
-        HttpResponseMessage createResponse = await client.SendAsync(CreateRequest(HttpMethod.Post, "/conversation/createconversation", ownerToken,new CreateConversationRequest{memberUsernames = ["cmdelasownermem", "cmdelasownerm2"], conversationName = "test group"}),TestContext.Current.CancellationToken);
+        HttpResponseMessage createResponse = await client.SendAsync(CreateRequest(HttpMethod.Post, "/conversations", ownerToken,new CreateConversationRequest{memberUsernames = ["cmdelasownermem", "cmdelasownerm2"], conversationName = "test group"}),TestContext.Current.CancellationToken);
         CreateConversationResult? createResult = await createResponse.Content.ReadFromJsonAsync<CreateConversationResult>(TestContext.Current.CancellationToken);
         long conversationId = createResult!.conversationID;
         long messageId = await SendConversationMessage(memberToken, conversationId, "Member's message");
 
         //act
-        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Delete, $"/conversationmessage/{messageId}", ownerToken),TestContext.Current.CancellationToken);
+        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Delete, $"/conversation-messages/{messageId}", ownerToken),TestContext.Current.CancellationToken);
 
         //assert
         Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
@@ -336,7 +336,7 @@ public class ConversationMessageTests : IClassFixture<TestWebApplicationFactory>
         long messageId = await SendConversationMessage(tokenA, conversationId, "A's message");
 
         //act
-        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Delete, $"/conversationmessage/{messageId}", tokenB),TestContext.Current.CancellationToken);
+        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Delete, $"/conversation-messages/{messageId}", tokenB),TestContext.Current.CancellationToken);
 
         //assert
         Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
@@ -349,7 +349,7 @@ public class ConversationMessageTests : IClassFixture<TestWebApplicationFactory>
         string token = await RegisterAndGetToken("cmdelmsgnotf", "cmdelmsgnotf@email.com");
 
         //act
-        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Delete, "/conversationmessage/999999999", token),TestContext.Current.CancellationToken);
+        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Delete, "/conversation-messages/999999999", token),TestContext.Current.CancellationToken);
 
         //assert
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
@@ -359,7 +359,7 @@ public class ConversationMessageTests : IClassFixture<TestWebApplicationFactory>
     public async Task DeleteConversationMessage_WithoutToken_ReturnsUnauthorized()
     {
         //act
-        HttpResponseMessage response = await client.DeleteAsync("/conversationmessage/1", TestContext.Current.CancellationToken);
+        HttpResponseMessage response = await client.DeleteAsync("/conversation-messages/1", TestContext.Current.CancellationToken);
 
         //assert
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);

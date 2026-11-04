@@ -11,7 +11,7 @@ namespace Messaging_App.Controllers;
 
 [Authorize]
 [ApiController]
-[Route("[controller]")]
+[Route("channels")]
 public class ChannelController : ModifiedControllerBase
 {
     private readonly MessagingAppContext db;
@@ -26,7 +26,7 @@ public class ChannelController : ModifiedControllerBase
         this.hubContext = hubContext;
     }
 
-    [HttpPut("{id}")]
+    [HttpPatch("{id:long}")]
     public async Task<IActionResult> UpdateChannel(long id, UpdateChannelRequest updateChannelRequest)
     {
         if(string.IsNullOrWhiteSpace(updateChannelRequest.channelName))
@@ -69,7 +69,7 @@ public class ChannelController : ModifiedControllerBase
         return NoContent();
     }
 
-    [HttpDelete("{id}")]
+    [HttpDelete("{id:long}")]
     public async Task<IActionResult> DeleteChannel(long id)
     {
         long? userId = GetUserId();
@@ -115,7 +115,7 @@ public class ChannelController : ModifiedControllerBase
         return NoContent();
     }
 
-    [HttpGet("{id}/messages")]
+    [HttpGet("{id:long}/messages")]
     public async Task<ActionResult<List<MessageResult>>> GetMessages(long id, [FromQuery] long? before = null)
     {
         long? userId = GetUserId();
@@ -154,7 +154,7 @@ public class ChannelController : ModifiedControllerBase
         return Ok(results);
     }
 
-    [HttpPost("{id}/sendmessage")]
+    [HttpPost("{id:long}/messages")]
     public async Task<ActionResult<SendMessageResult>> SendMessage(long id, SendMessageRequest sendMessageRequest)
     {
         if(string.IsNullOrWhiteSpace(sendMessageRequest.messageText))

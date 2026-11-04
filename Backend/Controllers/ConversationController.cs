@@ -11,7 +11,7 @@ namespace Messaging_App.Controllers;
 
 [Authorize]
 [ApiController]
-[Route("[controller]")]
+[Route("conversations")]
 public class ConversationController : ModifiedControllerBase
 {
     private readonly MessagingAppContext db;
@@ -28,7 +28,7 @@ public class ConversationController : ModifiedControllerBase
         this.hubContext = hubContext;
     }
 
-    [HttpPost("createconversation")]
+    [HttpPost]
     public async Task<ActionResult<CreateConversationResult>> CreateConversation(CreateConversationRequest createConversationRequest)
     {
         if(createConversationRequest.memberUsernames.Count == 0)
@@ -156,7 +156,7 @@ public class ConversationController : ModifiedControllerBase
         return Ok(result);
     }
 
-    [HttpGet("conversations")]
+    [HttpGet]
     public async Task<ActionResult<List<ConversationResult>>> GetConversations()
     {
         long? nullableUserId = GetUserId();
@@ -173,7 +173,7 @@ public class ConversationController : ModifiedControllerBase
         return Ok(directResults.Concat(groupResults).ToList());
     }
 
-    [HttpGet("{id}")]
+    [HttpGet("{id:long}")]
     public async Task<ActionResult<ConversationResult>> GetConversation(long id)
     {
         long? nullableUserId = GetUserId();
@@ -245,7 +245,7 @@ public class ConversationController : ModifiedControllerBase
         return Ok(result);
     }
     
-    [HttpPut("{id}")]
+    [HttpPatch("{id:long}")]
     public async Task<IActionResult> UpdateConversation(long id, UpdateConversationRequest updateConversationRequest)
     {
         long? nullableUserId = GetUserId();
@@ -296,7 +296,7 @@ public class ConversationController : ModifiedControllerBase
         return NoContent();
     }
 
-    [HttpGet("{id}/members")]
+    [HttpGet("{id:long}/members")]
     public async Task<ActionResult<List<UserResult>>> GetConversationMembers(long id)
     {
         long? nullableUserId = GetUserId();
@@ -325,9 +325,16 @@ public class ConversationController : ModifiedControllerBase
         return Ok(results);
     }
 
-    [HttpPost("{id}/members/{username}")]
-    public async Task<ActionResult<UserResult>> AddUser(long id, string username)
+    [HttpPost("{id:long}/members")]
+    public async Task<ActionResult<UserResult>> AddUser(long id, AddConversationMemberRequest addMemberRequest)
     {
+        if(string.IsNullOrWhiteSpace(addMemberRequest.username))
+        {
+            return BadRequest("Username is required");
+        }
+
+        string username = addMemberRequest.username;
+
         long? nullableUserId = GetUserId();
         
         if(nullableUserId == null)
@@ -393,7 +400,7 @@ public class ConversationController : ModifiedControllerBase
         return Ok(result);
     }
 
-    [HttpPost("{id}/leave")]
+    [HttpDelete("{id:long}/members/me")]
     public async Task<IActionResult> LeaveConversation(long id)
     {
         long? nullableUserId = GetUserId();
@@ -468,7 +475,7 @@ public class ConversationController : ModifiedControllerBase
         return NoContent();
     }
 
-    [HttpGet("{id}/messages")]
+    [HttpGet("{id:long}/messages")]
     public async Task<ActionResult<List<MessageResult>>> GetMessages(long id, [FromQuery] long? before = null)
     {
         long? nullableUserId = GetUserId();
@@ -504,7 +511,7 @@ public class ConversationController : ModifiedControllerBase
         return Ok(results);
     }
 
-    [HttpPost("{id}/sendmessage")]
+    [HttpPost("{id:long}/messages")]
     public async Task<ActionResult<SendMessageResult>> SendMessage(long id, SendMessageRequest sendMessageRequest)
     {
         if(string.IsNullOrWhiteSpace(sendMessageRequest.messageText))

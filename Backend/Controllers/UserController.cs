@@ -12,7 +12,7 @@ namespace Messaging_App.Controllers;
 
 [Authorize]
 [ApiController]
-[Route("[controller]")]
+[Route("users")]
 public class UserController : ModifiedControllerBase
 {
     private readonly MessagingAppContext db;
@@ -56,7 +56,7 @@ public class UserController : ModifiedControllerBase
         return Ok(detailedResult);
     }
 
-    [HttpGet("{id}")]
+    [HttpGet("{id:long}")]
     public async Task<ActionResult<UserResult>> GetUserByID(long id)
     {
         User? foundUser = await db.Users.AsNoTracking().FirstOrDefaultAsync(user => user.id == id);
@@ -99,7 +99,7 @@ public class UserController : ModifiedControllerBase
     }
 
     //update profile
-    [HttpPut("me")]
+    [HttpPatch("me")]
     public async Task<IActionResult> UpdateMe(UpdateMeRequest updateRequest)
     {
         if(updateRequest.displayName == null && updateRequest.profileImageUrl == null)
