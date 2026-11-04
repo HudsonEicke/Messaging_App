@@ -39,7 +39,7 @@ public class InviteController : ModifiedControllerBase
             return NotFound();
         }
 
-        if(foundInvite.maxUses != null && foundInvite.maxUses == foundInvite.uses)
+        if(foundInvite.maxUses != null && foundInvite.maxUses <= foundInvite.uses)
         {
             return BadRequest("Invite out of uses");
         }
@@ -56,14 +56,25 @@ public class InviteController : ModifiedControllerBase
             return BadRequest("Already a member of this server");
         }
 
+        await using var transaction = await db.Database.BeginTransactionAsync();
+
+        //claims a use in one statement so two users joining at once can't go over maxUses
+        int claimed = await db.ServerInvites.Where(invite => invite.inviteCode == code && (invite.maxUses == null || invite.uses < invite.maxUses) && (invite.expiresDate == null || invite.expiresDate > DateTimeOffset.UtcNow)).ExecuteUpdateAsync(setters => setters.SetProperty(invite => invite.uses, invite => invite.uses + 1));
+
+        //another user took the last use after the checks above
+        if(claimed == 0)
+        {
+            return BadRequest("Invite out of uses");
+        }
+
         ServerMember newMember = new ServerMember();
         newMember.serverID = foundInvite.serverID;
         newMember.userID = userId;
 
         db.ServerMembers.Add(newMember);
-        foundInvite.uses++;
 
         await db.SaveChangesAsync();
+        await transaction.CommitAsync();
 
         Server? foundServer = await db.Servers.AsNoTracking().FirstOrDefaultAsync(server => server.id == foundInvite.serverID);
 
