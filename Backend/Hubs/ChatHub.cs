@@ -23,7 +23,7 @@ public class ChatHub : Hub
         long userId = long.Parse(Context.User!.FindFirst(ClaimTypes.NameIdentifier)!.Value);
 
         //registered before loading groups so a server or conversation joined during the load still reaches this connection
-        connectionTracker.AddConnection(userId, Context.ConnectionId, new List<string>());
+        bool isFirstConnection = connectionTracker.AddConnection(userId, Context.ConnectionId, new List<string>());
 
         List<string> groups = new List<string>();
 
@@ -47,13 +47,14 @@ public class ChatHub : Hub
 
         connectionTracker.AddGroupsToConnection(Context.ConnectionId, groups);
 
-        User? user = await db.Users.FirstOrDefaultAsync(u => u.id == userId);
-
-        if (user != null && user.activityStatus == ActivityStatus.offline)
+        if (isFirstConnection)
         {
-            user.activityStatus = ActivityStatus.online;
-            await db.SaveChangesAsync();
-            await Clients.Groups(groups).SendAsync("UserStatusChanged", user.username, user.activityStatus);
+            User? user = await db.Users.AsNoTracking().FirstOrDefaultAsync(u => u.id == userId);
+
+            if (user != null && user.activityStatus != ActivityStatus.offline)
+            {
+                await Clients.Groups(groups).SendAsync("UserStatusChanged", user.username, user.activityStatus);
+            }
         }
 
         await base.OnConnectedAsync();
@@ -63,19 +64,13 @@ public class ChatHub : Hub
     {
         long userId = long.Parse(Context.User!.FindFirst(ClaimTypes.NameIdentifier)!.Value);
 
-        //checking and removing happen together inside the tracker's lock so a new connection can't slip in between
         bool isLastConnection = connectionTracker.RemoveConnection(userId, Context.ConnectionId, out List<string> groups);
 
-        if (isLastConnection)
+        string? username = Context.User!.FindFirst(ClaimTypes.Name)?.Value;
+
+        if (isLastConnection && username != null)
         {
-            User? user = await db.Users.FirstOrDefaultAsync(u => u.id == userId);
-            
-            if (user != null)
-            {
-                user.activityStatus = ActivityStatus.offline;
-                await db.SaveChangesAsync();
-                await Clients.Groups(groups).SendAsync("UserStatusChanged", user.username, user.activityStatus);
-            }
+            await Clients.Groups(groups).SendAsync("UserStatusChanged", username, ActivityStatus.offline);
         }
 
         await base.OnDisconnectedAsync(exception);

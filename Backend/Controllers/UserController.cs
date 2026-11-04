@@ -17,10 +17,12 @@ public class UserController : ModifiedControllerBase
     private readonly MessagingAppContext db;
     private readonly AuthService authService;
     private readonly IHubContext<ChatHub> hubContext;
+    private readonly PresenceService presenceService;
 
-    public UserController(MessagingAppContext db, AuthService authService, IHubContext<ChatHub> hubContext)
+    public UserController(MessagingAppContext db, AuthService authService, IHubContext<ChatHub> hubContext, PresenceService presenceService)
     {
         this.db = db;
+        this.presenceService = presenceService;
         this.authService = authService;
         this.hubContext = hubContext;
     }
@@ -49,7 +51,7 @@ public class UserController : ModifiedControllerBase
         detailedResult.username = foundUser.username;
         detailedResult.email = foundUser.email;
         detailedResult.profileImageUrl = foundUser.profileImageUrl;
-        detailedResult.activityStatus = foundUser.activityStatus;
+        detailedResult.activityStatus = foundUser.activityStatus; //your own status is the one you picked, so the status picker shows it even before SignalR connects
         detailedResult.accountCreationTime = foundUser.accountCreationTime;
 
         return Ok(detailedResult);
@@ -70,7 +72,7 @@ public class UserController : ModifiedControllerBase
         result.displayName = foundUser.displayName;
         result.username = foundUser.username;
         result.profileImageUrl = foundUser.profileImageUrl;
-        result.activityStatus = foundUser.activityStatus;
+        result.activityStatus = presenceService.GetDisplayedStatus(foundUser.id, foundUser.activityStatus);
         result.accountCreationTime = foundUser.accountCreationTime;
 
         return Ok(result);
@@ -91,7 +93,7 @@ public class UserController : ModifiedControllerBase
         result.displayName = foundUser.displayName;
         result.username = foundUser.username;
         result.profileImageUrl = foundUser.profileImageUrl;
-        result.activityStatus = foundUser.activityStatus;
+        result.activityStatus = presenceService.GetDisplayedStatus(foundUser.id, foundUser.activityStatus);
         result.accountCreationTime = foundUser.accountCreationTime;
 
         return Ok(result);
@@ -253,7 +255,7 @@ public class UserController : ModifiedControllerBase
         groups.AddRange(serverIds.Select(id => $"server_{id}"));
         groups.AddRange(conversationIds.Select(id => $"conversation_{id}"));
 
-        await hubContext.Clients.Groups(groups).SendAsync("UserStatusChanged", foundUser.username, foundUser.activityStatus);
+        await hubContext.Clients.Groups(groups).SendAsync("UserStatusChanged", foundUser.username, presenceService.GetDisplayedStatus(userId, foundUser.activityStatus));
 
         return Ok();
     }

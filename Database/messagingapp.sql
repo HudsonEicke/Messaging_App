@@ -19,7 +19,7 @@ create table Users
     email TEXT NOT NULL UNIQUE, --may not be used
     passwordHash TEXT NOT NULL, --passwords are stored as hashs for security
     profileImageUrl TEXT NOT NULL, --link to pfp
-    activityStatus ACTIVITYSTATUS NOT NULL DEFAULT 'offline',
+    activityStatus ACTIVITYSTATUS NOT NULL DEFAULT 'online',
     accountCreationTime TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 

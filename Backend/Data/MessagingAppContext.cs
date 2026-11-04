@@ -33,7 +33,7 @@ public class MessagingAppContext : DbContext
             entity.HasIndex(u => u.email).IsUnique();
 
             entity.Property(u => u.accountCreationTime).ValueGeneratedOnAdd();
-            entity.Property(u => u.activityStatus).HasDefaultValue(ActivityStatus.offline);
+            entity.Property(u => u.activityStatus).HasDefaultValue(ActivityStatus.online);
         });
 
         modelBuilder.Entity<RefreshToken>(entity =>

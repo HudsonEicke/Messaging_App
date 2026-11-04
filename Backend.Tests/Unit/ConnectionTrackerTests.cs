@@ -73,6 +73,24 @@ public class ConnectionTrackerTests
         Assert.Empty(groups);
     }
 
+    [Fact]
+    public void IsConnected_TracksFirstConnectionUntilLastIsRemoved()
+    {
+        //arrange
+        connectionTracker.AddConnection(1, "conn1", new List<string>());
+        connectionTracker.AddConnection(1, "conn2", new List<string>());
+
+        //act
+        connectionTracker.RemoveConnection(1, "conn1", out _);
+        bool connectedWithOneLeft = connectionTracker.IsConnected(1);
+        connectionTracker.RemoveConnection(1, "conn2", out _);
+        bool connectedWithNoneLeft = connectionTracker.IsConnected(1);
+
+        //assert
+        Assert.True(connectedWithOneLeft);
+        Assert.False(connectedWithNoneLeft);
+    }
+
     //GROUPS
     [Fact]
     public void AddGroup_AddsGroupToEveryConnectionOfUser()

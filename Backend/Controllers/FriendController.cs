@@ -13,10 +13,12 @@ namespace Messaging_App.Controllers;
 public class FriendController : ModifiedControllerBase
 {
     private readonly MessagingAppContext db;
+    private readonly PresenceService presenceService;
 
-    public FriendController(MessagingAppContext db)
+    public FriendController(MessagingAppContext db, PresenceService presenceService)
     {
         this.db = db;
+        this.presenceService = presenceService;
     }
 
     [HttpPost("requests")]
@@ -130,7 +132,7 @@ public class FriendController : ModifiedControllerBase
         result.displayName = otherUser.displayName;
         result.username = username;
         result.profileImageUrl = otherUser.profileImageUrl;
-        result.activityStatus = otherUser.activityStatus;
+        result.activityStatus = presenceService.GetDisplayedStatus(otherUser.id, otherUser.activityStatus);
         result.accountCreationTime = otherUser.accountCreationTime;
 
         return Ok(result);
@@ -302,7 +304,7 @@ public class FriendController : ModifiedControllerBase
 
         long userId = nullableUserId.Value;
 
-        List<UserResult> results = await db.Friends.Where(friend => (friend.sender == userId || friend.receiver == userId) && friend.status == FriendStatus.friends).Join(db.Users, friend => friend.sender == userId ? friend.receiver : friend.sender, user => user.id, (friend, user) => new UserResult{displayName = user.displayName, username = user.username, profileImageUrl = user.profileImageUrl, activityStatus = user.activityStatus, accountCreationTime = user.accountCreationTime}).ToListAsync();
+        List<UserResult> results = await db.Friends.Where(friend => (friend.sender == userId || friend.receiver == userId) && friend.status == FriendStatus.friends).Join(db.Users, friend => friend.sender == userId ? friend.receiver : friend.sender, user => user.id, (friend, user) => new UserResult{displayName = user.displayName, username = user.username, profileImageUrl = user.profileImageUrl, activityStatus = presenceService.GetDisplayedStatus(user.id, user.activityStatus), accountCreationTime = user.accountCreationTime}).ToListAsync();
 
         return Ok(results);
     }
@@ -317,7 +319,7 @@ public class FriendController : ModifiedControllerBase
 
         long userId = nullableUserId.Value;
 
-        List<UserResult> results = await db.Friends.Where(friend => friend.receiver == userId && friend.status == FriendStatus.pending).Join(db.Users, friend => friend.sender, user => user.id, (friend, user) => new UserResult{displayName = user.displayName, username = user.username, profileImageUrl = user.profileImageUrl, activityStatus = user.activityStatus, accountCreationTime = user.accountCreationTime}).ToListAsync();
+        List<UserResult> results = await db.Friends.Where(friend => friend.receiver == userId && friend.status == FriendStatus.pending).Join(db.Users, friend => friend.sender, user => user.id, (friend, user) => new UserResult{displayName = user.displayName, username = user.username, profileImageUrl = user.profileImageUrl, activityStatus = presenceService.GetDisplayedStatus(user.id, user.activityStatus), accountCreationTime = user.accountCreationTime}).ToListAsync();
 
         return Ok(results);
     }
@@ -332,7 +334,7 @@ public class FriendController : ModifiedControllerBase
 
         long userId = nullableUserId.Value;
 
-        List<UserResult> results = await db.Friends.Where(friend => friend.sender == userId && friend.status == FriendStatus.blocked).Join(db.Users, friend => friend.receiver, user => user.id, (friend, user) => new UserResult{displayName = user.displayName, username = user.username, profileImageUrl = user.profileImageUrl, activityStatus = user.activityStatus, accountCreationTime = user.accountCreationTime}).ToListAsync();
+        List<UserResult> results = await db.Friends.Where(friend => friend.sender == userId && friend.status == FriendStatus.blocked).Join(db.Users, friend => friend.receiver, user => user.id, (friend, user) => new UserResult{displayName = user.displayName, username = user.username, profileImageUrl = user.profileImageUrl, activityStatus = presenceService.GetDisplayedStatus(user.id, user.activityStatus), accountCreationTime = user.accountCreationTime}).ToListAsync();
 
         return Ok(results);
     }

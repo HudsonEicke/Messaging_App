@@ -18,14 +18,16 @@ public class ConversationController : ModifiedControllerBase
     
     private readonly IHubContext<ChatHub> hubContext;
     private readonly HubGroupService hubGroupService;
+    private readonly PresenceService presenceService;
     private readonly ReadStateService readStateService;
     private const int MESSAGEGRABAMOUNT = 50;
     private const int MAXCONVERSATIONMEMBERS = 25;
     private const int MAXUNREADCOUNT = 100;
 
-    public ConversationController(MessagingAppContext db, EncryptionService encryptionService, IHubContext<ChatHub> hubContext, ReadStateService readStateService, HubGroupService hubGroupService)
+    public ConversationController(MessagingAppContext db, EncryptionService encryptionService, IHubContext<ChatHub> hubContext, ReadStateService readStateService, HubGroupService hubGroupService, PresenceService presenceService)
     {
         this.db = db;
+        this.presenceService = presenceService;
         this.encryptionService = encryptionService;
         this.hubContext = hubContext;
         this.hubGroupService = hubGroupService;
@@ -327,7 +329,7 @@ public class ConversationController : ModifiedControllerBase
             return Forbid();
         }
 
-        List<UserResult> results = await db.ConversationMembers.AsNoTracking().Where(member => member.conversationID == id).Join(db.Users, member => member.userID, user => user.id, (member, user) => new UserResult{displayName = user.displayName, username = user.username, profileImageUrl = user.profileImageUrl, activityStatus = user.activityStatus, accountCreationTime = user.accountCreationTime}).ToListAsync();
+        List<UserResult> results = await db.ConversationMembers.AsNoTracking().Where(member => member.conversationID == id).Join(db.Users, member => member.userID, user => user.id, (member, user) => new UserResult{displayName = user.displayName, username = user.username, profileImageUrl = user.profileImageUrl, activityStatus = presenceService.GetDisplayedStatus(user.id, user.activityStatus), accountCreationTime = user.accountCreationTime}).ToListAsync();
 
         return Ok(results);
     }
@@ -401,7 +403,7 @@ public class ConversationController : ModifiedControllerBase
         result.username = foundUser.username;
         result.displayName = foundUser.displayName;
         result.profileImageUrl = foundUser.profileImageUrl;
-        result.activityStatus = foundUser.activityStatus;
+        result.activityStatus = presenceService.GetDisplayedStatus(foundUser.id, foundUser.activityStatus);
         result.accountCreationTime = foundUser.accountCreationTime;
 
         await hubGroupService.AddUserToGroup(foundUser.id, $"conversation_{id}");

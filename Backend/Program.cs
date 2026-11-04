@@ -82,6 +82,7 @@ builder.Services.AddScoped<AuthService>();
 builder.Services.AddScoped<ReadStateService>();
 builder.Services.AddSingleton<ConnectionTracker>();
 builder.Services.AddSingleton<HubGroupService>();
+builder.Services.AddSingleton<PresenceService>();
 
 var app = builder.Build();
 

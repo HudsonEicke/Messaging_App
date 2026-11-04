@@ -4,6 +4,7 @@ using Messaging_App.Data;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
 using Messaging_App.Hubs;
+using Messaging_App.Services;
 
 namespace Messaging_App.Controllers;
 
@@ -15,10 +16,12 @@ public class ServerController : ModifiedControllerBase
     private readonly MessagingAppContext db;
     private readonly IHubContext<ChatHub> hubContext;
     private readonly HubGroupService hubGroupService;
+    private readonly PresenceService presenceService;
 
-    public ServerController(MessagingAppContext db, IHubContext<ChatHub> hubContext, HubGroupService hubGroupService)
+    public ServerController(MessagingAppContext db, IHubContext<ChatHub> hubContext, HubGroupService hubGroupService, PresenceService presenceService)
     {
         this.db = db;
+        this.presenceService = presenceService;
         this.hubContext = hubContext;
         this.hubGroupService = hubGroupService;
     }
@@ -140,7 +143,7 @@ public class ServerController : ModifiedControllerBase
         }
 
         //gets all members of a server
-        List<UserResult> members = await db.ServerMembers.AsNoTracking().Where(member => member.serverID == id).Join(db.Users, member => member.userID, user => user.id, (member, user) => new UserResult{displayName = user.displayName, username = user.username, profileImageUrl = user.profileImageUrl, activityStatus = user.activityStatus, accountCreationTime = user.accountCreationTime}).ToListAsync();
+        List<UserResult> members = await db.ServerMembers.AsNoTracking().Where(member => member.serverID == id).Join(db.Users, member => member.userID, user => user.id, (member, user) => new UserResult{displayName = user.displayName, username = user.username, profileImageUrl = user.profileImageUrl, activityStatus = presenceService.GetDisplayedStatus(user.id, user.activityStatus), accountCreationTime = user.accountCreationTime}).ToListAsync();
 
         return Ok(members);
     }

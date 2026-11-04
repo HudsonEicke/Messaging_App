@@ -358,4 +358,50 @@ public class UserTests : IClassFixture<TestWebApplicationFactory>
         //assert
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
     }
+
+    //PRESENCE
+    [Fact]
+    public async Task GetMe_NewUser_ReturnsOnlineAsChosenStatus()
+    {
+        //arrange
+        string token = await RegisterAndGetToken("prsnewuser", "prsnewuser@email.com");
+
+        //act
+        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Get, "/users/me", token), TestContext.Current.CancellationToken);
+        UserDetailedResult? result = await response.Content.ReadFromJsonAsync<UserDetailedResult>(TestContext.Current.CancellationToken);
+
+        //assert
+        Assert.Equal(ActivityStatus.online, result!.activityStatus);
+    }
+
+    [Fact]
+    public async Task UpdateStatus_ToDnd_IsKeptAsChosenStatus()
+    {
+        //arrange
+        string token = await RegisterAndGetToken("prskeepdnd", "prskeepdnd@email.com");
+        await client.SendAsync(CreateRequest(HttpMethod.Put, "/users/me/status", token, new UpdateStatusRequest { newStatus = ActivityStatus.dnd }), TestContext.Current.CancellationToken);
+
+        //act
+        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Get, "/users/me", token), TestContext.Current.CancellationToken);
+        UserDetailedResult? result = await response.Content.ReadFromJsonAsync<UserDetailedResult>(TestContext.Current.CancellationToken);
+
+        //assert
+        Assert.Equal(ActivityStatus.dnd, result!.activityStatus);
+    }
+
+    [Fact]
+    public async Task GetUserByUsername_WhenUserNotConnected_ReturnsOffline()
+    {
+        //arrange: the user picks dnd but has no SignalR connection
+        string userToken = await RegisterAndGetToken("prsnotconn", "prsnotconn@email.com");
+        await client.SendAsync(CreateRequest(HttpMethod.Put, "/users/me/status", userToken, new UpdateStatusRequest { newStatus = ActivityStatus.dnd }), TestContext.Current.CancellationToken);
+        string viewerToken = await RegisterAndGetToken("prsviewer", "prsviewer@email.com");
+
+        //act
+        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Get, "/users/username/prsnotconn", viewerToken), TestContext.Current.CancellationToken);
+        UserResult? result = await response.Content.ReadFromJsonAsync<UserResult>(TestContext.Current.CancellationToken);
+
+        //assert
+        Assert.Equal(ActivityStatus.offline, result!.activityStatus);
+    }
 }

@@ -113,6 +113,14 @@ public class ConnectionTracker
         }
     }
 
+    public bool IsConnected(long userId)
+    {
+        lock(connectionLock)
+        {
+            return userConnections.ContainsKey(userId);
+        }
+    }
+
     public List<string> GetConnections(long userId)
     {
         lock(connectionLock)
