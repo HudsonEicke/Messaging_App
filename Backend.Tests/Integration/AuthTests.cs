@@ -1,7 +1,6 @@
 using System.Net;
 using System.Net.Http.Json;
 using Backend.Tests.Helpers;
-using Messaging_App.Models;
 
 namespace Backend.Tests.Integration;
 

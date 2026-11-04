@@ -1,5 +1,4 @@
 using Microsoft.EntityFrameworkCore;
-using Messaging_App.Models;
 
 namespace Messaging_App.Data;
 

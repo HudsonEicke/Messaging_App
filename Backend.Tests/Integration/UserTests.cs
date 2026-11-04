@@ -3,7 +3,6 @@ using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using Backend.Tests.Helpers;
 using Messaging_App.Data;
-using Messaging_App.Models;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Backend.Tests.Integration;

@@ -1,7 +1,6 @@
 using System.Security.Cryptography;
 using System.Text;
 using Messaging_App.Data;
-using Messaging_App.Models;
 using Microsoft.EntityFrameworkCore;
 
 namespace Messaging_App.Services;

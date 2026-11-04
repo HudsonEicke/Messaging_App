@@ -28,4 +28,16 @@
     <ProjectReference Include="..\Backend\Messaging_App.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Using Include="Messaging_App.Models.Entities" />
+    <Using Include="Messaging_App.Models.DTOs.Auth" />
+    <Using Include="Messaging_App.Models.DTOs.Users" />
+    <Using Include="Messaging_App.Models.DTOs.Servers" />
+    <Using Include="Messaging_App.Models.DTOs.Channels" />
+    <Using Include="Messaging_App.Models.DTOs.Messages" />
+    <Using Include="Messaging_App.Models.DTOs.Invites" />
+    <Using Include="Messaging_App.Models.DTOs.Conversations" />
+    <Using Include="Messaging_App.Models.DTOs.Friends" />
+  </ItemGroup>
+
 </Project>

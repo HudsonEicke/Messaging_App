@@ -1,6 +1,5 @@
 using Messaging_App.Data;
 using Microsoft.EntityFrameworkCore;
-using Messaging_App.Models;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;

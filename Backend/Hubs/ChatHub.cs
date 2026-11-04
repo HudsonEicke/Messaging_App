@@ -1,6 +1,5 @@
 using System.Security.Claims;
 using Messaging_App.Data;
-using Messaging_App.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;

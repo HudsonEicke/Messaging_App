@@ -1,6 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using Messaging_App.Models;
 using Messaging_App.Data;
 using Microsoft.AspNetCore.Identity;
 using Messaging_App.Services;
@@ -21,7 +20,7 @@ public class FriendController : ModifiedControllerBase
     }
 
     [HttpPost("requests")]
-    public async Task<ActionResult<FriendRequestResult>> SendRequest(FriendRequestRequest friendRequest)
+    public async Task<ActionResult<FriendRequestResult>> SendRequest(SendFriendRequestRequest friendRequest)
     {
         if(string.IsNullOrWhiteSpace(friendRequest.username))
         {
