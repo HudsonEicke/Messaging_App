@@ -98,17 +98,15 @@ public class ChannelController : ModifiedControllerBase
             return Forbid();
         }
 
-        db.Channels.Remove(foundChannel);
-
-        await db.SaveChangesAsync();
-
-        //cleans up the order of channels
-        List<Channel> remainingChannels = await db.Channels.Where(channel => channel.serverID == foundChannel.serverID).OrderBy(channel => channel.channelOrder).ToListAsync();
+        //cleans up the order of the other channels so the delete and reorder save together
+        List<Channel> remainingChannels = await db.Channels.Where(channel => channel.serverID == foundChannel.serverID && channel.id != foundChannel.id).OrderBy(channel => channel.channelOrder).ToListAsync();
 
         for (int i = 0; i < remainingChannels.Count; i++)
         {
             remainingChannels[i].channelOrder = i;
         }
+
+        db.Channels.Remove(foundChannel);
 
         await db.SaveChangesAsync();
 

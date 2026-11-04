@@ -43,14 +43,12 @@ public class ServerController : ModifiedControllerBase
         newServer.serverName = createServerRequest.serverName;
         newServer.ownerID = userId;
 
-        db.Servers.Add(newServer);
-
-        await db.SaveChangesAsync();
-
+        //serverID is filled in by EF when the server is inserted
         ServerMember ownerMember = new ServerMember();
-        ownerMember.serverID = newServer.id;
         ownerMember.userID = userId;
-        db.ServerMembers.Add(ownerMember);
+        newServer.members.Add(ownerMember);
+
+        db.Servers.Add(newServer);
 
         await db.SaveChangesAsync();
 

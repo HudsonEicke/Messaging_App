@@ -82,19 +82,16 @@ public class ConversationController : ModifiedControllerBase
             newConversation = new Conversation();
             newConversation.conversationType = ConversationType.direct;
 
-            db.Conversations.Add(newConversation);
-            await db.SaveChangesAsync();
-
+            //conversationID is filled in by EF when the conversation is inserted
             ConversationMember newConversationMember1 = new ConversationMember();
-            newConversationMember1.conversationID = newConversation.id;
             newConversationMember1.userID = userId;
-            db.ConversationMembers.Add(newConversationMember1);
+            newConversation.members.Add(newConversationMember1);
 
             ConversationMember newConversationMember2 = new ConversationMember();
-            newConversationMember2.conversationID = newConversation.id;
             newConversationMember2.userID = otherUser.id;
-            db.ConversationMembers.Add(newConversationMember2);
+            newConversation.members.Add(newConversationMember2);
 
+            db.Conversations.Add(newConversation);
             await db.SaveChangesAsync();
 
             result = new CreateConversationResult();
@@ -132,22 +129,19 @@ public class ConversationController : ModifiedControllerBase
             newConversation.conversationName = createConversationRequest.conversationName;
         }
 
-        db.Conversations.Add(newConversation);
-
-        await db.SaveChangesAsync();
-
+        //conversationID is filled in by EF when the conversation is inserted
         ConversationMember newMember = new ConversationMember();
-        newMember.conversationID = newConversation.id;
         newMember.userID = userId;
-        db.ConversationMembers.Add(newMember);
+        newConversation.members.Add(newMember);
 
         foreach(User user in members)
         {
             newMember = new ConversationMember();
-            newMember.conversationID = newConversation.id;
             newMember.userID = user.id;
-            db.ConversationMembers.Add(newMember);
+            newConversation.members.Add(newMember);
         }
+
+        db.Conversations.Add(newConversation);
 
         await db.SaveChangesAsync();
 

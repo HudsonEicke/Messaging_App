@@ -24,4 +24,6 @@ public class Conversation
     
     [Column("conversationtype")]
     public ConversationType conversationType { get; set; }
+
+    public List<ConversationMember> members { get; set; } = new List<ConversationMember>();
 }

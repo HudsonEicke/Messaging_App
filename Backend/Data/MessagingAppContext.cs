@@ -44,6 +44,7 @@ public class MessagingAppContext : DbContext
         modelBuilder.Entity<ServerMember>(entity =>
         {
             entity.HasKey(sm => new { sm.serverID, sm.userID });
+            entity.HasOne<Server>().WithMany(server => server.members).HasForeignKey(sm => sm.serverID);
         });
 
         modelBuilder.Entity<Message>(entity =>
@@ -66,6 +67,7 @@ public class MessagingAppContext : DbContext
         modelBuilder.Entity<ConversationMember>(entity =>
         {
             entity.HasKey(cm => new { cm.conversationID, cm.userID });
+            entity.HasOne<Conversation>().WithMany(conversation => conversation.members).HasForeignKey(cm => cm.conversationID);
         });
 
         modelBuilder.Entity<ConversationMessage>(entity =>

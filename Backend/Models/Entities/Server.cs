@@ -15,4 +15,6 @@ public class Server
 
     [Column("iconurl")]
     public string iconUrl { get; set; } = string.Empty;
+
+    public List<ServerMember> members { get; set; } = new List<ServerMember>();
 }
