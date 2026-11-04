@@ -87,6 +87,14 @@ create table Messages
     replyToID BIGINT REFERENCES Messages(id) ON DELETE SET NULL
 );
 
+create table ChannelReadStates
+(
+    userID BIGINT NOT NULL REFERENCES Users(id) ON DELETE CASCADE,
+    channelID BIGINT NOT NULL REFERENCES Channels(id) ON DELETE CASCADE,
+    lastReadMessageID BIGINT NOT NULL,
+    PRIMARY KEY(userID, channelID)
+);
+
 --DIRECT MESSAGES DB START
 create table Conversations
 (
@@ -101,6 +109,7 @@ create table ConversationMembers
 (
     conversationID BIGINT NOT NULL REFERENCES Conversations(id) ON DELETE CASCADE,
     userID BIGINT NOT NULL REFERENCES Users(id) ON DELETE CASCADE,
+    lastReadMessageID BIGINT, --newest message the user has read, null means nothing read yet
     PRIMARY KEY(conversationID, userID)
 );
 

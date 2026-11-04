@@ -359,6 +359,23 @@ public class ConversationTests : IClassFixture<TestWebApplicationFactory>
     }
 
     [Fact]
+    public async Task AddMember_ToGroupWithMessages_StartsWithNoUnread()
+    {
+        //arrange
+        (string ownerToken, long conversationId) = await CreateGroupConversation("rsaddown", new List<string> { "rsaddmem1", "rsaddmem2" });
+        string newMemberToken = await RegisterAndGetToken("rsaddnewmem", "rsaddnewmem@email.com");
+        await client.SendAsync(CreateRequest(HttpMethod.Post, $"/conversations/{conversationId}/messages", ownerToken, new SendMessageRequest { messageText = "before you joined" }), TestContext.Current.CancellationToken);
+
+        //act
+        await client.SendAsync(CreateRequest(HttpMethod.Post, $"/conversations/{conversationId}/members", ownerToken, new AddConversationMemberRequest { username = "rsaddnewmem" }), TestContext.Current.CancellationToken);
+        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Get, "/conversations", newMemberToken), TestContext.Current.CancellationToken);
+        List<ConversationResult>? result = await response.Content.ReadFromJsonAsync<List<ConversationResult>>(TestContext.Current.CancellationToken);
+
+        //assert
+        Assert.Equal(0, result!.Single(conversation => conversation.id == conversationId).unreadCount);
+    }
+
+    [Fact]
     public async Task AddMember_AsNonOwner_ReturnsForbidden()
     {
         //arrange — register manually to obtain member token; group needs 2+ members

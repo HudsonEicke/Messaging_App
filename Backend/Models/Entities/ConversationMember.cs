@@ -10,4 +10,7 @@ public class ConversationMember
 
     [Column("userid")]
     public long userID { get; set; }
+
+    [Column("lastreadmessageid")]
+    public long? lastReadMessageID { get; set; }
 }

@@ -70,6 +70,18 @@ public class MessageTests : IClassFixture<TestWebApplicationFactory>
         return result!.id;
     }
 
+    private async Task<HttpResponseMessage> MarkChannelRead(string token, long channelId, long messageId)
+    {
+        return await client.SendAsync(CreateRequest(HttpMethod.Put, $"/channels/{channelId}/read-state", token, new UpdateReadStateRequest { lastReadMessageID = messageId }), TestContext.Current.CancellationToken);
+    }
+
+    private async Task<bool> ChannelHasUnread(string token, long serverId, long channelId)
+    {
+        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Get, $"/servers/{serverId}/channels", token), TestContext.Current.CancellationToken);
+        List<ChannelResult>? result = await response.Content.ReadFromJsonAsync<List<ChannelResult>>(TestContext.Current.CancellationToken);
+        return result!.Single(channel => channel.channelID == channelId).hasUnread;
+    }
+
     //GET MESSAGES
     [Fact]
     public async Task GetMessages_AsMember_ReturnsOkWithEmptyList()
@@ -387,5 +399,136 @@ public class MessageTests : IClassFixture<TestWebApplicationFactory>
 
         //assert
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+    }
+
+    //READ STATE
+    [Fact]
+    public async Task UpdateChannelReadState_AsMember_ClearsUnread()
+    {
+        //arrange
+        (string ownerToken, string memberToken, long serverId) = await CreateServerWithMember("rschreadown", "rschreadmem");
+        long channelId = await CreateChannel(ownerToken, serverId, "general");
+        long messageId = await SendMessage(ownerToken, channelId, "hello");
+        bool unreadBefore = await ChannelHasUnread(memberToken, serverId, channelId);
+
+        //act
+        HttpResponseMessage response = await MarkChannelRead(memberToken, channelId, messageId);
+        bool unreadAfter = await ChannelHasUnread(memberToken, serverId, channelId);
+
+        //assert
+        Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
+        Assert.True(unreadBefore);
+        Assert.False(unreadAfter);
+    }
+
+    [Fact]
+    public async Task UpdateChannelReadState_WithOlderMessage_DoesNotMoveBackwards()
+    {
+        //arrange
+        (string ownerToken, string memberToken, long serverId) = await CreateServerWithMember("rscholdown", "rscholdmem");
+        long channelId = await CreateChannel(ownerToken, serverId, "general");
+        long firstMessageId = await SendMessage(ownerToken, channelId, "first");
+        long secondMessageId = await SendMessage(ownerToken, channelId, "second");
+        await MarkChannelRead(memberToken, channelId, secondMessageId);
+
+        //act
+        HttpResponseMessage response = await MarkChannelRead(memberToken, channelId, firstMessageId);
+        bool hasUnread = await ChannelHasUnread(memberToken, serverId, channelId);
+
+        //assert
+        Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
+        Assert.False(hasUnread);
+    }
+
+    [Fact]
+    public async Task UpdateChannelReadState_WithMessageFromAnotherChannel_ReturnsBadRequest()
+    {
+        //arrange
+        (string token, long serverId) = await CreateServerAndGetId("rschother");
+        long channelId = await CreateChannel(token, serverId, "general");
+        long otherChannelId = await CreateChannel(token, serverId, "other");
+        long otherMessageId = await SendMessage(token, otherChannelId, "wrong channel");
+
+        //act
+        HttpResponseMessage response = await MarkChannelRead(token, channelId, otherMessageId);
+
+        //assert
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task UpdateChannelReadState_AsNonMember_ReturnsForbidden()
+    {
+        //arrange
+        (string token, long serverId) = await CreateServerAndGetId("rschnonmown");
+        long channelId = await CreateChannel(token, serverId, "general");
+        long messageId = await SendMessage(token, channelId, "hello");
+        string nonMemberToken = await RegisterAndGetToken("rschnonmem", "rschnonmem@email.com");
+
+        //act
+        HttpResponseMessage response = await MarkChannelRead(nonMemberToken, channelId, messageId);
+
+        //assert
+        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task UpdateChannelReadState_WithNonExistentChannel_ReturnsNotFound()
+    {
+        //arrange
+        string token = await RegisterAndGetToken("rschnotf", "rschnotf@email.com");
+
+        //act
+        HttpResponseMessage response = await MarkChannelRead(token, 999999999, 1);
+
+        //assert
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task UpdateChannelReadState_WithoutToken_ReturnsUnauthorized()
+    {
+        //act
+        HttpResponseMessage response = await client.PutAsJsonAsync("/channels/1/read-state", new UpdateReadStateRequest { lastReadMessageID = 1 }, TestContext.Current.CancellationToken);
+
+        //assert
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task SendMessage_OwnMessage_DoesNotMarkChannelUnread()
+    {
+        //arrange
+        (string ownerToken, string memberToken, long serverId) = await CreateServerWithMember("rschownown", "rschownmem");
+        long channelId = await CreateChannel(ownerToken, serverId, "general");
+
+        //act
+        await SendMessage(ownerToken, channelId, "hello");
+        bool senderUnread = await ChannelHasUnread(ownerToken, serverId, channelId);
+        bool memberUnread = await ChannelHasUnread(memberToken, serverId, channelId);
+
+        //assert
+        Assert.False(senderUnread);
+        Assert.True(memberUnread);
+    }
+
+    [Fact]
+    public async Task GetServers_WithUnreadChannel_ReturnsHasUnread()
+    {
+        //arrange
+        (string ownerToken, string memberToken, long serverId) = await CreateServerWithMember("rssvunrown", "rssvunrmem");
+        long channelId = await CreateChannel(ownerToken, serverId, "general");
+        long messageId = await SendMessage(ownerToken, channelId, "hello");
+
+        //act
+        HttpResponseMessage beforeResponse = await client.SendAsync(CreateRequest(HttpMethod.Get, "/servers", memberToken), TestContext.Current.CancellationToken);
+        List<ServerResult>? before = await beforeResponse.Content.ReadFromJsonAsync<List<ServerResult>>(TestContext.Current.CancellationToken);
+        await MarkChannelRead(memberToken, channelId, messageId);
+        HttpResponseMessage afterResponse = await client.SendAsync(CreateRequest(HttpMethod.Get, "/servers", memberToken), TestContext.Current.CancellationToken);
+        List<ServerResult>? after = await afterResponse.Content.ReadFromJsonAsync<List<ServerResult>>(TestContext.Current.CancellationToken);
+
+        //assert
+        Assert.True(before!.Single(server => server.serverID == serverId).hasUnread);
+        Assert.False(after!.Single(server => server.serverID == serverId).hasUnread);
     }
 }

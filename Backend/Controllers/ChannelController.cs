@@ -16,13 +16,15 @@ public class ChannelController : ModifiedControllerBase
     private readonly MessagingAppContext db;
     private readonly EncryptionService encryptionService;
     private readonly IHubContext<ChatHub> hubContext;
+    private readonly ReadStateService readStateService;
     private const int MESSAGEGRABAMOUNT = 50;
 
-    public ChannelController(MessagingAppContext db, EncryptionService encryptionService, IHubContext<ChatHub> hubContext)
+    public ChannelController(MessagingAppContext db, EncryptionService encryptionService, IHubContext<ChatHub> hubContext, ReadStateService readStateService)
     {
         this.db = db;
         this.encryptionService = encryptionService;
         this.hubContext = hubContext;
+        this.readStateService = readStateService;
     }
 
     [HttpPatch("{id:long}")]
@@ -206,6 +208,9 @@ public class ChannelController : ModifiedControllerBase
 
         await db.SaveChangesAsync();
 
+        //the sender has read their own message
+        await readStateService.MarkChannelRead(id, userId, newMessage.id);
+
         string? username = GetUsername();
 
         if(username == null)
@@ -224,5 +229,42 @@ public class ChannelController : ModifiedControllerBase
         await hubContext.Clients.Group($"server_{foundChannel.serverID}").SendAsync("ReceiveChannelMessage", foundChannel.serverID, result);
 
         return Ok(result);
+    }
+
+    [HttpPut("{id:long}/read-state")]
+    public async Task<IActionResult> UpdateReadState(long id, UpdateReadStateRequest updateReadStateRequest)
+    {
+        long? nullableUserId = GetUserId();
+        
+        if(nullableUserId == null) 
+            return Unauthorized();
+
+        long userId = nullableUserId.Value;
+
+        Channel? foundChannel = await db.Channels.AsNoTracking().FirstOrDefaultAsync(channel => channel.id == id);
+
+        if(foundChannel == null)
+        {
+            return NotFound();
+        }
+
+        ServerMember? foundMember = await db.ServerMembers.AsNoTracking().FirstOrDefaultAsync(member => member.serverID == foundChannel.serverID && member.userID == userId);
+
+        if(foundMember == null)
+        {
+            return Forbid();
+        }
+
+        //stops a made up id from hiding future unread messages
+        bool messageExists = await db.Messages.AnyAsync(message => message.id == updateReadStateRequest.lastReadMessageID && message.channelID == id);
+
+        if(!messageExists)
+        {
+            return BadRequest("Message not found in this channel");
+        }
+
+        await readStateService.MarkChannelRead(id, userId, updateReadStateRequest.lastReadMessageID);
+
+        return NoContent();
     }
 }

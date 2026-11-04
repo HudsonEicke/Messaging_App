@@ -7,4 +7,6 @@ public class ConversationResult
     public string conversationName { get; set; } = string.Empty;
     public string? iconUrl { get; set; } = string.Empty;
     public ConversationType conversationType { get; set; }
+    public long? lastMessageID { get; set; } = null;
+    public int unreadCount { get; set; }
 }

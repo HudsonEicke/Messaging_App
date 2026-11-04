@@ -79,6 +79,7 @@ builder.Services.AddSingleton<EncryptionService>();
 builder.Services.AddDbContext<MessagingAppContext>(options => options.UseNpgsql(builder.Configuration.GetConnectionString("MessagingAppContext"), options => {options.MapEnum<ActivityStatus>("activitystatus"); options.MapEnum<ConversationType>("conversationtype"); options.MapEnum<FriendStatus>("friendstatus");}));
 builder.Services.AddAuthorization();
 builder.Services.AddScoped<AuthService>();
+builder.Services.AddScoped<ReadStateService>();
 
 var app = builder.Build();
 

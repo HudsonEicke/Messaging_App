@@ -72,7 +72,7 @@ public class ServerController : ModifiedControllerBase
         long userId = nullableUserId.Value;
 
         //gets all the servers the user is in
-        List<ServerResult> servers = await db.ServerMembers.AsNoTracking().Where(member => member.userID == userId).Join(db.Servers, member => member.serverID, server => server.id, (member, server) => new { server }).Join(db.Users, s => s.server.ownerID, user => user.id, (s, user) => new ServerResult{serverID = s.server.id, ownerUsername = user.username, serverName = s.server.serverName, iconUrl = s.server.iconUrl}).ToListAsync();
+        List<ServerResult> servers = await db.ServerMembers.AsNoTracking().Where(member => member.userID == userId).Join(db.Servers, member => member.serverID, server => server.id, (member, server) => new { server }).Join(db.Users, s => s.server.ownerID, user => user.id, (s, user) => new ServerResult{serverID = s.server.id, ownerUsername = user.username, serverName = s.server.serverName, iconUrl = s.server.iconUrl, hasUnread = db.Channels.Any(channel => channel.serverID == s.server.id && db.Messages.Any(message => message.channelID == channel.id && message.id > (db.ChannelReadStates.Where(readState => readState.userID == userId && readState.channelID == channel.id).Select(readState => (long?)readState.lastReadMessageID).FirstOrDefault() ?? 0)))}).ToListAsync();
 
         return Ok(servers);
     }
@@ -422,8 +422,8 @@ public class ServerController : ModifiedControllerBase
             return Forbid();
         }
 
-        //gets all of the channels in the server
-        List<ChannelResult> results = await db.Channels.AsNoTracking().Where(channel => channel.serverID == id).OrderBy(channel => channel.channelOrder).Select(channel => new ChannelResult{channelID = channel.id, channelName = channel.channelName, channelOrder = channel.channelOrder}).ToListAsync();
+        //gets all of the channels in the server, a channel is unread if it has a message past the user's read marker
+        List<ChannelResult> results = await db.Channels.AsNoTracking().Where(channel => channel.serverID == id).OrderBy(channel => channel.channelOrder).Select(channel => new ChannelResult{channelID = channel.id, channelName = channel.channelName, channelOrder = channel.channelOrder, hasUnread = db.Messages.Any(message => message.channelID == channel.id && message.id > (db.ChannelReadStates.Where(readState => readState.userID == userId && readState.channelID == channel.id).Select(readState => (long?)readState.lastReadMessageID).FirstOrDefault() ?? 0))}).ToListAsync();
 
         return Ok(results);
     }

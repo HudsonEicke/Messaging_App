@@ -713,6 +713,34 @@
             }
           },
           "response": []
+        },
+        {
+          "name": "Mark Channel Read",
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"lastReadMessageID\": {{messageID}}\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{Messaging_App_HostAddress}}/channels/{{channelID}}/read-state",
+              "host": [
+                "{{Messaging_App_HostAddress}}"
+              ],
+              "path": [
+                "channels",
+                "{{channelID}}",
+                "read-state"
+              ]
+            }
+          },
+          "response": []
         }
       ]
     },
@@ -1065,6 +1093,34 @@
               "path": [
                 "conversation-messages",
                 "{{conversationMessageID}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Mark Conversation Read",
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"lastReadMessageID\": {{conversationMessageID}}\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{Messaging_App_HostAddress}}/conversations/{{conversationID}}/read-state",
+              "host": [
+                "{{Messaging_App_HostAddress}}"
+              ],
+              "path": [
+                "conversations",
+                "{{conversationID}}",
+                "read-state"
               ]
             }
           },
@@ -1961,6 +2017,34 @@
                 }
               },
               "response": []
+            },
+            {
+              "name": "Mark Channel Read",
+              "request": {
+                "method": "PUT",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n  \"lastReadMessageID\": {{messageID}}\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{Messaging_App_HostAddress}}/channels/{{channelID}}/read-state",
+                  "host": [
+                    "{{Messaging_App_HostAddress}}"
+                  ],
+                  "path": [
+                    "channels",
+                    "{{channelID}}",
+                    "read-state"
+                  ]
+                }
+              },
+              "response": []
             }
           ]
         },
@@ -2313,6 +2397,34 @@
                   "path": [
                     "conversation-messages",
                     "{{conversationMessageID}}"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Mark Conversation Read",
+              "request": {
+                "method": "PUT",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n  \"lastReadMessageID\": {{conversationMessageID}}\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{Messaging_App_HostAddress}}/conversations/{{conversationID}}/read-state",
+                  "host": [
+                    "{{Messaging_App_HostAddress}}"
+                  ],
+                  "path": [
+                    "conversations",
+                    "{{conversationID}}",
+                    "read-state"
                   ]
                 }
               },

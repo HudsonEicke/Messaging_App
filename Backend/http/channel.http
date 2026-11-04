@@ -36,3 +36,12 @@ Authorization: Bearer {{accessToken}}
 ###Delete channel
 DELETE {{Messaging_App_HostAddress}}/channels/{{id}}
 Authorization: Bearer {{accessToken}}
+
+###Mark a channel as read
+PUT {{Messaging_App_HostAddress}}/channels/{{id}}/read-state
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "lastReadMessageID": 1
+}

@@ -19,6 +19,7 @@ public class MessagingAppContext : DbContext
     public DbSet<ConversationMember> ConversationMembers { get; set; }
     public DbSet<ConversationMessage> ConversationMessages { get; set; }
     public DbSet<Friend> Friends { get; set; }
+    public DbSet<ChannelReadState> ChannelReadStates { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -67,6 +68,11 @@ public class MessagingAppContext : DbContext
         {
             entity.HasKey(cm => new { cm.conversationID, cm.userID });
             entity.HasOne<Conversation>().WithMany(conversation => conversation.members).HasForeignKey(cm => cm.conversationID);
+        });
+
+        modelBuilder.Entity<ChannelReadState>(entity =>
+        {
+            entity.HasKey(rs => new { rs.userID, rs.channelID });
         });
 
         modelBuilder.Entity<ConversationMessage>(entity =>

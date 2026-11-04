@@ -70,3 +70,12 @@ Authorization: Bearer {{accessToken}}
 ###Delete conversation message
 DELETE {{Messaging_App_HostAddress}}/conversation-messages/{{id}}
 Authorization: Bearer {{accessToken}}
+
+###Mark a conversation as read
+PUT {{Messaging_App_HostAddress}}/conversations/{{id}}/read-state
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "lastReadMessageID": 1
+}

@@ -6,4 +6,5 @@ public class ServerResult
     public string ownerUsername { get; set; } = string.Empty;
     public string serverName { get; set; } = string.Empty;
     public string iconUrl { get; set; } = string.Empty;
+    public bool hasUnread { get; set; }
 }

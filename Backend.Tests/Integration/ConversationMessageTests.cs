@@ -54,6 +54,18 @@ public class ConversationMessageTests : IClassFixture<TestWebApplicationFactory>
         return result!.id;
     }
 
+    private async Task<HttpResponseMessage> MarkConversationRead(string token, long conversationId, long messageId)
+    {
+        return await client.SendAsync(CreateRequest(HttpMethod.Put, $"/conversations/{conversationId}/read-state", token, new UpdateReadStateRequest { lastReadMessageID = messageId }), TestContext.Current.CancellationToken);
+    }
+
+    private async Task<List<ConversationResult>> GetConversations(string token)
+    {
+        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Get, "/conversations", token), TestContext.Current.CancellationToken);
+        List<ConversationResult>? result = await response.Content.ReadFromJsonAsync<List<ConversationResult>>(TestContext.Current.CancellationToken);
+        return result!;
+    }
+
     //GET MESSAGES
     [Fact]
     public async Task GetConversationMessages_AsMember_ReturnsOkWithEmptyList()
@@ -362,5 +374,133 @@ public class ConversationMessageTests : IClassFixture<TestWebApplicationFactory>
 
         //assert
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+    }
+
+    //READ STATE
+    [Fact]
+    public async Task UpdateReadState_AsMember_ResetsUnreadCount()
+    {
+        //arrange
+        (string tokenA, string tokenB, long conversationId) = await CreateDmConversation("rsdmreada", "rsdmreadb");
+        await SendConversationMessage(tokenB, conversationId, "first");
+        long lastMessageId = await SendConversationMessage(tokenB, conversationId, "second");
+        int unreadBefore = (await GetConversations(tokenA)).Single(conversation => conversation.id == conversationId).unreadCount;
+
+        //act
+        HttpResponseMessage response = await MarkConversationRead(tokenA, conversationId, lastMessageId);
+        int unreadAfter = (await GetConversations(tokenA)).Single(conversation => conversation.id == conversationId).unreadCount;
+
+        //assert
+        Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
+        Assert.Equal(2, unreadBefore);
+        Assert.Equal(0, unreadAfter);
+    }
+
+    [Fact]
+    public async Task UpdateReadState_WithOlderMessage_DoesNotMoveBackwards()
+    {
+        //arrange
+        (string tokenA, string tokenB, long conversationId) = await CreateDmConversation("rsdmolda", "rsdmoldb");
+        long firstMessageId = await SendConversationMessage(tokenB, conversationId, "first");
+        long secondMessageId = await SendConversationMessage(tokenB, conversationId, "second");
+        await MarkConversationRead(tokenA, conversationId, secondMessageId);
+
+        //act
+        HttpResponseMessage response = await MarkConversationRead(tokenA, conversationId, firstMessageId);
+        int unreadCount = (await GetConversations(tokenA)).Single(conversation => conversation.id == conversationId).unreadCount;
+
+        //assert
+        Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
+        Assert.Equal(0, unreadCount);
+    }
+
+    [Fact]
+    public async Task UpdateReadState_WithMessageFromAnotherConversation_ReturnsBadRequest()
+    {
+        //arrange
+        (string tokenA, _, long conversationId) = await CreateDmConversation("rsdmothera", "rsdmotherb");
+        (string tokenC, _, long otherConversationId) = await CreateDmConversation("rsdmotherc", "rsdmotherd");
+        long otherMessageId = await SendConversationMessage(tokenC, otherConversationId, "not yours");
+
+        //act
+        HttpResponseMessage response = await MarkConversationRead(tokenA, conversationId, otherMessageId);
+
+        //assert
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task UpdateReadState_AsNonMember_ReturnsForbidden()
+    {
+        //arrange
+        (string tokenA, _, long conversationId) = await CreateDmConversation("rsdmnonma", "rsdmnonmb");
+        long messageId = await SendConversationMessage(tokenA, conversationId, "hello");
+        string nonMemberToken = await RegisterAndGetToken("rsdmnonmc", "rsdmnonmc@email.com");
+
+        //act
+        HttpResponseMessage response = await MarkConversationRead(nonMemberToken, conversationId, messageId);
+
+        //assert
+        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task UpdateReadState_WithNonExistentConversation_ReturnsNotFound()
+    {
+        //arrange
+        string token = await RegisterAndGetToken("rsdmnotf", "rsdmnotf@email.com");
+
+        //act
+        HttpResponseMessage response = await MarkConversationRead(token, 999999999, 1);
+
+        //assert
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task UpdateReadState_WithoutToken_ReturnsUnauthorized()
+    {
+        //act
+        HttpResponseMessage response = await client.PutAsJsonAsync("/conversations/1/read-state", new UpdateReadStateRequest { lastReadMessageID = 1 }, TestContext.Current.CancellationToken);
+
+        //assert
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task SendConversationMessage_OwnMessages_AreNotUnread()
+    {
+        //arrange
+        (string tokenA, string tokenB, long conversationId) = await CreateDmConversation("rsdmowna", "rsdmownb");
+
+        //act
+        await SendConversationMessage(tokenA, conversationId, "first");
+        await SendConversationMessage(tokenA, conversationId, "second");
+        int senderUnread = (await GetConversations(tokenA)).Single(conversation => conversation.id == conversationId).unreadCount;
+        int receiverUnread = (await GetConversations(tokenB)).Single(conversation => conversation.id == conversationId).unreadCount;
+
+        //assert
+        Assert.Equal(0, senderUnread);
+        Assert.Equal(2, receiverUnread);
+    }
+
+    [Fact]
+    public async Task GetConversations_OrdersByMostRecentMessage()
+    {
+        //arrange
+        (string tokenA, string tokenB, long firstConversationId) = await CreateDmConversation("rsdmorda", "rsdmordb");
+        await RegisterAndGetToken("rsdmordc", "rsdmordc@email.com");
+        HttpResponseMessage createResponse = await client.SendAsync(CreateRequest(HttpMethod.Post, "/conversations", tokenA, new CreateConversationRequest { memberUsernames = ["rsdmordc"] }), TestContext.Current.CancellationToken);
+        long secondConversationId = (await createResponse.Content.ReadFromJsonAsync<CreateConversationResult>(TestContext.Current.CancellationToken))!.conversationID;
+        await SendConversationMessage(tokenA, secondConversationId, "older");
+        long newestMessageId = await SendConversationMessage(tokenB, firstConversationId, "newer");
+
+        //act
+        List<ConversationResult> result = await GetConversations(tokenA);
+
+        //assert
+        Assert.Equal(firstConversationId, result[0].id);
+        Assert.Equal(secondConversationId, result[1].id);
+        Assert.Equal(newestMessageId, result[0].lastMessageID);
     }
 }

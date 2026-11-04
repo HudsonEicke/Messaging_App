@@ -17,14 +17,17 @@ public class ConversationController : ModifiedControllerBase
     private readonly EncryptionService encryptionService;
     
     private readonly IHubContext<ChatHub> hubContext;
+    private readonly ReadStateService readStateService;
     private const int MESSAGEGRABAMOUNT = 50;
     private const int MAXCONVERSATIONMEMBERS = 25;
+    private const int MAXUNREADCOUNT = 100;
 
-    public ConversationController(MessagingAppContext db, EncryptionService encryptionService, IHubContext<ChatHub> hubContext)
+    public ConversationController(MessagingAppContext db, EncryptionService encryptionService, IHubContext<ChatHub> hubContext, ReadStateService readStateService)
     {
         this.db = db;
         this.encryptionService = encryptionService;
         this.hubContext = hubContext;
+        this.readStateService = readStateService;
     }
 
     [HttpPost]
@@ -165,11 +168,14 @@ public class ConversationController : ModifiedControllerBase
 
         long userId = nullableUserId.Value;
 
-        List<ConversationResult> directResults = await db.ConversationMembers.AsNoTracking().Where(member => member.userID == userId).Join(db.Conversations, member => member.conversationID, conversation => conversation.id, (member, conversation) => conversation).Where(conversation => conversation.conversationType == ConversationType.direct).Join(db.ConversationMembers, conversation => conversation.id, otherMember => otherMember.conversationID, (conversation, otherMember) => new { conversation, otherMember }).Where(x => x.otherMember.userID != userId).Join(db.Users, x => x.otherMember.userID, user => user.id, (x, user) => new ConversationResult{id = x.conversation.id, conversationName = user.displayName, iconUrl = user.profileImageUrl, conversationType = ConversationType.direct}).ToListAsync();
+        List<ConversationResult> directResults = await db.ConversationMembers.AsNoTracking().Where(member => member.userID == userId).Join(db.Conversations, member => member.conversationID, conversation => conversation.id, (member, conversation) => new { member, conversation }).Where(membership => membership.conversation.conversationType == ConversationType.direct).Join(db.ConversationMembers, membership => membership.conversation.id, otherMember => otherMember.conversationID, (membership, otherMember) => new { membership.member, membership.conversation, otherMember }).Where(dm => dm.otherMember.userID != userId).Join(db.Users, dm => dm.otherMember.userID, user => user.id, (dm, user) => new ConversationResult{id = dm.conversation.id, conversationName = user.displayName, iconUrl = user.profileImageUrl, conversationType = ConversationType.direct, lastMessageID = db.ConversationMessages.Where(message => message.conversationID == dm.conversation.id).Max(message => (long?)message.id), unreadCount = db.ConversationMessages.Where(message => message.conversationID == dm.conversation.id && message.id > (dm.member.lastReadMessageID ?? 0)).Take(MAXUNREADCOUNT).Count()}).ToListAsync();
 
-        List<ConversationResult> groupResults = await db.ConversationMembers.AsNoTracking().Where(member => member.userID == userId).Join(db.Conversations, member => member.conversationID, conversation => conversation.id, (member, conversation) => conversation).Where(conversation => conversation.conversationType == ConversationType.group).Join(db.Users, conversation => conversation.ownerID, user => user.id, (conversation, user) => new ConversationResult{id = conversation.id, conversationName = conversation.conversationName ?? string.Empty, iconUrl = conversation.iconUrl, conversationType = ConversationType.group, ownerUsername = user.username}).ToListAsync();
+        List<ConversationResult> groupResults = await db.ConversationMembers.AsNoTracking().Where(member => member.userID == userId).Join(db.Conversations, member => member.conversationID, conversation => conversation.id, (member, conversation) => new { member, conversation }).Where(membership => membership.conversation.conversationType == ConversationType.group).Join(db.Users, membership => membership.conversation.ownerID, user => user.id, (membership, user) => new ConversationResult{id = membership.conversation.id, conversationName = membership.conversation.conversationName ?? string.Empty, iconUrl = membership.conversation.iconUrl, conversationType = ConversationType.group, ownerUsername = user.username, lastMessageID = db.ConversationMessages.Where(message => message.conversationID == membership.conversation.id).Max(message => (long?)message.id), unreadCount = db.ConversationMessages.Where(message => message.conversationID == membership.conversation.id && message.id > (membership.member.lastReadMessageID ?? 0)).Take(MAXUNREADCOUNT).Count()}).ToListAsync();
 
-        return Ok(directResults.Concat(groupResults).ToList());
+        //most recently active first, conversations with no messages go last
+        List<ConversationResult> results = directResults.Concat(groupResults).OrderByDescending(conversation => conversation.lastMessageID ?? 0).ThenByDescending(conversation => conversation.id).ToList();
+
+        return Ok(results);
     }
 
     [HttpGet("{id:long}")]
@@ -383,6 +389,9 @@ public class ConversationController : ModifiedControllerBase
         newMember.conversationID = id;
         newMember.userID = foundUser.id;
 
+        //starts the new member at the latest message so they don't join with old messages as unread
+        newMember.lastReadMessageID = await db.ConversationMessages.Where(message => message.conversationID == id).MaxAsync(message => (long?)message.id);
+
         db.ConversationMembers.Add(newMember);
         await db.SaveChangesAsync();
 
@@ -561,6 +570,9 @@ public class ConversationController : ModifiedControllerBase
 
         await db.SaveChangesAsync();
 
+        //the sender has read their own message
+        await readStateService.MarkConversationRead(id, userId, newMessage.id);
+
         string? username = GetUsername();
 
         if(username == null)
@@ -579,5 +591,42 @@ public class ConversationController : ModifiedControllerBase
         await hubContext.Clients.Group($"conversation_{id}").SendAsync("ReceiveConversationMessage", result);
 
         return Ok(result);
+    }
+
+    [HttpPut("{id:long}/read-state")]
+    public async Task<IActionResult> UpdateReadState(long id, UpdateReadStateRequest updateReadStateRequest)
+    {
+        long? nullableUserId = GetUserId();
+        
+        if(nullableUserId == null) 
+            return Unauthorized();
+
+        long userId = nullableUserId.Value;
+
+        Conversation? foundConversation = await db.Conversations.AsNoTracking().FirstOrDefaultAsync(conversation => conversation.id == id);
+
+        if(foundConversation == null)
+        {
+            return NotFound();
+        }
+
+        ConversationMember? foundMember = await db.ConversationMembers.AsNoTracking().FirstOrDefaultAsync(member => member.conversationID == id && member.userID == userId);
+
+        if(foundMember == null)
+        {
+            return Forbid();
+        }
+
+        //stops a made up id from hiding future unread messages
+        bool messageExists = await db.ConversationMessages.AnyAsync(message => message.id == updateReadStateRequest.lastReadMessageID && message.conversationID == id);
+
+        if(!messageExists)
+        {
+            return BadRequest("Message not found in this conversation");
+        }
+
+        await readStateService.MarkConversationRead(id, userId, updateReadStateRequest.lastReadMessageID);
+
+        return NoContent();
     }
 }
