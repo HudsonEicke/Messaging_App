@@ -155,6 +155,7 @@ public class AuthController : ControllerBase
         newToken.userID = foundUser.id;
         newToken.token = Convert.ToBase64String(SHA256.HashData(Encoding.UTF8.GetBytes(refreshToken)));
         newToken.expiresDate = DateTime.UtcNow.AddDays(jwtSettings.RefreshTokenExpirationDays);
+        await authService.DeleteExpiredRefreshTokens(foundUser.id);
         await authService.SaveRefreshToken(newToken);
 
         result.success = true;
@@ -226,6 +227,7 @@ public class AuthController : ControllerBase
         newToken.userID = foundUser.id;
         newToken.token = Convert.ToBase64String(SHA256.HashData(Encoding.UTF8.GetBytes(refreshToken)));
         newToken.expiresDate = DateTime.UtcNow.AddDays(jwtSettings.RefreshTokenExpirationDays);
+        await authService.DeleteExpiredRefreshTokens(foundUser.id);
         await authService.SaveRefreshToken(newToken);
 
         result.accessToken = accessToken;

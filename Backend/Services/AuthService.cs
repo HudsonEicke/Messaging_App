@@ -33,4 +33,9 @@ public class AuthService
         refreshToken.revoked = true;
         await db.SaveChangesAsync();
     }
+
+    public async Task DeleteExpiredRefreshTokens(long userID)
+    {
+        await db.RefreshTokens.Where(token => token.userID == userID && token.expiresDate < DateTimeOffset.UtcNow).ExecuteDeleteAsync();
+    }
 }
