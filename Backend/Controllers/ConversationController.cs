@@ -17,16 +17,18 @@ public class ConversationController : ModifiedControllerBase
     private readonly EncryptionService encryptionService;
     
     private readonly IHubContext<ChatHub> hubContext;
+    private readonly HubGroupService hubGroupService;
     private readonly ReadStateService readStateService;
     private const int MESSAGEGRABAMOUNT = 50;
     private const int MAXCONVERSATIONMEMBERS = 25;
     private const int MAXUNREADCOUNT = 100;
 
-    public ConversationController(MessagingAppContext db, EncryptionService encryptionService, IHubContext<ChatHub> hubContext, ReadStateService readStateService)
+    public ConversationController(MessagingAppContext db, EncryptionService encryptionService, IHubContext<ChatHub> hubContext, ReadStateService readStateService, HubGroupService hubGroupService)
     {
         this.db = db;
         this.encryptionService = encryptionService;
         this.hubContext = hubContext;
+        this.hubGroupService = hubGroupService;
         this.readStateService = readStateService;
     }
 
@@ -402,7 +404,7 @@ public class ConversationController : ModifiedControllerBase
         result.activityStatus = foundUser.activityStatus;
         result.accountCreationTime = foundUser.accountCreationTime;
 
-        await ChatHub.AddUserToGroup(hubContext, foundUser.id, $"conversation_{id}");
+        await hubGroupService.AddUserToGroup(foundUser.id, $"conversation_{id}");
         await hubContext.Clients.Group($"conversation_{id}").SendAsync("ConversationMemberAdded", foundUser.username);
 
         return Ok(result);
@@ -470,7 +472,7 @@ public class ConversationController : ModifiedControllerBase
 
         if(conversationDeleted)
         {
-            await ChatHub.RemoveUserFromGroup(hubContext, userId, $"conversation_{id}");
+            await hubGroupService.RemoveUserFromGroup(userId, $"conversation_{id}");
             return NoContent();
         }
 
@@ -478,7 +480,7 @@ public class ConversationController : ModifiedControllerBase
             await hubContext.Clients.Group($"conversation_{id}").SendAsync("ConversationOwnerChanged", newOwnerUsername);
 
         await hubContext.Clients.Group($"conversation_{id}").SendAsync("ConversationMemberLeft", GetUsername());
-        await ChatHub.RemoveUserFromGroup(hubContext, userId, $"conversation_{id}");
+        await hubGroupService.RemoveUserFromGroup(userId, $"conversation_{id}");
 
         return NoContent();
     }

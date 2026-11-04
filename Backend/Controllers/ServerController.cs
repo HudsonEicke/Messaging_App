@@ -14,11 +14,13 @@ public class ServerController : ModifiedControllerBase
 {
     private readonly MessagingAppContext db;
     private readonly IHubContext<ChatHub> hubContext;
+    private readonly HubGroupService hubGroupService;
 
-    public ServerController(MessagingAppContext db, IHubContext<ChatHub> hubContext)
+    public ServerController(MessagingAppContext db, IHubContext<ChatHub> hubContext, HubGroupService hubGroupService)
     {
         this.db = db;
         this.hubContext = hubContext;
+        this.hubGroupService = hubGroupService;
     }
 
     //Server API
@@ -51,7 +53,7 @@ public class ServerController : ModifiedControllerBase
 
         await db.SaveChangesAsync();
 
-        await ChatHub.AddUserToGroup(hubContext, userId, $"server_{newServer.id}");
+        await hubGroupService.AddUserToGroup(userId, $"server_{newServer.id}");
 
         CreateServerResult result = new CreateServerResult();
 
@@ -229,7 +231,7 @@ public class ServerController : ModifiedControllerBase
         await hubContext.Clients.Group($"server_{foundServer.id}").SendAsync("ServerDeleted", foundServer.id);
 
         foreach (long memberId in memberIds)
-            await ChatHub.RemoveUserFromGroup(hubContext, memberId, $"server_{foundServer.id}");
+            await hubGroupService.RemoveUserFromGroup(memberId, $"server_{foundServer.id}");
 
         db.Servers.Remove(foundServer);
         await db.SaveChangesAsync();
@@ -274,7 +276,7 @@ public class ServerController : ModifiedControllerBase
             //deletes the server if no other members in the server
             if(newOwner == null)
             {
-                await ChatHub.RemoveUserFromGroup(hubContext, userId, $"server_{id}");
+                await hubGroupService.RemoveUserFromGroup(userId, $"server_{id}");
                 db.Servers.Remove(foundServer);
                 await db.SaveChangesAsync();
                 return NoContent();
@@ -293,7 +295,7 @@ public class ServerController : ModifiedControllerBase
             await hubContext.Clients.Group($"server_{id}").SendAsync("OwnerChanged", newOwnerUsername);
 
         await hubContext.Clients.Group($"server_{id}").SendAsync("MemberLeft", GetUsername());
-        await ChatHub.RemoveUserFromGroup(hubContext, userId, $"server_{id}");
+        await hubGroupService.RemoveUserFromGroup(userId, $"server_{id}");
 
         return NoContent();
     }
@@ -344,7 +346,7 @@ public class ServerController : ModifiedControllerBase
         await db.SaveChangesAsync();
 
         await hubContext.Clients.Group($"server_{id}").SendAsync("MemberKicked", foundUser.username);
-        await ChatHub.RemoveUserFromGroup(hubContext, foundUser.id, $"server_{id}");
+        await hubGroupService.RemoveUserFromGroup(foundUser.id, $"server_{id}");
 
         return NoContent();
     }

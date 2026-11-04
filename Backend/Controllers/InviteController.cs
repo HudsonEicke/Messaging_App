@@ -15,11 +15,13 @@ public class InviteController : ModifiedControllerBase
 {
     private readonly MessagingAppContext db;
     private readonly IHubContext<ChatHub> hubContext;
+    private readonly HubGroupService hubGroupService;
 
-    public InviteController(MessagingAppContext db, IHubContext<ChatHub> hubContext)
+    public InviteController(MessagingAppContext db, IHubContext<ChatHub> hubContext, HubGroupService hubGroupService)
     {
         this.db = db;
         this.hubContext = hubContext;
+        this.hubGroupService = hubGroupService;
     }
 
     [HttpGet("{code:guid}")]
@@ -121,7 +123,7 @@ public class InviteController : ModifiedControllerBase
             return NotFound();
         }
 
-        await ChatHub.AddUserToGroup(hubContext, userId, $"server_{foundInvite.serverID}");
+        await hubGroupService.AddUserToGroup(userId, $"server_{foundInvite.serverID}");
         string? username = GetUsername();
         await hubContext.Clients.Group($"server_{foundInvite.serverID}").SendAsync("MemberJoined", username);
 
