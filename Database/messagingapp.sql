@@ -27,7 +27,7 @@ create table RefreshTokens
 (
     id BIGSERIAL PRIMARY KEY,
     userID BIGINT NOT NULL REFERENCES Users(id) ON DELETE CASCADE,
-    token CHAR(200) NOT NULL,
+    token VARCHAR(44) NOT NULL UNIQUE,
     revoked BOOLEAN NOT NULL DEFAULT false,
     createdDate TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     expiresDate TIMESTAMPTZ NOT NULL
@@ -84,7 +84,7 @@ create table Messages
     sender BIGINT NOT NULL REFERENCES Users(id) ON DELETE CASCADE, --who the message is from
     timeSent TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     edited BOOLEAN NOT NULL DEFAULT false,
-    replyToID BIGINT REFERENCES Messages(id)
+    replyToID BIGINT REFERENCES Messages(id) ON DELETE SET NULL
 );
 
 --DIRECT MESSAGES DB START
@@ -112,15 +112,17 @@ create table ConversationMessages
     sender BIGINT NOT NULL REFERENCES Users(id) ON DELETE CASCADE,
     timeSent TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     edited BOOLEAN NOT NULL DEFAULT false,
-    replyToID BIGINT REFERENCES ConversationMessages(id)
+    replyToID BIGINT REFERENCES ConversationMessages(id) ON DELETE SET NULL
 );
 
 --INDEXES
-CREATE INDEX idx_messages_channel_time_desc ON Messages(channelID, timeSent DESC);
-CREATE INDEX idx_conversation_messages_time_desc ON ConversationMessages(conversationID, timeSent DESC);
+CREATE INDEX idx_messages_channel_id_desc ON Messages(channelID, id DESC);
+CREATE INDEX idx_conversation_messages_conversation_id_desc ON ConversationMessages(conversationID, id DESC);
 CREATE INDEX idx_servermembers_userid ON ServerMembers(userID);
 CREATE INDEX idx_serverinvites_serverid ON ServerInvites(serverID);
 CREATE INDEX idx_channels_serverid ON Channels(serverID);
 CREATE INDEX idx_conversationmembers_userid ON ConversationMembers(userID);
 CREATE INDEX idx_friends_receiver ON Friends(receiver);
-CREATE INDEX idx_refreshtokens_token ON RefreshTokens(token);
+CREATE INDEX idx_refreshtokens_userid ON RefreshTokens(userID);
+CREATE INDEX idx_messages_replytoid ON Messages(replyToID) WHERE replyToID IS NOT NULL;
+CREATE INDEX idx_conversation_messages_replytoid ON ConversationMessages(replyToID) WHERE replyToID IS NOT NULL;
