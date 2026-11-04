@@ -73,7 +73,8 @@ create table Channels
     id BIGSERIAL PRIMARY KEY,
     serverID BIGINT NOT NULL REFERENCES Servers(id) ON DELETE CASCADE,
     channelName TEXT NOT NULL,
-    channelOrder INT NOT NULL DEFAULT 0
+    channelOrder INT NOT NULL DEFAULT 0,
+    CONSTRAINT uq_channels_server_order UNIQUE (serverID, channelOrder) DEFERRABLE INITIALLY DEFERRED
 );
 
 create table Messages
@@ -102,7 +103,9 @@ create table Conversations
     conversationName TEXT,
     ownerID BIGINT REFERENCES Users(id),
     iconUrl TEXT,
-    conversationType CONVERSATIONTYPE NOT NULL DEFAULT 'direct'
+    conversationType CONVERSATIONTYPE NOT NULL DEFAULT 'direct',
+    directUserLowID BIGINT REFERENCES Users(id) ON DELETE SET NULL,
+    directUserHighID BIGINT REFERENCES Users(id) ON DELETE SET NULL
 );
 
 create table ConversationMembers
@@ -129,8 +132,8 @@ CREATE INDEX idx_messages_channel_id_desc ON Messages(channelID, id DESC);
 CREATE INDEX idx_conversation_messages_conversation_id_desc ON ConversationMessages(conversationID, id DESC);
 CREATE INDEX idx_servermembers_userid ON ServerMembers(userID);
 CREATE INDEX idx_serverinvites_serverid ON ServerInvites(serverID);
-CREATE INDEX idx_channels_serverid ON Channels(serverID);
 CREATE INDEX idx_conversationmembers_userid ON ConversationMembers(userID);
+CREATE UNIQUE INDEX idx_conversations_direct_pair ON Conversations(directUserLowID, directUserHighID) WHERE conversationType = 'direct';
 CREATE INDEX idx_friends_receiver ON Friends(receiver);
 CREATE INDEX idx_refreshtokens_userid ON RefreshTokens(userID);
 CREATE INDEX idx_messages_replytoid ON Messages(replyToID) WHERE replyToID IS NOT NULL;

@@ -88,7 +88,17 @@ public class AuthController : ControllerBase
 
         db.Users.Add(newUser);
 
-        await db.SaveChangesAsync();
+        //the checks above can both pass when two people sign up with the same name at once, the unique constraint catches the second
+        try
+        {
+            await db.SaveChangesAsync();
+        }
+        catch(DbUpdateException exception) when (exception.IsUniqueViolation())
+        {
+            result.message = exception.IsUniqueViolation("users_email_key") ? "Email already in use" : "Username already in use";
+            result.success = false;
+            return Conflict(result);
+        }
 
         //generates a refresh token and access token for the user
         Claim[] claims = {new Claim(ClaimTypes.Name, newUser.username), new Claim(ClaimTypes.NameIdentifier, newUser.id.ToString())};

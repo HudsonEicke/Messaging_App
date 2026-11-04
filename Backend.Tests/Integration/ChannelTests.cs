@@ -231,6 +231,37 @@ public class ChannelTests : IClassFixture<TestWebApplicationFactory>
     }
 
     [Fact]
+    public async Task ReorderChannels_WithDuplicateIds_ReturnsBadRequest()
+    {
+        //arrange
+        (string token, long serverId) = await CreateServerAndGetId("racereorddup");
+        long channelId = await CreateChannel(token, serverId, "first");
+        await CreateChannel(token, serverId, "second");
+
+        //act
+        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Put, $"/servers/{serverId}/channels/order", token, new ReorderChannelRequest { channelIDs = new List<long> { channelId, channelId } }), TestContext.Current.CancellationToken);
+
+        //assert
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task CreateChannel_ManyAtOnce_GetDistinctOrders()
+    {
+        //arrange
+        (string token, long serverId) = await CreateServerAndGetId("racechanorder");
+
+        //act
+        HttpResponseMessage[] responses = await Task.WhenAll(Enumerable.Range(0, 5).Select(i => client.SendAsync(CreateRequest(HttpMethod.Post, $"/servers/{serverId}/channels", token, new CreateChannelRequest { channelName = $"channel{i}" }), TestContext.Current.CancellationToken)));
+        HttpResponseMessage listResponse = await client.SendAsync(CreateRequest(HttpMethod.Get, $"/servers/{serverId}/channels", token), TestContext.Current.CancellationToken);
+        List<ChannelResult>? channels = await listResponse.Content.ReadFromJsonAsync<List<ChannelResult>>(TestContext.Current.CancellationToken);
+
+        //assert
+        Assert.All(responses, response => Assert.Equal(HttpStatusCode.OK, response.StatusCode));
+        Assert.Equal(new List<int> { 0, 1, 2, 3, 4 }, channels!.Select(channel => channel.channelOrder).OrderBy(order => order).ToList());
+    }
+
+    [Fact]
     public async Task ReorderChannels_WithoutToken_ReturnsUnauthorized()
     {
         //act

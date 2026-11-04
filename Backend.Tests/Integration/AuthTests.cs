@@ -64,6 +64,20 @@ public class AuthTests : IClassFixture<TestWebApplicationFactory>
     }
 
     [Fact]
+    public async Task Register_SameUsernameAtOnce_OneSucceedsAndOneConflicts()
+    {
+        //arrange
+        RegisterRequest first = new RegisterRequest { username = "racereguser", email = "racereg1@email.com", password = "Test123!" };
+        RegisterRequest second = new RegisterRequest { username = "racereguser", email = "racereg2@email.com", password = "Test123!" };
+
+        //act
+        HttpResponseMessage[] responses = await Task.WhenAll(client.PostAsJsonAsync("/auth/register", first, TestContext.Current.CancellationToken), client.PostAsJsonAsync("/auth/register", second, TestContext.Current.CancellationToken));
+
+        //assert: the loser gets a 409, never a 500
+        Assert.Equal(new[] { HttpStatusCode.OK, HttpStatusCode.Conflict }, responses.Select(response => response.StatusCode).OrderBy(status => status).ToArray());
+    }
+
+    [Fact]
     public async Task Register_WithDuplicateEmail_ReturnsConflict()
     {
         //arrange

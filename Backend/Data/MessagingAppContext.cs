@@ -21,6 +21,11 @@ public class MessagingAppContext : DbContext
     public DbSet<Friend> Friends { get; set; }
     public DbSet<ChannelReadState> ChannelReadStates { get; set; }
 
+    public async Task LockServerAsync(long serverId)
+    {
+        await Database.ExecuteSqlInterpolatedAsync($"SELECT id FROM servers WHERE id = {serverId} FOR UPDATE");
+    }
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.HasPostgresEnum<ActivityStatus>();

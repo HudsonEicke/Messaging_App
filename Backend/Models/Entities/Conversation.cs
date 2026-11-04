@@ -24,6 +24,12 @@ public class Conversation
     
     [Column("conversationtype")]
     public ConversationType conversationType { get; set; }
+    
+    [Column("directuserlowid")]
+    public long? directUserLowID { get; set; }
+
+    [Column("directuserhighid")]
+    public long? directUserHighID { get; set; }
 
     public List<ConversationMember> members { get; set; } = new List<ConversationMember>();
 }

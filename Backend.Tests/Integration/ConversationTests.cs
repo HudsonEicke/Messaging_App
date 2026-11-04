@@ -118,6 +118,39 @@ public class ConversationTests : IClassFixture<TestWebApplicationFactory>
     }
 
     [Fact]
+    public async Task CreateConversation_DirectFromBothUsersAtOnce_CreatesOneDm()
+    {
+        //arrange
+        string tokenA = await RegisterAndGetToken("racedmboth1", "racedmboth1@email.com");
+        string tokenB = await RegisterAndGetToken("racedmboth2", "racedmboth2@email.com");
+
+        //act
+        HttpResponseMessage[] responses = await Task.WhenAll(client.SendAsync(CreateRequest(HttpMethod.Post, "/conversations", tokenA, new CreateConversationRequest { memberUsernames = new List<string> { "racedmboth2" } }), TestContext.Current.CancellationToken), client.SendAsync(CreateRequest(HttpMethod.Post, "/conversations", tokenB, new CreateConversationRequest { memberUsernames = new List<string> { "racedmboth1" } }), TestContext.Current.CancellationToken));
+        HttpResponseMessage listResponse = await client.SendAsync(CreateRequest(HttpMethod.Get, "/conversations", tokenA), TestContext.Current.CancellationToken);
+        List<ConversationResult>? conversations = await listResponse.Content.ReadFromJsonAsync<List<ConversationResult>>(TestContext.Current.CancellationToken);
+
+        //assert
+        Assert.Equal(new[] { HttpStatusCode.OK, HttpStatusCode.Conflict }, responses.Select(response => response.StatusCode).OrderBy(status => status).ToArray());
+        Assert.Single(conversations!, conversation => conversation.conversationType == ConversationType.direct);
+    }
+
+    [Fact]
+    public async Task CreateConversation_DirectAfterLeaving_RejoinsSameDm()
+    {
+        //arrange
+        (string tokenA, _, long conversationId) = await CreateDmConversation("racedmrejoinA", "racedmrejoinB");
+        await client.SendAsync(CreateRequest(HttpMethod.Delete, $"/conversations/{conversationId}/members/me", tokenA), TestContext.Current.CancellationToken);
+
+        //act
+        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Post, "/conversations", tokenA, new CreateConversationRequest { memberUsernames = new List<string> { "racedmrejoinB" } }), TestContext.Current.CancellationToken);
+        CreateConversationResult? result = await response.Content.ReadFromJsonAsync<CreateConversationResult>(TestContext.Current.CancellationToken);
+
+        //assert
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Equal(conversationId, result!.conversationID);
+    }
+
+    [Fact]
     public async Task CreateConversation_GroupWithValidUsers_ReturnsOkWithResult()
     {
         //arrange

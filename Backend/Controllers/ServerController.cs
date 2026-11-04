@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage;
 using Messaging_App.Data;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
@@ -383,15 +384,22 @@ public class ServerController : ModifiedControllerBase
             return Forbid();
         }
 
+        //locking the server makes two channels created at once take turns, so they can't get the same order
+        await using IDbContextTransaction transaction = await db.Database.BeginTransactionAsync();
+        await db.LockServerAsync(id);
+
+        int? highestOrder = await db.Channels.Where(channel => channel.serverID == id).MaxAsync(channel => (int?)channel.channelOrder);
+
         Channel newChannel = new Channel();
 
         newChannel.channelName = createChannelRequest.channelName;
         newChannel.serverID = id;
-        newChannel.channelOrder = await db.Channels.CountAsync(channels => channels.serverID == id);
+        newChannel.channelOrder = highestOrder == null ? 0 : highestOrder.Value + 1;
 
         db.Channels.Add(newChannel);
 
         await db.SaveChangesAsync();
+        await transaction.CommitAsync();
 
         CreateChannelResult result = new CreateChannelResult();
         result.channelID = newChannel.id;
@@ -455,6 +463,15 @@ public class ServerController : ModifiedControllerBase
             return Forbid();
         }
 
+        //a repeated id would leave another channel on its old position and clash with the unique order
+        if (reorderChannelRequest.channelIDs.Distinct().Count() != reorderChannelRequest.channelIDs.Count)
+        {
+            return BadRequest("Channel list contains duplicates");
+        }
+
+        await using IDbContextTransaction transaction = await db.Database.BeginTransactionAsync();
+        await db.LockServerAsync(id);
+
         List<Channel> channels = await db.Channels.Where(c => c.serverID == id).ToListAsync();
 
         if (reorderChannelRequest.channelIDs.Count != channels.Count)
@@ -475,6 +492,7 @@ public class ServerController : ModifiedControllerBase
         }
 
         await db.SaveChangesAsync();
+        await transaction.CommitAsync();
 
         await hubContext.Clients.Group($"server_{id}").SendAsync("ChannelsReordered", reorderChannelRequest.channelIDs);
 

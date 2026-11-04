@@ -78,15 +78,49 @@ public class ConversationController : ModifiedControllerBase
                 return Forbid();
             }
 
-            bool existingConversation = await db.ConversationMembers.Where(cm => cm.userID == userId).Join(db.ConversationMembers, cm1 => cm1.conversationID, cm2 => cm2.conversationID, (cm1, cm2) => new { cm1, cm2 }).Join(db.Conversations, c => c.cm1.conversationID, conv => conv.id, (c, conv) => new { c.cm1, c.cm2, conv }).AnyAsync(x => x.cm2.userID == otherUser.id && x.conv.conversationType == ConversationType.direct);
+            long directUserLowID = Math.Min(userId, otherUser.id);
+            long directUserHighID = Math.Max(userId, otherUser.id);
 
-            if(existingConversation)
+            Conversation? existingConversation = await db.Conversations.AsNoTracking().FirstOrDefaultAsync(conversation => conversation.conversationType == ConversationType.direct && conversation.directUserLowID == directUserLowID && conversation.directUserHighID == directUserHighID);
+
+            if(existingConversation != null)
             {
-                return Conflict("You already have a dm with this user");
+                List<long> currentMemberIds = await db.ConversationMembers.AsNoTracking().Where(member => member.conversationID == existingConversation.id).Select(member => member.userID).ToListAsync();
+                List<long> missingMemberIds = new List<long> { userId, otherUser.id }.Where(memberId => !currentMemberIds.Contains(memberId)).ToList();
+
+                if(missingMemberIds.Count == 0)
+                {
+                    return Conflict("You already have a dm with this user");
+                }
+
+                foreach(long missingMemberId in missingMemberIds)
+                {
+                    ConversationMember returningMember = new ConversationMember();
+                    returningMember.conversationID = existingConversation.id;
+                    returningMember.userID = missingMemberId;
+                    db.ConversationMembers.Add(returningMember);
+                }
+
+                await db.SaveChangesAsync();
+
+                foreach(long missingMemberId in missingMemberIds)
+                {
+                    await hubGroupService.AddUserToGroup(missingMemberId, $"conversation_{existingConversation.id}");
+                }
+
+                result = new CreateConversationResult();
+                result.conversationID = existingConversation.id;
+                result.conversationName = otherUser.displayName;
+                result.iconUrl = otherUser.profileImageUrl;
+                result.memberUsernames = new List<string> { creatingUser.username, otherUser.username };
+
+                return Ok(result);
             }
 
             newConversation = new Conversation();
             newConversation.conversationType = ConversationType.direct;
+            newConversation.directUserLowID = directUserLowID;
+            newConversation.directUserHighID = directUserHighID;
 
             //conversationID is filled in by EF when the conversation is inserted
             ConversationMember newConversationMember1 = new ConversationMember();
@@ -98,7 +132,14 @@ public class ConversationController : ModifiedControllerBase
             newConversation.members.Add(newConversationMember2);
 
             db.Conversations.Add(newConversation);
-            await db.SaveChangesAsync();
+            try
+            {
+                await db.SaveChangesAsync();
+            }
+            catch(DbUpdateException exception) when (exception.IsUniqueViolation("idx_conversations_direct_pair"))
+            {
+                return Conflict("You already have a dm with this user");
+            }
 
             result = new CreateConversationResult();
             result.conversationID = newConversation.id;

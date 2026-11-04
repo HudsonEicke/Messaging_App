@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage;
 using Messaging_App.Data;
 using Messaging_App.Services;
 using Microsoft.AspNetCore.Authorization;
@@ -99,6 +100,9 @@ public class ChannelController : ModifiedControllerBase
             return Forbid();
         }
 
+        await using IDbContextTransaction transaction = await db.Database.BeginTransactionAsync();
+        await db.LockServerAsync(foundChannel.serverID);
+
         //cleans up the order of the other channels so the delete and reorder save together
         List<Channel> remainingChannels = await db.Channels.Where(channel => channel.serverID == foundChannel.serverID && channel.id != foundChannel.id).OrderBy(channel => channel.channelOrder).ToListAsync();
 
@@ -110,6 +114,7 @@ public class ChannelController : ModifiedControllerBase
         db.Channels.Remove(foundChannel);
 
         await db.SaveChangesAsync();
+        await transaction.CommitAsync();
 
         await hubContext.Clients.Group($"server_{foundServer.id}").SendAsync("ChannelDeleted", foundChannel.id);
 
