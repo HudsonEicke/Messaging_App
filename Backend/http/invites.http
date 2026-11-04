@@ -25,3 +25,8 @@ Authorization: Bearer {{accessToken}}
 POST {{Messaging_App_HostAddress}}/invite/{{code}}/join
 Content-Type: application/json
 Authorization: Bearer {{accessToken}}
+
+
+###Preview invite
+GET {{Messaging_App_HostAddress}}/invite/{{code}}
+Authorization: Bearer {{accessToken}}

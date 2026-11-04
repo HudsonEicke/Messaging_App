@@ -802,6 +802,24 @@
           "response": []
         },
         {
+          "name": "Preview Invite",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{Messaging_App_HostAddress}}/invite/{{inviteCode}}",
+              "host": [
+                "{{Messaging_App_HostAddress}}"
+              ],
+              "path": [
+                "invite",
+                "{{inviteCode}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
           "name": "Join Server",
           "request": {
             "method": "POST",
@@ -2009,6 +2027,24 @@
                   "path": [
                     "server",
                     "{{serverID}}",
+                    "invite",
+                    "{{inviteCode}}"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Preview Invite",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{Messaging_App_HostAddress}}/invite/{{inviteCode}}",
+                  "host": [
+                    "{{Messaging_App_HostAddress}}"
+                  ],
+                  "path": [
                     "invite",
                     "{{inviteCode}}"
                   ]

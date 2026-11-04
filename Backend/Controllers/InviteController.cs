@@ -22,6 +22,36 @@ public class InviteController : ModifiedControllerBase
         this.hubContext = hubContext;
     }
 
+    [HttpGet("{code}")]
+    public async Task<ActionResult<InvitePreviewResult>> GetInvitePreview(Guid code)
+    {
+        //gets the invite with its server, owner and member count in one query
+        var preview = await db.ServerInvites.AsNoTracking().Where(invite => invite.inviteCode == code).Join(db.Servers, invite => invite.serverID, server => server.id, (invite, server) => new { invite, server }).Join(db.Users, s => s.server.ownerID, user => user.id, (s, user) => new
+        {
+            s.invite.maxUses,
+            s.invite.uses,
+            s.invite.expiresDate,
+            result = new InvitePreviewResult{serverID = s.server.id, serverName = s.server.serverName, iconUrl = s.server.iconUrl, ownerUsername = user.username, memberCount = db.ServerMembers.Count(member => member.serverID == s.server.id)}
+        }).FirstOrDefaultAsync();
+
+        if(preview == null)
+        {
+            return NotFound();
+        }
+
+        if(preview.maxUses != null && preview.maxUses <= preview.uses)
+        {
+            return BadRequest("Invite out of uses");
+        }
+
+        if(preview.expiresDate != null && preview.expiresDate < DateTimeOffset.UtcNow)
+        {
+            return BadRequest("Invite has expired");
+        }
+
+        return Ok(preview.result);
+    }
+
     [HttpPost("{code}/join")]
     public async Task<ActionResult<ServerResult>> JoinServer(Guid code)
     {

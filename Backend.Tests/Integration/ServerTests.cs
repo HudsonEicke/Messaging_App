@@ -180,6 +180,20 @@ public class ServerTests : IClassFixture<TestWebApplicationFactory>
     }
 
     [Fact]
+    public async Task GetServer_WhenNotMember_ReturnsForbidden()
+    {
+        //arrange
+        (_, long serverId) = await CreateServerAndGetId("svgetsvrowner");
+        string nonMemberToken = await RegisterAndGetToken("svgetsvrnonmem", "svgetsvrnonmem@email.com");
+
+        //act
+        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Get, $"/server/{serverId}", nonMemberToken), TestContext.Current.CancellationToken);
+
+        //assert
+        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+    }
+
+    [Fact]
     public async Task GetServer_WithoutToken_ReturnsUnauthorized()
     {
         //act
@@ -618,6 +632,81 @@ public class ServerTests : IClassFixture<TestWebApplicationFactory>
     {
         //act
         HttpResponseMessage response = await client.DeleteAsync($"/server/1/invite/{Guid.NewGuid()}", TestContext.Current.CancellationToken);
+
+        //assert
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+    }
+
+    //INVITE PREVIEW
+    [Fact]
+    public async Task GetInvitePreview_WhenNotMember_ReturnsOkWithPreview()
+    {
+        //arrange
+        (string ownerToken, long serverId) = await CreateServerAndGetId("svpreviewowner");
+        string viewerToken = await RegisterAndGetToken("svpreviewview", "svpreviewview@email.com");
+        Guid inviteCode = await CreateInviteCode(ownerToken, serverId);
+
+        //act
+        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Get, $"/invite/{inviteCode}", viewerToken), TestContext.Current.CancellationToken);
+        InvitePreviewResult? result = await response.Content.ReadFromJsonAsync<InvitePreviewResult>(TestContext.Current.CancellationToken);
+
+        //assert
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.NotNull(result);
+        Assert.Equal(serverId, result.serverID);
+        Assert.Equal("svpreviewownerserver", result.serverName);
+        Assert.Equal("svpreviewowner", result.ownerUsername);
+        Assert.Equal(1, result.memberCount);
+    }
+
+    [Fact]
+    public async Task GetInvitePreview_WithNonExistentCode_ReturnsNotFound()
+    {
+        //arrange
+        string token = await RegisterAndGetToken("svpreviewnotf", "svpreviewnotf@email.com");
+
+        //act
+        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Get, $"/invite/{Guid.NewGuid()}", token), TestContext.Current.CancellationToken);
+
+        //assert
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task GetInvitePreview_WithExpiredInvite_ReturnsBadRequest()
+    {
+        //arrange
+        (string ownerToken, long serverId) = await CreateServerAndGetId("svpreviewexp");
+        Guid inviteCode = await CreateInviteCode(ownerToken, serverId, new CreateInviteRequest { expiresDate = DateTimeOffset.UtcNow.AddMinutes(-1) });
+
+        //act
+        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Get, $"/invite/{inviteCode}", ownerToken), TestContext.Current.CancellationToken);
+
+        //assert
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task GetInvitePreview_WithMaxUsesReached_ReturnsBadRequest()
+    {
+        //arrange
+        (string ownerToken, long serverId) = await CreateServerAndGetId("svpreviewmax");
+        string joinerToken = await RegisterAndGetToken("svpreviewmaxj", "svpreviewmaxj@email.com");
+        Guid inviteCode = await CreateInviteCode(ownerToken, serverId, new CreateInviteRequest { maxUses = 1 });
+        await client.SendAsync(CreateRequest(HttpMethod.Post, $"/invite/{inviteCode}/join", joinerToken), TestContext.Current.CancellationToken);
+
+        //act
+        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Get, $"/invite/{inviteCode}", ownerToken), TestContext.Current.CancellationToken);
+
+        //assert
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task GetInvitePreview_WithoutToken_ReturnsUnauthorized()
+    {
+        //act
+        HttpResponseMessage response = await client.GetAsync($"/invite/{Guid.NewGuid()}", TestContext.Current.CancellationToken);
 
         //assert
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);

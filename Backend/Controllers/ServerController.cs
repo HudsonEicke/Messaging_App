@@ -97,6 +97,14 @@ public class ServerController : ModifiedControllerBase
             return NotFound();
         }
 
+        //checks if the user is a member of the server, non-members use the invite preview instead
+        ServerMember? isMember = await db.ServerMembers.AsNoTracking().FirstOrDefaultAsync(members => members.serverID == id && members.userID == userId);
+
+        if(isMember == null)
+        {
+            return Forbid();
+        }
+
         User? owner = await db.Users.AsNoTracking().FirstOrDefaultAsync(u => u.id == server.ownerID);
 
         if(owner == null)
