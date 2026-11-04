@@ -18,6 +18,34 @@ api.interceptors.request.use((config) => {
     return config;
 });
 
+let refreshPromise: Promise<string> | null = null;
+
+function refreshAccessToken(): Promise<string>
+{
+    if (!refreshPromise)
+    {
+        const { refreshToken, accessToken } = store.getState().auth;
+
+        refreshPromise = api.post<AuthResponse>('/auth/refresh', {
+            refreshToken,
+            accessToken
+        })
+            .then(({ data }) => {
+                store.dispatch(setTokens({
+                    accessToken: data.accessToken,
+                    refreshToken: data.refreshToken
+                }));
+
+                return data.accessToken;
+            })
+            .finally(() => {
+                refreshPromise = null;
+            });
+    }
+
+    return refreshPromise;
+}
+
 api.interceptors.response.use(
     (response) => response,
     async (error) => {
@@ -28,23 +56,16 @@ api.interceptors.response.use(
         {
             originalRequest._retry = true;
 
-            const state = store.getState();
-            const refreshToken = state.auth.refreshToken;
-            const accessToken = state.auth.accessToken;
-
             try
             {
-                const { data } = await api.post<AuthResponse>('/auth/refresh', {
-                    refreshToken,
-                    accessToken
-                });
+                const currentToken = store.getState().auth.accessToken;
+                const sentWithCurrentToken = originalRequest.headers.Authorization === `Bearer ${currentToken}`;
 
-                store.dispatch(setTokens({
-                    accessToken: data.accessToken,
-                    refreshToken: data.refreshToken
-                }));
+                const accessToken = currentToken && !sentWithCurrentToken
+                    ? currentToken
+                    : await refreshAccessToken();
 
-                originalRequest.headers.Authorization = `Bearer ${data.accessToken}`;
+                originalRequest.headers.Authorization = `Bearer ${accessToken}`;
                 return api(originalRequest);
             }
             catch
