@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage;
 using Messaging_App.Models;
 using Messaging_App.Data;
 using Microsoft.AspNetCore.Authorization;
@@ -25,31 +26,32 @@ public class InviteController : ModifiedControllerBase
     [HttpGet("{code}")]
     public async Task<ActionResult<InvitePreviewResult>> GetInvitePreview(Guid code)
     {
-        //gets the invite with its server, owner and member count in one query
-        var preview = await db.ServerInvites.AsNoTracking().Where(invite => invite.inviteCode == code).Join(db.Servers, invite => invite.serverID, server => server.id, (invite, server) => new { invite, server }).Join(db.Users, s => s.server.ownerID, user => user.id, (s, user) => new
-        {
-            s.invite.maxUses,
-            s.invite.uses,
-            s.invite.expiresDate,
-            result = new InvitePreviewResult{serverID = s.server.id, serverName = s.server.serverName, iconUrl = s.server.iconUrl, ownerUsername = user.username, memberCount = db.ServerMembers.Count(member => member.serverID == s.server.id)}
-        }).FirstOrDefaultAsync();
+        ServerInvite? foundInvite = await db.ServerInvites.AsNoTracking().FirstOrDefaultAsync(invite => invite.inviteCode == code);
 
-        if(preview == null)
+        if(foundInvite == null)
         {
             return NotFound();
         }
 
-        if(preview.maxUses != null && preview.maxUses <= preview.uses)
+        if(foundInvite.maxUses != null && foundInvite.maxUses <= foundInvite.uses)
         {
             return BadRequest("Invite out of uses");
         }
 
-        if(preview.expiresDate != null && preview.expiresDate < DateTimeOffset.UtcNow)
+        if(foundInvite.expiresDate != null && foundInvite.expiresDate < DateTimeOffset.UtcNow)
         {
             return BadRequest("Invite has expired");
         }
 
-        return Ok(preview.result);
+        //gets the server with its owner and member count
+        InvitePreviewResult? result = await db.Servers.AsNoTracking().Where(server => server.id == foundInvite.serverID).Join(db.Users, server => server.ownerID, user => user.id, (server, user) => new InvitePreviewResult{serverID = server.id, serverName = server.serverName, iconUrl = server.iconUrl, ownerUsername = user.username, memberCount = db.ServerMembers.Count(member => member.serverID == server.id)}).FirstOrDefaultAsync();
+
+        if(result == null)
+        {
+            return NotFound();
+        }
+
+        return Ok(result);
     }
 
     [HttpPost("{code}/join")]
@@ -86,7 +88,7 @@ public class InviteController : ModifiedControllerBase
             return BadRequest("Already a member of this server");
         }
 
-        await using var transaction = await db.Database.BeginTransactionAsync();
+        await using IDbContextTransaction transaction = await db.Database.BeginTransactionAsync();
 
         //claims a use in one statement so two users joining at once can't go over maxUses
         int claimed = await db.ServerInvites.Where(invite => invite.inviteCode == code && (invite.maxUses == null || invite.uses < invite.maxUses) && (invite.expiresDate == null || invite.expiresDate > DateTimeOffset.UtcNow)).ExecuteUpdateAsync(setters => setters.SetProperty(invite => invite.uses, invite => invite.uses + 1));
