@@ -47,7 +47,9 @@ export const createConversation = createAsyncThunk<ConversationResponse, CreateC
             conversationName: result.conversationName,
             ownerUsername: result.ownerUsername,
             iconUrl: result.iconUrl,
-            conversationType: result.conversationType
+            conversationType: result.conversationType,
+            lastMessageID: null,
+            unreadCount: 0
         };
     }
     catch (error)

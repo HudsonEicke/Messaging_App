@@ -4,4 +4,5 @@ export interface ServerResponse
     ownerUsername: string;
     serverName: string;
     iconUrl: string;
+    hasUnread: boolean;
 }

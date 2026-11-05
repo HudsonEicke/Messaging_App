@@ -7,4 +7,6 @@ export interface ConversationResponse
     conversationName: string;
     iconUrl?: string;
     conversationType: ConversationType;
+    lastMessageID: number | null;
+    unreadCount: number;
 }

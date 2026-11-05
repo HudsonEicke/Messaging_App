@@ -405,7 +405,7 @@
             "header": [],
             "body": {
               "mode": "raw",
-              "raw": "{\r\n  \"serverName\": \"TestServer\",\r\n  \"serverImageUrl\": \"https://example.com/image.jpg\"\r\n}",
+              "raw": "{\r\n  \"serverName\": \"TestServer\",\r\n  \"iconUrl\": \"https://example.com/image.jpg\"\r\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -1709,7 +1709,7 @@
                 "header": [],
                 "body": {
                   "mode": "raw",
-                  "raw": "{\r\n  \"serverName\": \"TestServer\",\r\n  \"serverImageUrl\": \"https://example.com/image.jpg\"\r\n}",
+                  "raw": "{\r\n  \"serverName\": \"TestServer\",\r\n  \"iconUrl\": \"https://example.com/image.jpg\"\r\n}",
                   "options": {
                     "raw": {
                       "language": "json"

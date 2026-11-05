@@ -158,7 +158,7 @@ export const createChannel = createAsyncThunk<{ serverID: number; channel: Chann
 
         return {
             serverID,
-            channel
+            channel: { ...channel, hasUnread: false }
         };
     }
     catch (error)

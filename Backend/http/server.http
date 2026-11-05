@@ -31,7 +31,7 @@ Authorization: Bearer {{accessToken}}
 
 {
   "serverName": "TestServer",
-  "serverImageUrl": "https://example.com/image.jpg"
+  "iconUrl": "https://example.com/image.jpg"
 }
 
 ###Delete server
