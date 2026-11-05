@@ -23,6 +23,7 @@ public class ConversationController : ModifiedControllerBase
     private const int MESSAGEGRABAMOUNT = 50;
     private const int MAXCONVERSATIONMEMBERS = 25;
     private const int MAXUNREADCOUNT = 100;
+    private const int MAXCONVERSATIONNAMELENGTH = 100;
 
     public ConversationController(MessagingAppContext db, EncryptionService encryptionService, IHubContext<ChatHub> hubContext, ReadStateService readStateService, HubGroupService hubGroupService, PresenceService presenceService)
     {
@@ -173,7 +174,9 @@ public class ConversationController : ModifiedControllerBase
 
         if(string.IsNullOrWhiteSpace(createConversationRequest.conversationName))
         {
-            newConversation.conversationName = string.Join(", ", new[] { creatingUser.displayName }.Concat(members.Select(user => user.displayName)));
+            //the generated name can be longer than the 100 character column when there are many members, so it's trimmed
+            string generatedName = string.Join(", ", new[] { creatingUser.displayName }.Concat(members.Select(user => user.displayName)));
+            newConversation.conversationName = generatedName.Length <= MAXCONVERSATIONNAMELENGTH ? generatedName : generatedName.Substring(0, MAXCONVERSATIONNAMELENGTH - 3) + "...";
         }
         else
         {

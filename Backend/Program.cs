@@ -10,6 +10,8 @@ using Messaging_App.Hubs;
 
 var builder = WebApplication.CreateBuilder(args);
 
+builder.WebHost.ConfigureKestrel(options => options.Limits.MaxRequestBodySize = 1_048_576);
+
 var jwtSettings = builder.Configuration.GetSection("JwtSettings").Get<JwtSettings>() ?? throw new InvalidOperationException("JwtSettings is not configured.");
 var secretKey = Encoding.UTF8.GetBytes(jwtSettings.SecretKey);
 

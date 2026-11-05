@@ -531,4 +531,48 @@ public class MessageTests : IClassFixture<TestWebApplicationFactory>
         Assert.True(before!.Single(server => server.serverID == serverId).hasUnread);
         Assert.False(after!.Single(server => server.serverID == serverId).hasUnread);
     }
+
+    //LIMITS
+    [Fact]
+    public async Task SendMessage_AtMaxLength_ReturnsOk()
+    {
+        //arrange
+        (string token, long serverId) = await CreateServerAndGetId("lmsendmax");
+        long channelId = await CreateChannel(token, serverId, "general");
+
+        //act
+        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Post, $"/channels/{channelId}/messages", token, new SendMessageRequest { messageText = new string('a', 2000) }), TestContext.Current.CancellationToken);
+
+        //assert
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task SendMessage_OverMaxLength_ReturnsBadRequest()
+    {
+        //arrange
+        (string token, long serverId) = await CreateServerAndGetId("lmsendover");
+        long channelId = await CreateChannel(token, serverId, "general");
+
+        //act
+        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Post, $"/channels/{channelId}/messages", token, new SendMessageRequest { messageText = new string('a', 2001) }), TestContext.Current.CancellationToken);
+
+        //assert
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task EditMessage_OverMaxLength_ReturnsBadRequest()
+    {
+        //arrange
+        (string token, long serverId) = await CreateServerAndGetId("lmeditover");
+        long channelId = await CreateChannel(token, serverId, "general");
+        long messageId = await SendMessage(token, channelId, "hello");
+
+        //act
+        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Patch, $"/messages/{messageId}", token, new EditMessageRequest { messageText = new string('a', 2001) }), TestContext.Current.CancellationToken);
+
+        //assert
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
 }

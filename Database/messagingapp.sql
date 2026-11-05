@@ -14,11 +14,11 @@ CREATE TYPE CONVERSATIONTYPE AS ENUM('direct', 'group');
 create table Users
 (
     id BIGSERIAL PRIMARY KEY, --auto increments on new user
-    displayName VARCHAR(100) NOT NULL,
-    userName VARCHAR(100) NOT NULL UNIQUE, --used for friend requests
-    email TEXT NOT NULL UNIQUE, --may not be used
+    displayName VARCHAR(32) NOT NULL,
+    userName VARCHAR(32) NOT NULL UNIQUE, --used for friend requests
+    email VARCHAR(254) NOT NULL UNIQUE, --may not be used
     passwordHash TEXT NOT NULL, --passwords are stored as hashs for security
-    profileImageUrl TEXT NOT NULL, --link to pfp
+    profileImageUrl VARCHAR(2048) NOT NULL, --link to pfp
     activityStatus ACTIVITYSTATUS NOT NULL DEFAULT 'online',
     accountCreationTime TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
@@ -45,9 +45,9 @@ create table Friends
 create table Servers
 (
     id BIGSERIAL PRIMARY KEY,
-    serverName TEXT NOT NULL,
+    serverName VARCHAR(100) NOT NULL,
     ownerID BIGINT NOT NULL REFERENCES Users(id),
-    iconUrl TEXT NOT NULL
+    iconUrl VARCHAR(2048) NOT NULL
 );
 
 create table ServerMembers --links members and servers together
@@ -72,7 +72,7 @@ create table Channels
 (
     id BIGSERIAL PRIMARY KEY,
     serverID BIGINT NOT NULL REFERENCES Servers(id) ON DELETE CASCADE,
-    channelName TEXT NOT NULL,
+    channelName VARCHAR(100) NOT NULL,
     channelOrder INT NOT NULL DEFAULT 0,
     CONSTRAINT uq_channels_server_order UNIQUE (serverID, channelOrder) DEFERRABLE INITIALLY DEFERRED
 );
@@ -100,9 +100,9 @@ create table ChannelReadStates
 create table Conversations
 (
     id BIGSERIAL PRIMARY KEY,
-    conversationName TEXT,
+    conversationName VARCHAR(100),
     ownerID BIGINT REFERENCES Users(id),
-    iconUrl TEXT,
+    iconUrl VARCHAR(2048),
     conversationType CONVERSATIONTYPE NOT NULL DEFAULT 'direct',
     directUserLowID BIGINT REFERENCES Users(id) ON DELETE SET NULL,
     directUserHighID BIGINT REFERENCES Users(id) ON DELETE SET NULL

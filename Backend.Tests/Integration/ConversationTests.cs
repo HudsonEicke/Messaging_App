@@ -638,4 +638,21 @@ public class ConversationTests : IClassFixture<TestWebApplicationFactory>
         //assert
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
     }
+
+    [Fact]
+    public async Task CreateConversation_GroupWithLongGeneratedName_TrimsToColumnLength()
+    {
+        //arrange: four 32 character display names joined together are longer than 100 characters
+        List<string> memberUsernames = new List<string> { "lmgroupmemberone".PadRight(32, 'x'), "lmgroupmembertwo".PadRight(32, 'x'), "lmgroupmemberthree".PadRight(32, 'x') };
+
+        //act
+        (string ownerToken, long conversationId) = await CreateGroupConversation("lmgroupowner".PadRight(32, 'x'), memberUsernames);
+        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Get, $"/conversations/{conversationId}", ownerToken), TestContext.Current.CancellationToken);
+        ConversationResult? result = await response.Content.ReadFromJsonAsync<ConversationResult>(TestContext.Current.CancellationToken);
+
+        //assert
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Equal(100, result!.conversationName.Length);
+        Assert.EndsWith("...", result.conversationName);
+    }
 }

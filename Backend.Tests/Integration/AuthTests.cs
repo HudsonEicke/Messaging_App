@@ -314,4 +314,17 @@ public class AuthTests : IClassFixture<TestWebApplicationFactory>
         //assert
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
     }
+
+    [Fact]
+    public async Task Register_WithUsernameOverMaxLength_ReturnsBadRequest()
+    {
+        //arrange
+        RegisterRequest request = new RegisterRequest { username = new string('u', 33), email = "lmlongname@email.com", password = "Test123!" };
+
+        //act
+        HttpResponseMessage response = await client.PostAsJsonAsync("/auth/register", request, TestContext.Current.CancellationToken);
+
+        //assert
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
 }
