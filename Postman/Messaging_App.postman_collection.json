@@ -35,7 +35,7 @@
             "header": [],
             "body": {
               "mode": "raw",
-              "raw": "{\r\n  \"username\": \"testuser\",\r\n  \"email\": \"test@email.com\",\r\n  \"password\": \"Test\"\r\n}",
+              "raw": "{\r\n  \"username\": \"testuser\",\r\n  \"email\": \"test@email.com\",\r\n  \"password\": \"Test1234\"\r\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -80,7 +80,7 @@
             "header": [],
             "body": {
               "mode": "raw",
-              "raw": "{\r\n  \"username\": \"testuser\",\r\n  \"password\": \"Test\"\r\n}",
+              "raw": "{\r\n  \"username\": \"testuser\",\r\n  \"password\": \"Test1234\"\r\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -232,7 +232,7 @@
             "header": [],
             "body": {
               "mode": "raw",
-              "raw": "{\r\n  \"currentPassword\": \"Test\",\r\n  \"newPassword\": \"Test2\"\r\n}",
+              "raw": "{\r\n  \"currentPassword\": \"Test1234\",\r\n  \"newPassword\": \"Test5678\"\r\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -1339,7 +1339,7 @@
                 "header": [],
                 "body": {
                   "mode": "raw",
-                  "raw": "{\r\n  \"username\": \"testuser2\",\r\n  \"email\": \"test2@email.com\",\r\n  \"password\": \"Test\"\r\n}",
+                  "raw": "{\r\n  \"username\": \"testuser2\",\r\n  \"email\": \"test2@email.com\",\r\n  \"password\": \"Test1234\"\r\n}",
                   "options": {
                     "raw": {
                       "language": "json"
@@ -1384,7 +1384,7 @@
                 "header": [],
                 "body": {
                   "mode": "raw",
-                  "raw": "{\r\n  \"username\": \"testuser2\",\r\n  \"password\": \"Test\"\r\n}",
+                  "raw": "{\r\n  \"username\": \"testuser2\",\r\n  \"password\": \"Test1234\"\r\n}",
                   "options": {
                     "raw": {
                       "language": "json"
@@ -1536,7 +1536,7 @@
                 "header": [],
                 "body": {
                   "mode": "raw",
-                  "raw": "{\r\n  \"currentPassword\": \"Test\",\r\n  \"newPassword\": \"Test2\"\r\n}",
+                  "raw": "{\r\n  \"currentPassword\": \"Test1234\",\r\n  \"newPassword\": \"Test5678\"\r\n}",
                   "options": {
                     "raw": {
                       "language": "json"

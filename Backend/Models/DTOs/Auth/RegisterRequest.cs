@@ -8,6 +8,7 @@ public class RegisterRequest
     public string username {get; set; } = string.Empty;
     [MaxLength(254)]
     public string email {get; set; } = string.Empty;
+    [MinLength(8)]
     [MaxLength(128)]
     public string password {get; set; } = string.Empty;
 }

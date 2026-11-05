@@ -404,4 +404,18 @@ public class UserTests : IClassFixture<TestWebApplicationFactory>
         //assert
         Assert.Equal(ActivityStatus.offline, result!.activityStatus);
     }
+
+    [Fact]
+    public async Task UpdatePassword_WithNewPasswordUnderMinLength_ReturnsBadRequest()
+    {
+        //arrange
+        string token = await RegisterAndGetToken("lmshortnewpass", "lmshortnewpass@email.com");
+        UpdatePasswordRequest updateRequest = new UpdatePasswordRequest { currentPassword = "Test123!", newPassword = "Short12" };
+
+        //act
+        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Put, "/users/me/password", token, updateRequest), TestContext.Current.CancellationToken);
+
+        //assert
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
 }

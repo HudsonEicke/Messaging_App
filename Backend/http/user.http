@@ -23,8 +23,8 @@ Content-Type: application/json
 Authorization: Bearer {{accessToken}}
 
 {
-  "currentPassword": "Test",
-  "newPassword": "Test2"
+  "currentPassword": "Test1234",
+  "newPassword": "Test5678"
 }
 
 ###Update status

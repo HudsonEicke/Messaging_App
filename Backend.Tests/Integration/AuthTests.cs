@@ -327,4 +327,17 @@ public class AuthTests : IClassFixture<TestWebApplicationFactory>
         //assert
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
     }
+
+    [Fact]
+    public async Task Register_WithPasswordUnderMinLength_ReturnsBadRequest()
+    {
+        //arrange
+        RegisterRequest request = new RegisterRequest { username = "lmshortpass", email = "lmshortpass@email.com", password = "Test123" };
+
+        //act
+        HttpResponseMessage response = await client.PostAsJsonAsync("/auth/register", request, TestContext.Current.CancellationToken);
+
+        //assert
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
 }
