@@ -548,16 +548,14 @@ public class ConversationController : ModifiedControllerBase
 
         long userId = nullableUserId.Value;
 
-        Conversation? foundConversation = await db.Conversations.AsNoTracking().FirstOrDefaultAsync(conversation => conversation.id == id);
+        bool? isMember = await db.Conversations.Where(conversation => conversation.id == id).Select(conversation => (bool?)db.ConversationMembers.Any(member => member.conversationID == conversation.id && member.userID == userId)).FirstOrDefaultAsync();
 
-        if(foundConversation == null)
+        if(isMember == null)
         {
             return NotFound();
         }
 
-        ConversationMember? foundMember = await db.ConversationMembers.AsNoTracking().FirstOrDefaultAsync(member => member.conversationID == id && member.userID == userId);
-
-        if(foundMember == null)
+        if(isMember == false)
         {
             return Forbid();
         }
@@ -589,16 +587,14 @@ public class ConversationController : ModifiedControllerBase
 
         long userId = nullableUserId.Value;
 
-        Conversation? foundConversation = await db.Conversations.AsNoTracking().FirstOrDefaultAsync(conversation => conversation.id == id);
+        bool? isMember = await db.Conversations.Where(conversation => conversation.id == id).Select(conversation => (bool?)db.ConversationMembers.Any(member => member.conversationID == conversation.id && member.userID == userId)).FirstOrDefaultAsync();
 
-        if(foundConversation == null)
+        if(isMember == null)
         {
             return NotFound();
         }
 
-        ConversationMember? foundMember = await db.ConversationMembers.AsNoTracking().FirstOrDefaultAsync(member => member.conversationID == id && member.userID == userId);
-
-        if(foundMember == null)
+        if(isMember == false)
         {
             return Forbid();
         }
@@ -658,16 +654,14 @@ public class ConversationController : ModifiedControllerBase
 
         long userId = nullableUserId.Value;
 
-        Conversation? foundConversation = await db.Conversations.AsNoTracking().FirstOrDefaultAsync(conversation => conversation.id == id);
+        bool? isMember = await db.Conversations.Where(conversation => conversation.id == id).Select(conversation => (bool?)db.ConversationMembers.Any(member => member.conversationID == conversation.id && member.userID == userId)).FirstOrDefaultAsync();
 
-        if(foundConversation == null)
+        if(isMember == null)
         {
             return NotFound();
         }
 
-        ConversationMember? foundMember = await db.ConversationMembers.AsNoTracking().FirstOrDefaultAsync(member => member.conversationID == id && member.userID == userId);
-
-        if(foundMember == null)
+        if(isMember == false)
         {
             return Forbid();
         }

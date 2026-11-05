@@ -421,16 +421,14 @@ public class ServerController : ModifiedControllerBase
 
         long userId = nullableUserId.Value;
 
-        Server? foundServer = await db.Servers.AsNoTracking().FirstOrDefaultAsync(server => server.id == id);
+        bool? isMember = await db.Servers.Where(server => server.id == id).Select(server => (bool?)db.ServerMembers.Any(member => member.serverID == server.id && member.userID == userId)).FirstOrDefaultAsync();
 
-        if(foundServer == null)
+        if(isMember == null)
         {
             return NotFound();
         }
 
-        ServerMember? isMember = await db.ServerMembers.AsNoTracking().FirstOrDefaultAsync(member => member.serverID == id && member.userID == userId);
-
-        if(isMember == null)
+        if(isMember == false)
         {
             return Forbid();
         }

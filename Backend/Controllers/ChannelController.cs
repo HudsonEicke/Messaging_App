@@ -131,17 +131,15 @@ public class ChannelController : ModifiedControllerBase
             return Unauthorized();
         }
 
-        Channel? foundChannel = await db.Channels.AsNoTracking().FirstOrDefaultAsync(channel => channel.id == id);
+        //one query: null means the channel doesn't exist, false means the user isn't in its server
+        bool? isMember = await db.Channels.Where(channel => channel.id == id).Select(channel => (bool?)db.ServerMembers.Any(member => member.serverID == channel.serverID && member.userID == userId)).FirstOrDefaultAsync();
 
-        if(foundChannel == null)
+        if(isMember == null)
         {
             return NotFound();
         }
 
-        //ensures the user is a member of the server
-        ServerMember? foundMember = await db.ServerMembers.AsNoTracking().FirstOrDefaultAsync(member => member.serverID == foundChannel.serverID && member.userID == userId);
-
-        if(foundMember == null)
+        if(isMember == false)
         {
             return Forbid();
         }
@@ -182,9 +180,10 @@ public class ChannelController : ModifiedControllerBase
             return NotFound();
         }
 
-        ServerMember? foundMember = await db.ServerMembers.AsNoTracking().FirstOrDefaultAsync(member => member.serverID == foundChannel.serverID && member.userID == userId);
+        //checks membership and gets the sender's display name in one query, null means they aren't in the server
+        string? displayName = await db.ServerMembers.AsNoTracking().Where(member => member.serverID == foundChannel.serverID && member.userID == userId).Join(db.Users, member => member.userID, user => user.id, (member, user) => user.displayName).FirstOrDefaultAsync();
 
-        if(foundMember == null)
+        if(displayName == null)
         {
             return Forbid();
         }
@@ -221,8 +220,6 @@ public class ChannelController : ModifiedControllerBase
         if(username == null)
             username = string.Empty;
 
-        string displayName = await db.Users.AsNoTracking().Where(u => u.id == userId).Select(u => u.displayName).FirstOrDefaultAsync() ?? username;
-
         SendMessageResult result = new SendMessageResult();
         result.id = newMessage.id;
         result.messageText = sendMessageRequest.messageText;
@@ -246,16 +243,15 @@ public class ChannelController : ModifiedControllerBase
 
         long userId = nullableUserId.Value;
 
-        Channel? foundChannel = await db.Channels.AsNoTracking().FirstOrDefaultAsync(channel => channel.id == id);
+        //one query: null means the channel doesn't exist, false means the user isn't in its server
+        bool? isMember = await db.Channels.Where(channel => channel.id == id).Select(channel => (bool?)db.ServerMembers.Any(member => member.serverID == channel.serverID && member.userID == userId)).FirstOrDefaultAsync();
 
-        if(foundChannel == null)
+        if(isMember == null)
         {
             return NotFound();
         }
 
-        ServerMember? foundMember = await db.ServerMembers.AsNoTracking().FirstOrDefaultAsync(member => member.serverID == foundChannel.serverID && member.userID == userId);
-
-        if(foundMember == null)
+        if(isMember == false)
         {
             return Forbid();
         }
