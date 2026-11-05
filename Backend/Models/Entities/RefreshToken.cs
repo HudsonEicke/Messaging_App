@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations.Schema;
 
-namespace Messaging_App.Models;
+namespace Messaging_App.Models.Entities;
 
 [Table("refreshtokens")]
 public class RefreshToken

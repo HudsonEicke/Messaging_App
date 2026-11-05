@@ -2,7 +2,6 @@ using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using Backend.Tests.Helpers;
-using Messaging_App.Models;
 
 namespace Backend.Tests.Integration;
 
@@ -48,13 +47,13 @@ public class FriendTests : IClassFixture<TestWebApplicationFactory>
 
     private async Task SendFriendRequest(string senderToken, string receiverUsername)
     {
-        await client.SendAsync(CreateRequest(HttpMethod.Post, $"/friend/request/{receiverUsername}", senderToken), TestContext.Current.CancellationToken);
+        await client.SendAsync(CreateRequest(HttpMethod.Post, "/friends/requests", senderToken, new SendFriendRequestRequest { username = receiverUsername }), TestContext.Current.CancellationToken);
     }
 
     private async Task EstablishFriendship(string senderToken, string senderUsername, string receiverToken, string receiverUsername)
     {
         await SendFriendRequest(senderToken, receiverUsername);
-        await client.SendAsync(CreateRequest(HttpMethod.Post, $"/friend/accept/{senderUsername}", receiverToken), TestContext.Current.CancellationToken);
+        await client.SendAsync(CreateRequest(HttpMethod.Post, $"/friends/requests/{senderUsername}/accept", receiverToken), TestContext.Current.CancellationToken);
     }
 
     //SEND REQUEST
@@ -65,7 +64,7 @@ public class FriendTests : IClassFixture<TestWebApplicationFactory>
         (string tokenA, _) = await RegisterTwoUsers("frsendA", "frsendB");
 
         //act
-        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Post, "/friend/request/frsendB", tokenA), TestContext.Current.CancellationToken);
+        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Post, "/friends/requests", tokenA, new SendFriendRequestRequest { username = "frsendB" }), TestContext.Current.CancellationToken);
         FriendRequestResult? result = await response.Content.ReadFromJsonAsync<FriendRequestResult>(TestContext.Current.CancellationToken);
 
         //assert
@@ -82,7 +81,7 @@ public class FriendTests : IClassFixture<TestWebApplicationFactory>
         await SendFriendRequest(tokenB, "frcrossA");
 
         //act
-        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Post, "/friend/request/frcrossB", tokenA), TestContext.Current.CancellationToken);
+        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Post, "/friends/requests", tokenA, new SendFriendRequestRequest { username = "frcrossB" }), TestContext.Current.CancellationToken);
         FriendRequestResult? result = await response.Content.ReadFromJsonAsync<FriendRequestResult>(TestContext.Current.CancellationToken);
 
         //assert
@@ -98,7 +97,7 @@ public class FriendTests : IClassFixture<TestWebApplicationFactory>
         string token = await RegisterAndGetToken("frsendself", "frsendself@email.com");
 
         //act
-        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Post, "/friend/request/frsendself", token), TestContext.Current.CancellationToken);
+        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Post, "/friends/requests", token, new SendFriendRequestRequest { username = "frsendself" }), TestContext.Current.CancellationToken);
 
         //assert
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
@@ -111,7 +110,7 @@ public class FriendTests : IClassFixture<TestWebApplicationFactory>
         string token = await RegisterAndGetToken("frsendnotfound", "frsendnotfound@email.com");
 
         //act
-        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Post, "/friend/request/nonexistentuser99999", token), TestContext.Current.CancellationToken);
+        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Post, "/friends/requests", token, new SendFriendRequestRequest { username = "nonexistentuser99999" }), TestContext.Current.CancellationToken);
 
         //assert
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
@@ -125,7 +124,7 @@ public class FriendTests : IClassFixture<TestWebApplicationFactory>
         await SendFriendRequest(tokenA, "frduprequestB");
 
         //act
-        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Post, "/friend/request/frduprequestB", tokenA), TestContext.Current.CancellationToken);
+        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Post, "/friends/requests", tokenA, new SendFriendRequestRequest { username = "frduprequestB" }), TestContext.Current.CancellationToken);
 
         //assert
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
@@ -139,7 +138,7 @@ public class FriendTests : IClassFixture<TestWebApplicationFactory>
         await EstablishFriendship(tokenA, "fralreadyfriendA", tokenB, "fralreadyfriendB");
 
         //act
-        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Post, "/friend/request/fralreadyfriendB", tokenA), TestContext.Current.CancellationToken);
+        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Post, "/friends/requests", tokenA, new SendFriendRequestRequest { username = "fralreadyfriendB" }), TestContext.Current.CancellationToken);
 
         //assert
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
@@ -150,10 +149,10 @@ public class FriendTests : IClassFixture<TestWebApplicationFactory>
     {
         //arrange
         (string tokenA, _) = await RegisterTwoUsers("fryoublockedA", "fryoublockedB");
-        await client.SendAsync(CreateRequest(HttpMethod.Post, "/friend/block/fryoublockedB", tokenA), TestContext.Current.CancellationToken);
+        await client.SendAsync(CreateRequest(HttpMethod.Put, "/friends/blocked/fryoublockedB", tokenA), TestContext.Current.CancellationToken);
 
         //act
-        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Post, "/friend/request/fryoublockedB", tokenA), TestContext.Current.CancellationToken);
+        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Post, "/friends/requests", tokenA, new SendFriendRequestRequest { username = "fryoublockedB" }), TestContext.Current.CancellationToken);
 
         //assert
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
@@ -164,10 +163,10 @@ public class FriendTests : IClassFixture<TestWebApplicationFactory>
     {
         //arrange
         (string tokenA, string tokenB) = await RegisterTwoUsers("frtheyblockedA", "frtheyblockedB");
-        await client.SendAsync(CreateRequest(HttpMethod.Post, "/friend/block/frtheyblockedA", tokenB), TestContext.Current.CancellationToken);
+        await client.SendAsync(CreateRequest(HttpMethod.Put, "/friends/blocked/frtheyblockedA", tokenB), TestContext.Current.CancellationToken);
 
         //act
-        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Post, "/friend/request/frtheyblockedB", tokenA), TestContext.Current.CancellationToken);
+        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Post, "/friends/requests", tokenA, new SendFriendRequestRequest { username = "frtheyblockedB" }), TestContext.Current.CancellationToken);
 
         //assert
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
@@ -177,7 +176,7 @@ public class FriendTests : IClassFixture<TestWebApplicationFactory>
     public async Task SendRequest_WithoutToken_ReturnsUnauthorized()
     {
         //act
-        HttpResponseMessage response = await client.PostAsync("/friend/request/someuser", null, TestContext.Current.CancellationToken);
+        HttpResponseMessage response = await client.PostAsJsonAsync("/friends/requests", new SendFriendRequestRequest { username = "someuser" }, TestContext.Current.CancellationToken);
 
         //assert
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
@@ -192,7 +191,7 @@ public class FriendTests : IClassFixture<TestWebApplicationFactory>
         await SendFriendRequest(tokenA, "fracceptB");
 
         //act
-        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Post, "/friend/accept/fracceptA", tokenB), TestContext.Current.CancellationToken);
+        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Post, "/friends/requests/fracceptA/accept", tokenB), TestContext.Current.CancellationToken);
         UserResult? result = await response.Content.ReadFromJsonAsync<UserResult>(TestContext.Current.CancellationToken);
 
         //assert
@@ -208,7 +207,7 @@ public class FriendTests : IClassFixture<TestWebApplicationFactory>
         (string tokenA, string tokenB) = await RegisterTwoUsers("fracceptnopenA", "fracceptnopenB");
 
         //act
-        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Post, "/friend/accept/fracceptnopenA", tokenB), TestContext.Current.CancellationToken);
+        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Post, "/friends/requests/fracceptnopenA/accept", tokenB), TestContext.Current.CancellationToken);
 
         //assert
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
@@ -221,7 +220,7 @@ public class FriendTests : IClassFixture<TestWebApplicationFactory>
         string token = await RegisterAndGetToken("fracceptnonexist", "fracceptnonexist@email.com");
 
         //act
-        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Post, "/friend/accept/nonexistentuser99999", token), TestContext.Current.CancellationToken);
+        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Post, "/friends/requests/nonexistentuser99999/accept", token), TestContext.Current.CancellationToken);
 
         //assert
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
@@ -231,7 +230,7 @@ public class FriendTests : IClassFixture<TestWebApplicationFactory>
     public async Task AcceptRequest_WithoutToken_ReturnsUnauthorized()
     {
         //act
-        HttpResponseMessage response = await client.PostAsync("/friend/accept/someuser", null, TestContext.Current.CancellationToken);
+        HttpResponseMessage response = await client.PostAsync("/friends/requests/someuser/accept", null, TestContext.Current.CancellationToken);
 
         //assert
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
@@ -246,7 +245,7 @@ public class FriendTests : IClassFixture<TestWebApplicationFactory>
         await SendFriendRequest(tokenA, "frdeclineB");
 
         //act
-        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Post, "/friend/decline/frdeclineA", tokenB), TestContext.Current.CancellationToken);
+        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Delete, "/friends/requests/frdeclineA", tokenB), TestContext.Current.CancellationToken);
 
         //assert
         Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
@@ -259,7 +258,7 @@ public class FriendTests : IClassFixture<TestWebApplicationFactory>
         (string tokenA, string tokenB) = await RegisterTwoUsers("frdecinenorequestA", "frdecinenorequestB");
 
         //act
-        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Post, "/friend/decline/frdecinenorequestA", tokenB), TestContext.Current.CancellationToken);
+        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Delete, "/friends/requests/frdecinenorequestA", tokenB), TestContext.Current.CancellationToken);
 
         //assert
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
@@ -269,7 +268,7 @@ public class FriendTests : IClassFixture<TestWebApplicationFactory>
     public async Task DeclineRequest_WithoutToken_ReturnsUnauthorized()
     {
         //act
-        HttpResponseMessage response = await client.PostAsync("/friend/decline/someuser", null, TestContext.Current.CancellationToken);
+        HttpResponseMessage response = await client.DeleteAsync("/friends/requests/someuser", TestContext.Current.CancellationToken);
 
         //assert
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
@@ -284,7 +283,7 @@ public class FriendTests : IClassFixture<TestWebApplicationFactory>
         await EstablishFriendship(tokenA, "frunfriendA", tokenB, "frunfriendB");
 
         //act
-        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Delete, "/friend/frunfriendB", tokenA), TestContext.Current.CancellationToken);
+        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Delete, "/friends/frunfriendB", tokenA), TestContext.Current.CancellationToken);
 
         //assert
         Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
@@ -297,7 +296,7 @@ public class FriendTests : IClassFixture<TestWebApplicationFactory>
         (string tokenA, _) = await RegisterTwoUsers("frnotfriendsA", "frnotfriendsB");
 
         //act
-        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Delete, "/friend/frnotfriendsB", tokenA), TestContext.Current.CancellationToken);
+        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Delete, "/friends/frnotfriendsB", tokenA), TestContext.Current.CancellationToken);
 
         //assert
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
@@ -307,7 +306,7 @@ public class FriendTests : IClassFixture<TestWebApplicationFactory>
     public async Task UnfriendUser_WithoutToken_ReturnsUnauthorized()
     {
         //act
-        HttpResponseMessage response = await client.DeleteAsync("/friend/someuser", TestContext.Current.CancellationToken);
+        HttpResponseMessage response = await client.DeleteAsync("/friends/someuser", TestContext.Current.CancellationToken);
 
         //assert
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
@@ -321,7 +320,7 @@ public class FriendTests : IClassFixture<TestWebApplicationFactory>
         (string tokenA, _) = await RegisterTwoUsers("frblockA", "frblockB");
 
         //act
-        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Post, "/friend/block/frblockB", tokenA), TestContext.Current.CancellationToken);
+        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Put, "/friends/blocked/frblockB", tokenA), TestContext.Current.CancellationToken);
 
         //assert
         Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
@@ -332,10 +331,10 @@ public class FriendTests : IClassFixture<TestWebApplicationFactory>
     {
         //arrange
         (string tokenA, _) = await RegisterTwoUsers("fralrblockA", "fralrblockB");
-        await client.SendAsync(CreateRequest(HttpMethod.Post, "/friend/block/fralrblockB", tokenA), TestContext.Current.CancellationToken);
+        await client.SendAsync(CreateRequest(HttpMethod.Put, "/friends/blocked/fralrblockB", tokenA), TestContext.Current.CancellationToken);
 
         //act
-        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Post, "/friend/block/fralrblockB", tokenA), TestContext.Current.CancellationToken);
+        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Put, "/friends/blocked/fralrblockB", tokenA), TestContext.Current.CancellationToken);
 
         //assert
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
@@ -348,7 +347,7 @@ public class FriendTests : IClassFixture<TestWebApplicationFactory>
         string token = await RegisterAndGetToken("frblockself", "frblockself@email.com");
 
         //act
-        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Post, "/friend/block/frblockself", token), TestContext.Current.CancellationToken);
+        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Put, "/friends/blocked/frblockself", token), TestContext.Current.CancellationToken);
 
         //assert
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
@@ -358,7 +357,7 @@ public class FriendTests : IClassFixture<TestWebApplicationFactory>
     public async Task BlockUser_WithoutToken_ReturnsUnauthorized()
     {
         //act
-        HttpResponseMessage response = await client.PostAsync("/friend/block/someuser", null, TestContext.Current.CancellationToken);
+        HttpResponseMessage response = await client.PutAsync("/friends/blocked/someuser", null, TestContext.Current.CancellationToken);
 
         //assert
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
@@ -370,10 +369,10 @@ public class FriendTests : IClassFixture<TestWebApplicationFactory>
     {
         //arrange
         (string tokenA, _) = await RegisterTwoUsers("frunblockA", "frunblockB");
-        await client.SendAsync(CreateRequest(HttpMethod.Post, "/friend/block/frunblockB", tokenA), TestContext.Current.CancellationToken);
+        await client.SendAsync(CreateRequest(HttpMethod.Put, "/friends/blocked/frunblockB", tokenA), TestContext.Current.CancellationToken);
 
         //act
-        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Delete, "/friend/block/frunblockB", tokenA), TestContext.Current.CancellationToken);
+        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Delete, "/friends/blocked/frunblockB", tokenA), TestContext.Current.CancellationToken);
 
         //assert
         Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
@@ -386,7 +385,7 @@ public class FriendTests : IClassFixture<TestWebApplicationFactory>
         (string tokenA, _) = await RegisterTwoUsers("frnotblockedA", "frnotblockedB");
 
         //act
-        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Delete, "/friend/block/frnotblockedB", tokenA), TestContext.Current.CancellationToken);
+        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Delete, "/friends/blocked/frnotblockedB", tokenA), TestContext.Current.CancellationToken);
 
         //assert
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
@@ -396,7 +395,7 @@ public class FriendTests : IClassFixture<TestWebApplicationFactory>
     public async Task UnblockUser_WithoutToken_ReturnsUnauthorized()
     {
         //act
-        HttpResponseMessage response = await client.DeleteAsync("/friend/block/someuser", TestContext.Current.CancellationToken);
+        HttpResponseMessage response = await client.DeleteAsync("/friends/blocked/someuser", TestContext.Current.CancellationToken);
 
         //assert
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
@@ -411,7 +410,7 @@ public class FriendTests : IClassFixture<TestWebApplicationFactory>
         await EstablishFriendship(tokenA, "frgetfriendsA", tokenB, "frgetfriendsB");
 
         //act
-        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Get, "/friend", tokenA), TestContext.Current.CancellationToken);
+        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Get, "/friends", tokenA), TestContext.Current.CancellationToken);
         List<UserResult>? result = await response.Content.ReadFromJsonAsync<List<UserResult>>(TestContext.Current.CancellationToken);
 
         //assert
@@ -428,7 +427,7 @@ public class FriendTests : IClassFixture<TestWebApplicationFactory>
         string token = await RegisterAndGetToken("frgetfriendsempty", "frgetfriendsempty@email.com");
 
         //act
-        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Get, "/friend", token), TestContext.Current.CancellationToken);
+        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Get, "/friends", token), TestContext.Current.CancellationToken);
         List<UserResult>? result = await response.Content.ReadFromJsonAsync<List<UserResult>>(TestContext.Current.CancellationToken);
 
         //assert
@@ -441,7 +440,7 @@ public class FriendTests : IClassFixture<TestWebApplicationFactory>
     public async Task GetFriends_WithoutToken_ReturnsUnauthorized()
     {
         //act
-        HttpResponseMessage response = await client.GetAsync("/friend", TestContext.Current.CancellationToken);
+        HttpResponseMessage response = await client.GetAsync("/friends", TestContext.Current.CancellationToken);
 
         //assert
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
@@ -456,7 +455,7 @@ public class FriendTests : IClassFixture<TestWebApplicationFactory>
         await SendFriendRequest(tokenA, "frpendingB");
 
         //act
-        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Get, "/friend/pending", tokenB), TestContext.Current.CancellationToken);
+        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Get, "/friends/requests", tokenB), TestContext.Current.CancellationToken);
         List<UserResult>? result = await response.Content.ReadFromJsonAsync<List<UserResult>>(TestContext.Current.CancellationToken);
 
         //assert
@@ -473,7 +472,7 @@ public class FriendTests : IClassFixture<TestWebApplicationFactory>
         string token = await RegisterAndGetToken("frpendingempty", "frpendingempty@email.com");
 
         //act
-        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Get, "/friend/pending", token), TestContext.Current.CancellationToken);
+        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Get, "/friends/requests", token), TestContext.Current.CancellationToken);
         List<UserResult>? result = await response.Content.ReadFromJsonAsync<List<UserResult>>(TestContext.Current.CancellationToken);
 
         //assert
@@ -486,7 +485,7 @@ public class FriendTests : IClassFixture<TestWebApplicationFactory>
     public async Task GetPendingFriends_WithoutToken_ReturnsUnauthorized()
     {
         //act
-        HttpResponseMessage response = await client.GetAsync("/friend/pending", TestContext.Current.CancellationToken);
+        HttpResponseMessage response = await client.GetAsync("/friends/requests", TestContext.Current.CancellationToken);
 
         //assert
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
@@ -498,10 +497,10 @@ public class FriendTests : IClassFixture<TestWebApplicationFactory>
     {
         //arrange
         (string tokenA, _) = await RegisterTwoUsers("frgetblockedA", "frgetblockedB");
-        await client.SendAsync(CreateRequest(HttpMethod.Post, "/friend/block/frgetblockedB", tokenA), TestContext.Current.CancellationToken);
+        await client.SendAsync(CreateRequest(HttpMethod.Put, "/friends/blocked/frgetblockedB", tokenA), TestContext.Current.CancellationToken);
 
         //act
-        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Get, "/friend/blocked", tokenA), TestContext.Current.CancellationToken);
+        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Get, "/friends/blocked", tokenA), TestContext.Current.CancellationToken);
         List<UserResult>? result = await response.Content.ReadFromJsonAsync<List<UserResult>>(TestContext.Current.CancellationToken);
 
         //assert
@@ -518,7 +517,7 @@ public class FriendTests : IClassFixture<TestWebApplicationFactory>
         string token = await RegisterAndGetToken("frgetblockedempty", "frgetblockedempty@email.com");
 
         //act
-        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Get, "/friend/blocked", token), TestContext.Current.CancellationToken);
+        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Get, "/friends/blocked", token), TestContext.Current.CancellationToken);
         List<UserResult>? result = await response.Content.ReadFromJsonAsync<List<UserResult>>(TestContext.Current.CancellationToken);
 
         //assert
@@ -531,7 +530,7 @@ public class FriendTests : IClassFixture<TestWebApplicationFactory>
     public async Task GetBlockedUsers_WithoutToken_ReturnsUnauthorized()
     {
         //act
-        HttpResponseMessage response = await client.GetAsync("/friend/blocked", TestContext.Current.CancellationToken);
+        HttpResponseMessage response = await client.GetAsync("/friends/blocked", TestContext.Current.CancellationToken);
 
         //assert
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);

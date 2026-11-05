@@ -7,37 +7,42 @@
 ###Friends
 
 ###Send a friend request
-POST {{Messaging_App_HostAddress}}/friend/request/{{username}}
+POST {{Messaging_App_HostAddress}}/friends/requests
 Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "username": "{{username}}"
+}
 
 ###Accept a friend request
-POST {{Messaging_App_HostAddress}}/friend/accept/{{username}}
+POST {{Messaging_App_HostAddress}}/friends/requests/{{username}}/accept
 Authorization: Bearer {{accessToken}}
 
 ###Decline a friend request
-POST {{Messaging_App_HostAddress}}/friend/decline/{{username}}
+DELETE {{Messaging_App_HostAddress}}/friends/requests/{{username}}
 Authorization: Bearer {{accessToken}}
 
 ###Unfriend a user
-DELETE {{Messaging_App_HostAddress}}/friend/{{username}}
+DELETE {{Messaging_App_HostAddress}}/friends/{{username}}
 Authorization: Bearer {{accessToken}}
 
 ###Block a user
-POST {{Messaging_App_HostAddress}}/friend/block/{{username}}
+PUT {{Messaging_App_HostAddress}}/friends/blocked/{{username}}
 Authorization: Bearer {{accessToken}}
 
 ###Unblock a user
-DELETE {{Messaging_App_HostAddress}}/friend/block/{{username}}
+DELETE {{Messaging_App_HostAddress}}/friends/blocked/{{username}}
 Authorization: Bearer {{accessToken}}
 
 ###Get all friends of a user
-GET {{Messaging_App_HostAddress}}/friend
+GET {{Messaging_App_HostAddress}}/friends
 Authorization: Bearer {{accessToken}}
 
 ###Get all pending friend requests
-GET {{Messaging_App_HostAddress}}/friend/pending
+GET {{Messaging_App_HostAddress}}/friends/requests
 Authorization: Bearer {{accessToken}}
 
 ###Get all blocked users
-GET {{Messaging_App_HostAddress}}/friend/blocked
+GET {{Messaging_App_HostAddress}}/friends/blocked
 Authorization: Bearer {{accessToken}}

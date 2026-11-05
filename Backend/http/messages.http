@@ -3,11 +3,11 @@
 @id = 1
 
 ###Get messages in channel
-GET {{Messaging_App_HostAddress}}/channel/{{id}}/messages
+GET {{Messaging_App_HostAddress}}/channels/{{id}}/messages
 Authorization: Bearer {{accessToken}}
 
 ###Send message
-POST {{Messaging_App_HostAddress}}/channel/{{id}}/sendmessage
+POST {{Messaging_App_HostAddress}}/channels/{{id}}/messages
 Content-Type: application/json
 Authorization: Bearer {{accessToken}}
 
@@ -17,7 +17,7 @@ Authorization: Bearer {{accessToken}}
 }
 
 ###Edit message
-PUT {{Messaging_App_HostAddress}}/message/{{id}}
+PATCH {{Messaging_App_HostAddress}}/messages/{{id}}
 Content-Type: application/json
 Authorization: Bearer {{accessToken}}
 
@@ -26,5 +26,5 @@ Authorization: Bearer {{accessToken}}
 }
 
 ###Delete message
-DELETE {{Messaging_App_HostAddress}}/message/{{id}}
+DELETE {{Messaging_App_HostAddress}}/messages/{{id}}
 Authorization: Bearer {{accessToken}}

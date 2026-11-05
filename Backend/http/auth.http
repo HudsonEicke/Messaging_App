@@ -9,7 +9,7 @@ Content-Type: application/json
 {
   "username": "testuser2",
   "email": "test2@email.com",
-  "password": "Test"
+  "password": "Test1234"
 }
 
 ###Login
@@ -18,7 +18,7 @@ Content-Type: application/json
 
 {
   "username": "testuser2",
-  "password": "Test"
+  "password": "Test1234"
 }
 
 ###Refresh

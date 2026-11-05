@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using Messaging_App.Models;
+using Microsoft.EntityFrameworkCore.Storage;
 using Messaging_App.Data;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
@@ -10,19 +10,52 @@ namespace Messaging_App.Controllers;
 
 [Authorize]
 [ApiController]
-[Route("[controller]")]
+[Route("invites")]
 public class InviteController : ModifiedControllerBase
 {
     private readonly MessagingAppContext db;
     private readonly IHubContext<ChatHub> hubContext;
+    private readonly HubGroupService hubGroupService;
 
-    public InviteController(MessagingAppContext db, IHubContext<ChatHub> hubContext)
+    public InviteController(MessagingAppContext db, IHubContext<ChatHub> hubContext, HubGroupService hubGroupService)
     {
         this.db = db;
         this.hubContext = hubContext;
+        this.hubGroupService = hubGroupService;
     }
 
-    [HttpPost("{code}/join")]
+    [HttpGet("{code:guid}")]
+    public async Task<ActionResult<InvitePreviewResult>> GetInvitePreview(Guid code)
+    {
+        ServerInvite? foundInvite = await db.ServerInvites.AsNoTracking().FirstOrDefaultAsync(invite => invite.inviteCode == code);
+
+        if(foundInvite == null)
+        {
+            return NotFound();
+        }
+
+        if(foundInvite.maxUses != null && foundInvite.maxUses <= foundInvite.uses)
+        {
+            return BadRequest("Invite out of uses");
+        }
+
+        if(foundInvite.expiresDate != null && foundInvite.expiresDate < DateTimeOffset.UtcNow)
+        {
+            return BadRequest("Invite has expired");
+        }
+
+        //gets the server with its owner and member count
+        InvitePreviewResult? result = await db.Servers.AsNoTracking().Where(server => server.id == foundInvite.serverID).Join(db.Users, server => server.ownerID, user => user.id, (server, user) => new InvitePreviewResult{serverID = server.id, serverName = server.serverName, iconUrl = server.iconUrl, ownerUsername = user.username, memberCount = db.ServerMembers.Count(member => member.serverID == server.id)}).FirstOrDefaultAsync();
+
+        if(result == null)
+        {
+            return NotFound();
+        }
+
+        return Ok(result);
+    }
+
+    [HttpPost("{code:guid}/join")]
     public async Task<ActionResult<ServerResult>> JoinServer(Guid code)
     {
         long? nullableUserId = GetUserId();
@@ -39,7 +72,7 @@ public class InviteController : ModifiedControllerBase
             return NotFound();
         }
 
-        if(foundInvite.maxUses != null && foundInvite.maxUses == foundInvite.uses)
+        if(foundInvite.maxUses != null && foundInvite.maxUses <= foundInvite.uses)
         {
             return BadRequest("Invite out of uses");
         }
@@ -56,14 +89,25 @@ public class InviteController : ModifiedControllerBase
             return BadRequest("Already a member of this server");
         }
 
+        await using IDbContextTransaction transaction = await db.Database.BeginTransactionAsync();
+
+        //claims a use in one statement so two users joining at once can't go over maxUses
+        int claimed = await db.ServerInvites.Where(invite => invite.inviteCode == code && (invite.maxUses == null || invite.uses < invite.maxUses) && (invite.expiresDate == null || invite.expiresDate > DateTimeOffset.UtcNow)).ExecuteUpdateAsync(setters => setters.SetProperty(invite => invite.uses, invite => invite.uses + 1));
+
+        //another user took the last use after the checks above
+        if(claimed == 0)
+        {
+            return BadRequest("Invite out of uses");
+        }
+
         ServerMember newMember = new ServerMember();
         newMember.serverID = foundInvite.serverID;
         newMember.userID = userId;
 
         db.ServerMembers.Add(newMember);
-        foundInvite.uses++;
 
         await db.SaveChangesAsync();
+        await transaction.CommitAsync();
 
         Server? foundServer = await db.Servers.AsNoTracking().FirstOrDefaultAsync(server => server.id == foundInvite.serverID);
 
@@ -79,7 +123,7 @@ public class InviteController : ModifiedControllerBase
             return NotFound();
         }
 
-        await ChatHub.AddUserToGroup(hubContext, userId, $"server_{foundInvite.serverID}");
+        await hubGroupService.AddUserToGroup(userId, $"server_{foundInvite.serverID}");
         string? username = GetUsername();
         await hubContext.Clients.Group($"server_{foundInvite.serverID}").SendAsync("MemberJoined", username);
 

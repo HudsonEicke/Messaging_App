@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations.Schema;
 
-namespace Messaging_App.Models;
+namespace Messaging_App.Models.Entities;
 
 public enum ConversationType
 {
@@ -24,4 +24,12 @@ public class Conversation
     
     [Column("conversationtype")]
     public ConversationType conversationType { get; set; }
+    
+    [Column("directuserlowid")]
+    public long? directUserLowID { get; set; }
+
+    [Column("directuserhighid")]
+    public long? directUserHighID { get; set; }
+
+    public List<ConversationMember> members { get; set; } = new List<ConversationMember>();
 }

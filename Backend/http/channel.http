@@ -3,7 +3,7 @@
 @id = 1
 
 ###Create channel
-POST {{Messaging_App_HostAddress}}/server/{{id}}/createchannel
+POST {{Messaging_App_HostAddress}}/servers/{{id}}/channels
 Content-Type: application/json
 Authorization: Bearer {{accessToken}}
 
@@ -12,11 +12,11 @@ Authorization: Bearer {{accessToken}}
 }
 
 ###Get channels for server
-GET {{Messaging_App_HostAddress}}/server/{{id}}/channels
+GET {{Messaging_App_HostAddress}}/servers/{{id}}/channels
 Authorization: Bearer {{accessToken}}
 
 ###Reorder channels
-PUT {{Messaging_App_HostAddress}}/server/{{id}}/channels/reorder
+PUT {{Messaging_App_HostAddress}}/servers/{{id}}/channels/order
 Content-Type: application/json
 Authorization: Bearer {{accessToken}}
 
@@ -25,7 +25,7 @@ Authorization: Bearer {{accessToken}}
 }
 
 ###Update channel info
-PUT {{Messaging_App_HostAddress}}/channel/{{id}}
+PATCH {{Messaging_App_HostAddress}}/channels/{{id}}
 Content-Type: application/json
 Authorization: Bearer {{accessToken}}
 
@@ -34,5 +34,14 @@ Authorization: Bearer {{accessToken}}
 }
 
 ###Delete channel
-DELETE {{Messaging_App_HostAddress}}/channel/{{id}}
+DELETE {{Messaging_App_HostAddress}}/channels/{{id}}
 Authorization: Bearer {{accessToken}}
+
+###Mark a channel as read
+PUT {{Messaging_App_HostAddress}}/channels/{{id}}/read-state
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "lastReadMessageID": 1
+}

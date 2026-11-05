@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using Messaging_App.Models;
+using Microsoft.EntityFrameworkCore.Storage;
 using Messaging_App.Data;
 using Messaging_App.Services;
 using Microsoft.AspNetCore.Authorization;
@@ -11,22 +11,24 @@ namespace Messaging_App.Controllers;
 
 [Authorize]
 [ApiController]
-[Route("[controller]")]
+[Route("channels")]
 public class ChannelController : ModifiedControllerBase
 {
     private readonly MessagingAppContext db;
     private readonly EncryptionService encryptionService;
     private readonly IHubContext<ChatHub> hubContext;
+    private readonly ReadStateService readStateService;
     private const int MESSAGEGRABAMOUNT = 50;
 
-    public ChannelController(MessagingAppContext db, EncryptionService encryptionService, IHubContext<ChatHub> hubContext)
+    public ChannelController(MessagingAppContext db, EncryptionService encryptionService, IHubContext<ChatHub> hubContext, ReadStateService readStateService)
     {
         this.db = db;
         this.encryptionService = encryptionService;
         this.hubContext = hubContext;
+        this.readStateService = readStateService;
     }
 
-    [HttpPut("{id}")]
+    [HttpPatch("{id:long}")]
     public async Task<IActionResult> UpdateChannel(long id, UpdateChannelRequest updateChannelRequest)
     {
         if(string.IsNullOrWhiteSpace(updateChannelRequest.channelName))
@@ -69,7 +71,7 @@ public class ChannelController : ModifiedControllerBase
         return NoContent();
     }
 
-    [HttpDelete("{id}")]
+    [HttpDelete("{id:long}")]
     public async Task<IActionResult> DeleteChannel(long id)
     {
         long? userId = GetUserId();
@@ -98,26 +100,28 @@ public class ChannelController : ModifiedControllerBase
             return Forbid();
         }
 
-        db.Channels.Remove(foundChannel);
+        await using IDbContextTransaction transaction = await db.Database.BeginTransactionAsync();
+        await db.LockServerAsync(foundChannel.serverID);
 
-        await db.SaveChangesAsync();
-
-        //cleans up the order of channels
-        List<Channel> remainingChannels = await db.Channels.Where(channel => channel.serverID == foundChannel.serverID).OrderBy(channel => channel.channelOrder).ToListAsync();
+        //cleans up the order of the other channels so the delete and reorder save together
+        List<Channel> remainingChannels = await db.Channels.Where(channel => channel.serverID == foundChannel.serverID && channel.id != foundChannel.id).OrderBy(channel => channel.channelOrder).ToListAsync();
 
         for (int i = 0; i < remainingChannels.Count; i++)
         {
             remainingChannels[i].channelOrder = i;
         }
 
+        db.Channels.Remove(foundChannel);
+
         await db.SaveChangesAsync();
+        await transaction.CommitAsync();
 
         await hubContext.Clients.Group($"server_{foundServer.id}").SendAsync("ChannelDeleted", foundChannel.id);
 
         return NoContent();
     }
 
-    [HttpGet("{id}/messages")]
+    [HttpGet("{id:long}/messages")]
     public async Task<ActionResult<List<MessageResult>>> GetMessages(long id, [FromQuery] long? before = null)
     {
         long? userId = GetUserId();
@@ -127,17 +131,15 @@ public class ChannelController : ModifiedControllerBase
             return Unauthorized();
         }
 
-        Channel? foundChannel = await db.Channels.AsNoTracking().FirstOrDefaultAsync(channel => channel.id == id);
+        //one query: null means the channel doesn't exist, false means the user isn't in its server
+        bool? isMember = await db.Channels.Where(channel => channel.id == id).Select(channel => (bool?)db.ServerMembers.Any(member => member.serverID == channel.serverID && member.userID == userId)).FirstOrDefaultAsync();
 
-        if(foundChannel == null)
+        if(isMember == null)
         {
             return NotFound();
         }
 
-        //ensures the user is a member of the server
-        ServerMember? foundMember = await db.ServerMembers.AsNoTracking().FirstOrDefaultAsync(member => member.serverID == foundChannel.serverID && member.userID == userId);
-
-        if(foundMember == null)
+        if(isMember == false)
         {
             return Forbid();
         }
@@ -156,7 +158,7 @@ public class ChannelController : ModifiedControllerBase
         return Ok(results);
     }
 
-    [HttpPost("{id}/sendmessage")]
+    [HttpPost("{id:long}/messages")]
     public async Task<ActionResult<SendMessageResult>> SendMessage(long id, SendMessageRequest sendMessageRequest)
     {
         if(string.IsNullOrWhiteSpace(sendMessageRequest.messageText))
@@ -178,9 +180,10 @@ public class ChannelController : ModifiedControllerBase
             return NotFound();
         }
 
-        ServerMember? foundMember = await db.ServerMembers.AsNoTracking().FirstOrDefaultAsync(member => member.serverID == foundChannel.serverID && member.userID == userId);
+        //checks membership and gets the sender's display name in one query, null means they aren't in the server
+        string? displayName = await db.ServerMembers.AsNoTracking().Where(member => member.serverID == foundChannel.serverID && member.userID == userId).Join(db.Users, member => member.userID, user => user.id, (member, user) => user.displayName).FirstOrDefaultAsync();
 
-        if(foundMember == null)
+        if(displayName == null)
         {
             return Forbid();
         }
@@ -209,12 +212,13 @@ public class ChannelController : ModifiedControllerBase
 
         await db.SaveChangesAsync();
 
+        //the sender has read their own message
+        await readStateService.MarkChannelRead(id, userId, newMessage.id);
+
         string? username = GetUsername();
 
         if(username == null)
             username = string.Empty;
-
-        string displayName = await db.Users.AsNoTracking().Where(u => u.id == userId).Select(u => u.displayName).FirstOrDefaultAsync() ?? username;
 
         SendMessageResult result = new SendMessageResult();
         result.id = newMessage.id;
@@ -227,5 +231,41 @@ public class ChannelController : ModifiedControllerBase
         await hubContext.Clients.Group($"server_{foundChannel.serverID}").SendAsync("ReceiveChannelMessage", foundChannel.serverID, result);
 
         return Ok(result);
+    }
+
+    [HttpPut("{id:long}/read-state")]
+    public async Task<IActionResult> UpdateReadState(long id, UpdateReadStateRequest updateReadStateRequest)
+    {
+        long? nullableUserId = GetUserId();
+        
+        if(nullableUserId == null) 
+            return Unauthorized();
+
+        long userId = nullableUserId.Value;
+
+        //one query: null means the channel doesn't exist, false means the user isn't in its server
+        bool? isMember = await db.Channels.Where(channel => channel.id == id).Select(channel => (bool?)db.ServerMembers.Any(member => member.serverID == channel.serverID && member.userID == userId)).FirstOrDefaultAsync();
+
+        if(isMember == null)
+        {
+            return NotFound();
+        }
+
+        if(isMember == false)
+        {
+            return Forbid();
+        }
+
+        //stops a made up id from hiding future unread messages
+        bool messageExists = await db.Messages.AnyAsync(message => message.id == updateReadStateRequest.lastReadMessageID && message.channelID == id);
+
+        if(!messageExists)
+        {
+            return BadRequest("Message not found in this channel");
+        }
+
+        await readStateService.MarkChannelRead(id, userId, updateReadStateRequest.lastReadMessageID);
+
+        return NoContent();
     }
 }

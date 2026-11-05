@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations.Schema;
 
-namespace Messaging_App.Models;
+namespace Messaging_App.Models.Entities;
 
 [Table("servers")]
 public class Server
@@ -15,4 +15,6 @@ public class Server
 
     [Column("iconurl")]
     public string iconUrl { get; set; } = string.Empty;
+
+    public List<ServerMember> members { get; set; } = new List<ServerMember>();
 }
