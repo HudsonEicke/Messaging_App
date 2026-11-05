@@ -141,6 +141,10 @@ public class ConversationController : ModifiedControllerBase
                 return Conflict("You already have a dm with this user");
             }
 
+            //adds both users' live connections so messages in the new dm arrive without reconnecting
+            await hubGroupService.AddUserToGroup(userId, $"conversation_{newConversation.id}");
+            await hubGroupService.AddUserToGroup(otherUser.id, $"conversation_{newConversation.id}");
+
             result = new CreateConversationResult();
             result.conversationID = newConversation.id;
             result.conversationName = otherUser.displayName;
@@ -191,6 +195,12 @@ public class ConversationController : ModifiedControllerBase
         db.Conversations.Add(newConversation);
 
         await db.SaveChangesAsync();
+
+        //adds every member's live connections so messages in the new group arrive without reconnecting
+        foreach(ConversationMember member in newConversation.members)
+        {
+            await hubGroupService.AddUserToGroup(member.userID, $"conversation_{newConversation.id}");
+        }
 
         result = new CreateConversationResult();
         result.conversationID = newConversation.id;
