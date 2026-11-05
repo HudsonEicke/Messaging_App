@@ -2,7 +2,6 @@ using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using Backend.Tests.Helpers;
-using Messaging_App.Models;
 
 namespace Backend.Tests.Integration;
 
@@ -42,7 +41,7 @@ public class MessageTests : IClassFixture<TestWebApplicationFactory>
     private async Task<(string token, long serverId)> CreateServerAndGetId(string username)
     {
         string token = await RegisterAndGetToken(username, $"{username}@email.com");
-        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Post, "/server/createserver", token, new CreateServerRequest { serverName = $"{username}server" }),TestContext.Current.CancellationToken);
+        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Post, "/servers", token, new CreateServerRequest { serverName = $"{username}server" }),TestContext.Current.CancellationToken);
         CreateServerResult? result = await response.Content.ReadFromJsonAsync<CreateServerResult>(TestContext.Current.CancellationToken);
         return (token, result!.serverID);
     }
@@ -51,24 +50,36 @@ public class MessageTests : IClassFixture<TestWebApplicationFactory>
     {
         (string ownerToken, long serverId) = await CreateServerAndGetId(ownerUsername);
         string memberToken = await RegisterAndGetToken(memberUsername, $"{memberUsername}@email.com");
-        HttpResponseMessage inviteResponse = await client.SendAsync(CreateRequest(HttpMethod.Post, $"/server/{serverId}/invite", ownerToken, new CreateInviteRequest()),TestContext.Current.CancellationToken);
+        HttpResponseMessage inviteResponse = await client.SendAsync(CreateRequest(HttpMethod.Post, $"/servers/{serverId}/invites", ownerToken, new CreateInviteRequest()),TestContext.Current.CancellationToken);
         CreateInviteResult? inviteResult = await inviteResponse.Content.ReadFromJsonAsync<CreateInviteResult>(TestContext.Current.CancellationToken);
-        await client.SendAsync(CreateRequest(HttpMethod.Post, $"/invite/{inviteResult!.inviteCode}/join", memberToken),TestContext.Current.CancellationToken);
+        await client.SendAsync(CreateRequest(HttpMethod.Post, $"/invites/{inviteResult!.inviteCode}/join", memberToken),TestContext.Current.CancellationToken);
         return (ownerToken, memberToken, serverId);
     }
 
     private async Task<long> CreateChannel(string ownerToken, long serverId, string channelName)
     {
-        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Post, $"/server/{serverId}/createchannel", ownerToken, new CreateChannelRequest { channelName = channelName }),TestContext.Current.CancellationToken);
+        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Post, $"/servers/{serverId}/channels", ownerToken, new CreateChannelRequest { channelName = channelName }),TestContext.Current.CancellationToken);
         CreateChannelResult? result = await response.Content.ReadFromJsonAsync<CreateChannelResult>(TestContext.Current.CancellationToken);
         return result!.channelID;
     }
 
     private async Task<long> SendMessage(string token, long channelId, string messageText)
     {
-        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Post, $"/channel/{channelId}/sendmessage", token, new SendMessageRequest { messageText = messageText }),TestContext.Current.CancellationToken);
+        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Post, $"/channels/{channelId}/messages", token, new SendMessageRequest { messageText = messageText }),TestContext.Current.CancellationToken);
         SendMessageResult? result = await response.Content.ReadFromJsonAsync<SendMessageResult>(TestContext.Current.CancellationToken);
         return result!.id;
+    }
+
+    private async Task<HttpResponseMessage> MarkChannelRead(string token, long channelId, long messageId)
+    {
+        return await client.SendAsync(CreateRequest(HttpMethod.Put, $"/channels/{channelId}/read-state", token, new UpdateReadStateRequest { lastReadMessageID = messageId }), TestContext.Current.CancellationToken);
+    }
+
+    private async Task<bool> ChannelHasUnread(string token, long serverId, long channelId)
+    {
+        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Get, $"/servers/{serverId}/channels", token), TestContext.Current.CancellationToken);
+        List<ChannelResult>? result = await response.Content.ReadFromJsonAsync<List<ChannelResult>>(TestContext.Current.CancellationToken);
+        return result!.Single(channel => channel.channelID == channelId).hasUnread;
     }
 
     //GET MESSAGES
@@ -80,7 +91,7 @@ public class MessageTests : IClassFixture<TestWebApplicationFactory>
         long channelId = await CreateChannel(token, serverId, "general");
 
         //act
-        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Get, $"/channel/{channelId}/messages", token), TestContext.Current.CancellationToken);
+        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Get, $"/channels/{channelId}/messages", token), TestContext.Current.CancellationToken);
         List<MessageResult>? result = await response.Content.ReadFromJsonAsync<List<MessageResult>>(TestContext.Current.CancellationToken);
 
         //assert
@@ -98,7 +109,7 @@ public class MessageTests : IClassFixture<TestWebApplicationFactory>
         await SendMessage(token, channelId, "Hello world");
 
         //act
-        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Get, $"/channel/{channelId}/messages", token), TestContext.Current.CancellationToken);
+        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Get, $"/channels/{channelId}/messages", token), TestContext.Current.CancellationToken);
         List<MessageResult>? result = await response.Content.ReadFromJsonAsync<List<MessageResult>>(TestContext.Current.CancellationToken);
 
         //assert
@@ -118,7 +129,7 @@ public class MessageTests : IClassFixture<TestWebApplicationFactory>
         string nonMemberToken = await RegisterAndGetToken("mggetmsgsnonem", "mggetmsgsnonem@email.com");
 
         //act
-        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Get, $"/channel/{channelId}/messages", nonMemberToken), TestContext.Current.CancellationToken);
+        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Get, $"/channels/{channelId}/messages", nonMemberToken), TestContext.Current.CancellationToken);
 
         //assert
         Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
@@ -131,7 +142,7 @@ public class MessageTests : IClassFixture<TestWebApplicationFactory>
         string token = await RegisterAndGetToken("mggetmsgsnotf", "mggetmsgsnotf@email.com");
 
         //act
-        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Get, "/channel/999999999/messages", token), TestContext.Current.CancellationToken);
+        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Get, "/channels/999999999/messages", token), TestContext.Current.CancellationToken);
 
         //assert
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
@@ -141,7 +152,7 @@ public class MessageTests : IClassFixture<TestWebApplicationFactory>
     public async Task GetMessages_WithoutToken_ReturnsUnauthorized()
     {
         //act
-        HttpResponseMessage response = await client.GetAsync("/channel/1/messages", TestContext.Current.CancellationToken);
+        HttpResponseMessage response = await client.GetAsync("/channels/1/messages", TestContext.Current.CancellationToken);
 
         //assert
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
@@ -156,7 +167,7 @@ public class MessageTests : IClassFixture<TestWebApplicationFactory>
         long channelId = await CreateChannel(token, serverId, "general");
 
         //act
-        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Post, $"/channel/{channelId}/sendmessage", token, new SendMessageRequest { messageText = "Hello world" }),TestContext.Current.CancellationToken);
+        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Post, $"/channels/{channelId}/messages", token, new SendMessageRequest { messageText = "Hello world" }),TestContext.Current.CancellationToken);
         SendMessageResult? result = await response.Content.ReadFromJsonAsync<SendMessageResult>(TestContext.Current.CancellationToken);
 
         //assert
@@ -176,7 +187,7 @@ public class MessageTests : IClassFixture<TestWebApplicationFactory>
         long originalMessageId = await SendMessage(token, channelId, "Original message");
 
         //act
-        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Post, $"/channel/{channelId}/sendmessage", token, new SendMessageRequest { messageText = "Reply", replyToID = originalMessageId }),TestContext.Current.CancellationToken);
+        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Post, $"/channels/{channelId}/messages", token, new SendMessageRequest { messageText = "Reply", replyToID = originalMessageId }),TestContext.Current.CancellationToken);
         SendMessageResult? result = await response.Content.ReadFromJsonAsync<SendMessageResult>(TestContext.Current.CancellationToken);
 
         //assert
@@ -194,7 +205,7 @@ public class MessageTests : IClassFixture<TestWebApplicationFactory>
         string nonMemberToken = await RegisterAndGetToken("mgsendmsgnonem", "mgsendmsgnonem@email.com");
 
         //act
-        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Post, $"/channel/{channelId}/sendmessage", nonMemberToken, new SendMessageRequest { messageText = "Hello" }),TestContext.Current.CancellationToken);
+        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Post, $"/channels/{channelId}/messages", nonMemberToken, new SendMessageRequest { messageText = "Hello" }),TestContext.Current.CancellationToken);
 
         //assert
         Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
@@ -208,7 +219,7 @@ public class MessageTests : IClassFixture<TestWebApplicationFactory>
         long channelId = await CreateChannel(token, serverId, "general");
 
         //act
-        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Post, $"/channel/{channelId}/sendmessage", token, new SendMessageRequest { messageText = "" }),TestContext.Current.CancellationToken);
+        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Post, $"/channels/{channelId}/messages", token, new SendMessageRequest { messageText = "" }),TestContext.Current.CancellationToken);
 
         //assert
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
@@ -221,7 +232,7 @@ public class MessageTests : IClassFixture<TestWebApplicationFactory>
         string token = await RegisterAndGetToken("mgsendmsgnotf", "mgsendmsgnotf@email.com");
 
         //act
-        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Post, "/channel/999999999/sendmessage", token, new SendMessageRequest { messageText = "Hello" }),TestContext.Current.CancellationToken);
+        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Post, "/channels/999999999/messages", token, new SendMessageRequest { messageText = "Hello" }),TestContext.Current.CancellationToken);
 
         //assert
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
@@ -231,7 +242,7 @@ public class MessageTests : IClassFixture<TestWebApplicationFactory>
     public async Task SendMessage_WithoutToken_ReturnsUnauthorized()
     {
         //act
-        HttpResponseMessage response = await client.PostAsJsonAsync("/channel/1/sendmessage",new SendMessageRequest { messageText = "Hello" }, TestContext.Current.CancellationToken);
+        HttpResponseMessage response = await client.PostAsJsonAsync("/channels/1/messages",new SendMessageRequest { messageText = "Hello" }, TestContext.Current.CancellationToken);
 
         //assert
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
@@ -247,7 +258,7 @@ public class MessageTests : IClassFixture<TestWebApplicationFactory>
         long messageId = await SendMessage(token, channelId, "Original text");
 
         //act
-        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Put, $"/message/{messageId}", token, new EditMessageRequest { messageText = "Edited text" }),TestContext.Current.CancellationToken);
+        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Patch, $"/messages/{messageId}", token, new EditMessageRequest { messageText = "Edited text" }),TestContext.Current.CancellationToken);
 
         //assert
         Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
@@ -262,7 +273,7 @@ public class MessageTests : IClassFixture<TestWebApplicationFactory>
         long messageId = await SendMessage(ownerToken, channelId, "Owner's message");
 
         //act
-        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Put, $"/message/{messageId}", memberToken, new EditMessageRequest { messageText = "Edited by someone else" }),TestContext.Current.CancellationToken);
+        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Patch, $"/messages/{messageId}", memberToken, new EditMessageRequest { messageText = "Edited by someone else" }),TestContext.Current.CancellationToken);
 
         //assert
         Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
@@ -277,7 +288,7 @@ public class MessageTests : IClassFixture<TestWebApplicationFactory>
         long messageId = await SendMessage(token, channelId, "Hello");
 
         //act
-        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Put, $"/message/{messageId}", token, new EditMessageRequest { messageText = "" }),TestContext.Current.CancellationToken);
+        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Patch, $"/messages/{messageId}", token, new EditMessageRequest { messageText = "" }),TestContext.Current.CancellationToken);
 
         //assert
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
@@ -292,7 +303,7 @@ public class MessageTests : IClassFixture<TestWebApplicationFactory>
         long messageId = await SendMessage(token, channelId, "Hello");
 
         //act
-        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Put, $"/message/{messageId}", token, new EditMessageRequest { messageText = "Hello" }),TestContext.Current.CancellationToken);
+        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Patch, $"/messages/{messageId}", token, new EditMessageRequest { messageText = "Hello" }),TestContext.Current.CancellationToken);
 
         //assert
         Assert.Equal(HttpStatusCode.UnprocessableEntity, response.StatusCode);
@@ -305,7 +316,7 @@ public class MessageTests : IClassFixture<TestWebApplicationFactory>
         string token = await RegisterAndGetToken("mgeditmsgnotf", "mgeditmsgnotf@email.com");
 
         //act
-        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Put, "/message/999999999", token, new EditMessageRequest { messageText = "Edited text" }),TestContext.Current.CancellationToken);
+        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Patch, "/messages/999999999", token, new EditMessageRequest { messageText = "Edited text" }),TestContext.Current.CancellationToken);
 
         //assert
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
@@ -315,7 +326,7 @@ public class MessageTests : IClassFixture<TestWebApplicationFactory>
     public async Task EditMessage_WithoutToken_ReturnsUnauthorized()
     {
         //act
-        HttpResponseMessage response = await client.PutAsJsonAsync("/message/1",new EditMessageRequest { messageText = "Edited" }, TestContext.Current.CancellationToken);
+        HttpResponseMessage response = await client.PatchAsJsonAsync("/messages/1",new EditMessageRequest { messageText = "Edited" }, TestContext.Current.CancellationToken);
 
         //assert
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
@@ -331,7 +342,7 @@ public class MessageTests : IClassFixture<TestWebApplicationFactory>
         long messageId = await SendMessage(token, channelId, "Hello");
 
         //act
-        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Delete, $"/message/{messageId}", token), TestContext.Current.CancellationToken);
+        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Delete, $"/messages/{messageId}", token), TestContext.Current.CancellationToken);
 
         //assert
         Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
@@ -346,7 +357,7 @@ public class MessageTests : IClassFixture<TestWebApplicationFactory>
         long messageId = await SendMessage(memberToken, channelId, "Member's message");
 
         //act
-        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Delete, $"/message/{messageId}", ownerToken), TestContext.Current.CancellationToken);
+        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Delete, $"/messages/{messageId}", ownerToken), TestContext.Current.CancellationToken);
 
         //assert
         Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
@@ -361,7 +372,7 @@ public class MessageTests : IClassFixture<TestWebApplicationFactory>
         long messageId = await SendMessage(ownerToken, channelId, "Owner's message");
 
         //act
-        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Delete, $"/message/{messageId}", memberToken), TestContext.Current.CancellationToken);
+        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Delete, $"/messages/{messageId}", memberToken), TestContext.Current.CancellationToken);
 
         //assert
         Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
@@ -374,7 +385,7 @@ public class MessageTests : IClassFixture<TestWebApplicationFactory>
         string token = await RegisterAndGetToken("mgdelmsgnotf", "mgdelmsgnotf@email.com");
 
         //act
-        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Delete, "/message/999999999", token), TestContext.Current.CancellationToken);
+        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Delete, "/messages/999999999", token), TestContext.Current.CancellationToken);
 
         //assert
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
@@ -384,9 +395,184 @@ public class MessageTests : IClassFixture<TestWebApplicationFactory>
     public async Task DeleteMessage_WithoutToken_ReturnsUnauthorized()
     {
         //act
-        HttpResponseMessage response = await client.DeleteAsync("/message/1", TestContext.Current.CancellationToken);
+        HttpResponseMessage response = await client.DeleteAsync("/messages/1", TestContext.Current.CancellationToken);
 
         //assert
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+    }
+
+    //READ STATE
+    [Fact]
+    public async Task UpdateChannelReadState_AsMember_ClearsUnread()
+    {
+        //arrange
+        (string ownerToken, string memberToken, long serverId) = await CreateServerWithMember("rschreadown", "rschreadmem");
+        long channelId = await CreateChannel(ownerToken, serverId, "general");
+        long messageId = await SendMessage(ownerToken, channelId, "hello");
+        bool unreadBefore = await ChannelHasUnread(memberToken, serverId, channelId);
+
+        //act
+        HttpResponseMessage response = await MarkChannelRead(memberToken, channelId, messageId);
+        bool unreadAfter = await ChannelHasUnread(memberToken, serverId, channelId);
+
+        //assert
+        Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
+        Assert.True(unreadBefore);
+        Assert.False(unreadAfter);
+    }
+
+    [Fact]
+    public async Task UpdateChannelReadState_WithOlderMessage_DoesNotMoveBackwards()
+    {
+        //arrange
+        (string ownerToken, string memberToken, long serverId) = await CreateServerWithMember("rscholdown", "rscholdmem");
+        long channelId = await CreateChannel(ownerToken, serverId, "general");
+        long firstMessageId = await SendMessage(ownerToken, channelId, "first");
+        long secondMessageId = await SendMessage(ownerToken, channelId, "second");
+        await MarkChannelRead(memberToken, channelId, secondMessageId);
+
+        //act
+        HttpResponseMessage response = await MarkChannelRead(memberToken, channelId, firstMessageId);
+        bool hasUnread = await ChannelHasUnread(memberToken, serverId, channelId);
+
+        //assert
+        Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
+        Assert.False(hasUnread);
+    }
+
+    [Fact]
+    public async Task UpdateChannelReadState_WithMessageFromAnotherChannel_ReturnsBadRequest()
+    {
+        //arrange
+        (string token, long serverId) = await CreateServerAndGetId("rschother");
+        long channelId = await CreateChannel(token, serverId, "general");
+        long otherChannelId = await CreateChannel(token, serverId, "other");
+        long otherMessageId = await SendMessage(token, otherChannelId, "wrong channel");
+
+        //act
+        HttpResponseMessage response = await MarkChannelRead(token, channelId, otherMessageId);
+
+        //assert
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task UpdateChannelReadState_AsNonMember_ReturnsForbidden()
+    {
+        //arrange
+        (string token, long serverId) = await CreateServerAndGetId("rschnonmown");
+        long channelId = await CreateChannel(token, serverId, "general");
+        long messageId = await SendMessage(token, channelId, "hello");
+        string nonMemberToken = await RegisterAndGetToken("rschnonmem", "rschnonmem@email.com");
+
+        //act
+        HttpResponseMessage response = await MarkChannelRead(nonMemberToken, channelId, messageId);
+
+        //assert
+        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task UpdateChannelReadState_WithNonExistentChannel_ReturnsNotFound()
+    {
+        //arrange
+        string token = await RegisterAndGetToken("rschnotf", "rschnotf@email.com");
+
+        //act
+        HttpResponseMessage response = await MarkChannelRead(token, 999999999, 1);
+
+        //assert
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task UpdateChannelReadState_WithoutToken_ReturnsUnauthorized()
+    {
+        //act
+        HttpResponseMessage response = await client.PutAsJsonAsync("/channels/1/read-state", new UpdateReadStateRequest { lastReadMessageID = 1 }, TestContext.Current.CancellationToken);
+
+        //assert
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task SendMessage_OwnMessage_DoesNotMarkChannelUnread()
+    {
+        //arrange
+        (string ownerToken, string memberToken, long serverId) = await CreateServerWithMember("rschownown", "rschownmem");
+        long channelId = await CreateChannel(ownerToken, serverId, "general");
+
+        //act
+        await SendMessage(ownerToken, channelId, "hello");
+        bool senderUnread = await ChannelHasUnread(ownerToken, serverId, channelId);
+        bool memberUnread = await ChannelHasUnread(memberToken, serverId, channelId);
+
+        //assert
+        Assert.False(senderUnread);
+        Assert.True(memberUnread);
+    }
+
+    [Fact]
+    public async Task GetServers_WithUnreadChannel_ReturnsHasUnread()
+    {
+        //arrange
+        (string ownerToken, string memberToken, long serverId) = await CreateServerWithMember("rssvunrown", "rssvunrmem");
+        long channelId = await CreateChannel(ownerToken, serverId, "general");
+        long messageId = await SendMessage(ownerToken, channelId, "hello");
+
+        //act
+        HttpResponseMessage beforeResponse = await client.SendAsync(CreateRequest(HttpMethod.Get, "/servers", memberToken), TestContext.Current.CancellationToken);
+        List<ServerResult>? before = await beforeResponse.Content.ReadFromJsonAsync<List<ServerResult>>(TestContext.Current.CancellationToken);
+        await MarkChannelRead(memberToken, channelId, messageId);
+        HttpResponseMessage afterResponse = await client.SendAsync(CreateRequest(HttpMethod.Get, "/servers", memberToken), TestContext.Current.CancellationToken);
+        List<ServerResult>? after = await afterResponse.Content.ReadFromJsonAsync<List<ServerResult>>(TestContext.Current.CancellationToken);
+
+        //assert
+        Assert.True(before!.Single(server => server.serverID == serverId).hasUnread);
+        Assert.False(after!.Single(server => server.serverID == serverId).hasUnread);
+    }
+
+    //LIMITS
+    [Fact]
+    public async Task SendMessage_AtMaxLength_ReturnsOk()
+    {
+        //arrange
+        (string token, long serverId) = await CreateServerAndGetId("lmsendmax");
+        long channelId = await CreateChannel(token, serverId, "general");
+
+        //act
+        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Post, $"/channels/{channelId}/messages", token, new SendMessageRequest { messageText = new string('a', 2000) }), TestContext.Current.CancellationToken);
+
+        //assert
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task SendMessage_OverMaxLength_ReturnsBadRequest()
+    {
+        //arrange
+        (string token, long serverId) = await CreateServerAndGetId("lmsendover");
+        long channelId = await CreateChannel(token, serverId, "general");
+
+        //act
+        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Post, $"/channels/{channelId}/messages", token, new SendMessageRequest { messageText = new string('a', 2001) }), TestContext.Current.CancellationToken);
+
+        //assert
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task EditMessage_OverMaxLength_ReturnsBadRequest()
+    {
+        //arrange
+        (string token, long serverId) = await CreateServerAndGetId("lmeditover");
+        long channelId = await CreateChannel(token, serverId, "general");
+        long messageId = await SendMessage(token, channelId, "hello");
+
+        //act
+        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Patch, $"/messages/{messageId}", token, new EditMessageRequest { messageText = new string('a', 2001) }), TestContext.Current.CancellationToken);
+
+        //assert
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
     }
 }

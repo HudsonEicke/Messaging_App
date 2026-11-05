@@ -1,30 +1,35 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using Messaging_App.Models;
+using Microsoft.EntityFrameworkCore.Storage;
 using Messaging_App.Data;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
 using Messaging_App.Hubs;
+using Messaging_App.Services;
 
 namespace Messaging_App.Controllers;
 
 [Authorize]
 [ApiController]
-[Route("[controller]")]
+[Route("servers")]
 public class ServerController : ModifiedControllerBase
 {
     private readonly MessagingAppContext db;
     private readonly IHubContext<ChatHub> hubContext;
+    private readonly HubGroupService hubGroupService;
+    private readonly PresenceService presenceService;
 
-    public ServerController(MessagingAppContext db, IHubContext<ChatHub> hubContext)
+    public ServerController(MessagingAppContext db, IHubContext<ChatHub> hubContext, HubGroupService hubGroupService, PresenceService presenceService)
     {
         this.db = db;
+        this.presenceService = presenceService;
         this.hubContext = hubContext;
+        this.hubGroupService = hubGroupService;
     }
 
     //Server API
 
-    [HttpPost("createserver")]
+    [HttpPost]
     public async Task<ActionResult<CreateServerResult>> CreateServer(CreateServerRequest createServerRequest)
     {
         if(string.IsNullOrWhiteSpace(createServerRequest.serverName))
@@ -43,18 +48,16 @@ public class ServerController : ModifiedControllerBase
         newServer.serverName = createServerRequest.serverName;
         newServer.ownerID = userId;
 
+        //serverID is filled in by EF when the server is inserted
+        ServerMember ownerMember = new ServerMember();
+        ownerMember.userID = userId;
+        newServer.members.Add(ownerMember);
+
         db.Servers.Add(newServer);
 
         await db.SaveChangesAsync();
 
-        ServerMember ownerMember = new ServerMember();
-        ownerMember.serverID = newServer.id;
-        ownerMember.userID = userId;
-        db.ServerMembers.Add(ownerMember);
-
-        await db.SaveChangesAsync();
-
-        await ChatHub.AddUserToGroup(hubContext, userId, $"server_{newServer.id}");
+        await hubGroupService.AddUserToGroup(userId, $"server_{newServer.id}");
 
         CreateServerResult result = new CreateServerResult();
 
@@ -64,7 +67,7 @@ public class ServerController : ModifiedControllerBase
         return Ok(result);
     }
 
-    [HttpGet("servers")]
+    [HttpGet]
     public async Task<ActionResult<List<ServerResult>>> GetServers()
     {
         long? nullableUserId = GetUserId();
@@ -75,12 +78,12 @@ public class ServerController : ModifiedControllerBase
         long userId = nullableUserId.Value;
 
         //gets all the servers the user is in
-        List<ServerResult> servers = await db.ServerMembers.AsNoTracking().Where(member => member.userID == userId).Join(db.Servers, member => member.serverID, server => server.id, (member, server) => new { server }).Join(db.Users, s => s.server.ownerID, user => user.id, (s, user) => new ServerResult{serverID = s.server.id, ownerUsername = user.username, serverName = s.server.serverName, iconUrl = s.server.iconUrl}).ToListAsync();
+        List<ServerResult> servers = await db.ServerMembers.AsNoTracking().Where(member => member.userID == userId).Join(db.Servers, member => member.serverID, server => server.id, (member, server) => new { server }).Join(db.Users, s => s.server.ownerID, user => user.id, (s, user) => new ServerResult{serverID = s.server.id, ownerUsername = user.username, serverName = s.server.serverName, iconUrl = s.server.iconUrl, hasUnread = db.Channels.Any(channel => channel.serverID == s.server.id && db.Messages.Any(message => message.channelID == channel.id && message.id > (db.ChannelReadStates.Where(readState => readState.userID == userId && readState.channelID == channel.id).Select(readState => (long?)readState.lastReadMessageID).FirstOrDefault() ?? 0)))}).ToListAsync();
 
         return Ok(servers);
     }
 
-    [HttpGet("{id}")]
+    [HttpGet("{id:long}")]
     public async Task<ActionResult<ServerResult>> GetServer(long id)
     {
         long? nullableUserId = GetUserId();
@@ -95,6 +98,14 @@ public class ServerController : ModifiedControllerBase
         if(server == null)
         {
             return NotFound();
+        }
+
+        //checks if the user is a member of the server, non-members use the invite preview instead
+        ServerMember? isMember = await db.ServerMembers.AsNoTracking().FirstOrDefaultAsync(members => members.serverID == id && members.userID == userId);
+
+        if(isMember == null)
+        {
+            return Forbid();
         }
 
         User? owner = await db.Users.AsNoTracking().FirstOrDefaultAsync(u => u.id == server.ownerID);
@@ -114,7 +125,7 @@ public class ServerController : ModifiedControllerBase
         return Ok(result);
     }
 
-    [HttpGet("{id}/members")]
+    [HttpGet("{id:long}/members")]
     public async Task<ActionResult<List<UserResult>>> GetServerMembers(long id)
     {
         long? nullableUserId = GetUserId();
@@ -133,12 +144,12 @@ public class ServerController : ModifiedControllerBase
         }
 
         //gets all members of a server
-        List<UserResult> members = await db.ServerMembers.AsNoTracking().Where(member => member.serverID == id).Join(db.Users, member => member.userID, user => user.id, (member, user) => new UserResult{displayName = user.displayName, username = user.username, profileImageUrl = user.profileImageUrl, activityStatus = user.activityStatus, accountCreationTime = user.accountCreationTime}).ToListAsync();
+        List<UserResult> members = await db.ServerMembers.AsNoTracking().Where(member => member.serverID == id).Join(db.Users, member => member.userID, user => user.id, (member, user) => new UserResult{displayName = user.displayName, username = user.username, profileImageUrl = user.profileImageUrl, activityStatus = presenceService.GetDisplayedStatus(user.id, user.activityStatus), accountCreationTime = user.accountCreationTime}).ToListAsync();
 
         return Ok(members);
     }
 
-    [HttpPut("{id}")]
+    [HttpPatch("{id:long}")]
     public async Task<IActionResult> UpdateServer(long id, UpdateServerRequest updateServerRequest)
     {
         long? nullableUserId = GetUserId();
@@ -197,7 +208,7 @@ public class ServerController : ModifiedControllerBase
         return Ok(result);
     }
 
-    [HttpDelete("{id}")]
+    [HttpDelete("{id:long}")]
     public async Task<IActionResult> DeleteServer(long id)
     {
         long? nullableUserId = GetUserId();
@@ -224,7 +235,7 @@ public class ServerController : ModifiedControllerBase
         await hubContext.Clients.Group($"server_{foundServer.id}").SendAsync("ServerDeleted", foundServer.id);
 
         foreach (long memberId in memberIds)
-            await ChatHub.RemoveUserFromGroup(hubContext, memberId, $"server_{foundServer.id}");
+            await hubGroupService.RemoveUserFromGroup(memberId, $"server_{foundServer.id}");
 
         db.Servers.Remove(foundServer);
         await db.SaveChangesAsync();
@@ -232,7 +243,7 @@ public class ServerController : ModifiedControllerBase
         return NoContent();
     }
 
-    [HttpPost("{id}/leave")]
+    [HttpDelete("{id:long}/members/me")]
     public async Task<IActionResult> LeaveServer(long id)
     {
         long? nullableUserId = GetUserId();
@@ -269,7 +280,7 @@ public class ServerController : ModifiedControllerBase
             //deletes the server if no other members in the server
             if(newOwner == null)
             {
-                await ChatHub.RemoveUserFromGroup(hubContext, userId, $"server_{id}");
+                await hubGroupService.RemoveUserFromGroup(userId, $"server_{id}");
                 db.Servers.Remove(foundServer);
                 await db.SaveChangesAsync();
                 return NoContent();
@@ -288,12 +299,12 @@ public class ServerController : ModifiedControllerBase
             await hubContext.Clients.Group($"server_{id}").SendAsync("OwnerChanged", newOwnerUsername);
 
         await hubContext.Clients.Group($"server_{id}").SendAsync("MemberLeft", GetUsername());
-        await ChatHub.RemoveUserFromGroup(hubContext, userId, $"server_{id}");
+        await hubGroupService.RemoveUserFromGroup(userId, $"server_{id}");
 
         return NoContent();
     }
 
-    [HttpDelete("{id}/members/{username}")]
+    [HttpDelete("{id:long}/members/{username}")]
     public async Task<IActionResult> KickUser(long id, string username)
     {
         long? nullableUserId = GetUserId();
@@ -339,14 +350,14 @@ public class ServerController : ModifiedControllerBase
         await db.SaveChangesAsync();
 
         await hubContext.Clients.Group($"server_{id}").SendAsync("MemberKicked", foundUser.username);
-        await ChatHub.RemoveUserFromGroup(hubContext, foundUser.id, $"server_{id}");
+        await hubGroupService.RemoveUserFromGroup(foundUser.id, $"server_{id}");
 
         return NoContent();
     }
 
     //Channel API
 
-    [HttpPost("{id}/createchannel")]
+    [HttpPost("{id:long}/channels")]
     public async Task<ActionResult<CreateChannelResult>> CreateChannel(long id, CreateChannelRequest createChannelRequest)
     {
         if(string.IsNullOrWhiteSpace(createChannelRequest.channelName))
@@ -373,15 +384,22 @@ public class ServerController : ModifiedControllerBase
             return Forbid();
         }
 
+        //locking the server makes two channels created at once take turns, so they can't get the same order
+        await using IDbContextTransaction transaction = await db.Database.BeginTransactionAsync();
+        await db.LockServerAsync(id);
+
+        int? highestOrder = await db.Channels.Where(channel => channel.serverID == id).MaxAsync(channel => (int?)channel.channelOrder);
+
         Channel newChannel = new Channel();
 
         newChannel.channelName = createChannelRequest.channelName;
         newChannel.serverID = id;
-        newChannel.channelOrder = await db.Channels.CountAsync(channels => channels.serverID == id);
+        newChannel.channelOrder = highestOrder == null ? 0 : highestOrder.Value + 1;
 
         db.Channels.Add(newChannel);
 
         await db.SaveChangesAsync();
+        await transaction.CommitAsync();
 
         CreateChannelResult result = new CreateChannelResult();
         result.channelID = newChannel.id;
@@ -393,7 +411,7 @@ public class ServerController : ModifiedControllerBase
         return Ok(result);
     }
 
-    [HttpGet("{id}/channels")]
+    [HttpGet("{id:long}/channels")]
     public async Task<ActionResult<List<ChannelResult>>> GetChannels(long id)
     {
         long? nullableUserId = GetUserId();
@@ -403,27 +421,25 @@ public class ServerController : ModifiedControllerBase
 
         long userId = nullableUserId.Value;
 
-        Server? foundServer = await db.Servers.AsNoTracking().FirstOrDefaultAsync(server => server.id == id);
+        bool? isMember = await db.Servers.Where(server => server.id == id).Select(server => (bool?)db.ServerMembers.Any(member => member.serverID == server.id && member.userID == userId)).FirstOrDefaultAsync();
 
-        if(foundServer == null)
+        if(isMember == null)
         {
             return NotFound();
         }
 
-        ServerMember? isMember = await db.ServerMembers.AsNoTracking().FirstOrDefaultAsync(member => member.serverID == id && member.userID == userId);
-
-        if(isMember == null)
+        if(isMember == false)
         {
             return Forbid();
         }
 
-        //gets all of the channels in the server
-        List<ChannelResult> results = await db.Channels.AsNoTracking().Where(channel => channel.serverID == id).OrderBy(channel => channel.channelOrder).Select(channel => new ChannelResult{channelID = channel.id, channelName = channel.channelName, channelOrder = channel.channelOrder}).ToListAsync();
+        //gets all of the channels in the server, a channel is unread if it has a message past the user's read marker
+        List<ChannelResult> results = await db.Channels.AsNoTracking().Where(channel => channel.serverID == id).OrderBy(channel => channel.channelOrder).Select(channel => new ChannelResult{channelID = channel.id, channelName = channel.channelName, channelOrder = channel.channelOrder, hasUnread = db.Messages.Any(message => message.channelID == channel.id && message.id > (db.ChannelReadStates.Where(readState => readState.userID == userId && readState.channelID == channel.id).Select(readState => (long?)readState.lastReadMessageID).FirstOrDefault() ?? 0))}).ToListAsync();
 
         return Ok(results);
     }
 
-    [HttpPut("{id}/channels/reorder")]
+    [HttpPut("{id:long}/channels/order")]
     public async Task<IActionResult> ReorderChannels(long id, ReorderChannelRequest reorderChannelRequest)
     {
         long? nullableUserId = GetUserId();
@@ -445,6 +461,15 @@ public class ServerController : ModifiedControllerBase
             return Forbid();
         }
 
+        //a repeated id would leave another channel on its old position and clash with the unique order
+        if (reorderChannelRequest.channelIDs.Distinct().Count() != reorderChannelRequest.channelIDs.Count)
+        {
+            return BadRequest("Channel list contains duplicates");
+        }
+
+        await using IDbContextTransaction transaction = await db.Database.BeginTransactionAsync();
+        await db.LockServerAsync(id);
+
         List<Channel> channels = await db.Channels.Where(c => c.serverID == id).ToListAsync();
 
         if (reorderChannelRequest.channelIDs.Count != channels.Count)
@@ -465,6 +490,7 @@ public class ServerController : ModifiedControllerBase
         }
 
         await db.SaveChangesAsync();
+        await transaction.CommitAsync();
 
         await hubContext.Clients.Group($"server_{id}").SendAsync("ChannelsReordered", reorderChannelRequest.channelIDs);
 
@@ -472,7 +498,7 @@ public class ServerController : ModifiedControllerBase
     }
 
     //Invite API
-    [HttpPost("{id}/invite")]
+    [HttpPost("{id:long}/invites")]
     public async Task<ActionResult<CreateInviteResult>> CreateInvite(long id, CreateInviteRequest createInviteRequest)
     {
         long? nullableUserId = GetUserId();
@@ -507,7 +533,7 @@ public class ServerController : ModifiedControllerBase
         return Ok(result);
     }
 
-    [HttpGet("{id}/invites")]
+    [HttpGet("{id:long}/invites")]
     public async Task<ActionResult<List<InviteResult>>> GetInvites(long id)
     {
         long? nullableUserId = GetUserId();
@@ -534,7 +560,7 @@ public class ServerController : ModifiedControllerBase
         return Ok(results);
     }
 
-    [HttpDelete("{id}/invite/{code}")]
+    [HttpDelete("{id:long}/invites/{code:guid}")]
     public async Task<IActionResult> DeleteInvite(long id, Guid code)
     {
         long? nullableUserId = GetUserId();

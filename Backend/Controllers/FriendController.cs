@@ -1,6 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using Messaging_App.Models;
 using Messaging_App.Data;
 using Microsoft.AspNetCore.Identity;
 using Messaging_App.Services;
@@ -10,19 +9,28 @@ namespace Messaging_App.Controllers;
 
 [Authorize]
 [ApiController]
-[Route("[controller]")]
+[Route("friends")]
 public class FriendController : ModifiedControllerBase
 {
     private readonly MessagingAppContext db;
+    private readonly PresenceService presenceService;
 
-    public FriendController(MessagingAppContext db)
+    public FriendController(MessagingAppContext db, PresenceService presenceService)
     {
         this.db = db;
+        this.presenceService = presenceService;
     }
 
-    [HttpPost("request/{username}")]
-    public async Task<ActionResult<FriendRequestResult>> SendRequest(string username)
+    [HttpPost("requests")]
+    public async Task<ActionResult<FriendRequestResult>> SendRequest(SendFriendRequestRequest friendRequest)
     {
+        if(string.IsNullOrWhiteSpace(friendRequest.username))
+        {
+            return BadRequest("Username is required");
+        }
+
+        string username = friendRequest.username;
+
         long? nullableUserId = GetUserId();
         
         if(nullableUserId == null)
@@ -87,7 +95,7 @@ public class FriendController : ModifiedControllerBase
         return Ok(result);
     }
 
-    [HttpPost("accept/{username}")]
+    [HttpPost("requests/{username}/accept")]
     public async Task<ActionResult<UserResult>> AcceptRequest(string username)
     {
         long? nullableUserId = GetUserId();
@@ -124,13 +132,13 @@ public class FriendController : ModifiedControllerBase
         result.displayName = otherUser.displayName;
         result.username = username;
         result.profileImageUrl = otherUser.profileImageUrl;
-        result.activityStatus = otherUser.activityStatus;
+        result.activityStatus = presenceService.GetDisplayedStatus(otherUser.id, otherUser.activityStatus);
         result.accountCreationTime = otherUser.accountCreationTime;
 
         return Ok(result);
     }
 
-    [HttpPost("decline/{username}")]
+    [HttpDelete("requests/{username}")]
     public async Task<IActionResult> DeclineRequest(string username)
     {
         long? nullableUserId = GetUserId();
@@ -202,7 +210,7 @@ public class FriendController : ModifiedControllerBase
         return NoContent();
     }
 
-    [HttpPost("block/{username}")]
+    [HttpPut("blocked/{username}")]
     public async Task<IActionResult> BlockUser(string username)
     {
         long? nullableUserId = GetUserId();
@@ -250,7 +258,7 @@ public class FriendController : ModifiedControllerBase
         return NoContent();
     }
 
-    [HttpDelete("block/{username}")]
+    [HttpDelete("blocked/{username}")]
     public async Task<IActionResult> UnBlockUser(string username)
     {
         long? nullableUserId = GetUserId();
@@ -296,12 +304,12 @@ public class FriendController : ModifiedControllerBase
 
         long userId = nullableUserId.Value;
 
-        List<UserResult> results = await db.Friends.Where(friend => (friend.sender == userId || friend.receiver == userId) && friend.status == FriendStatus.friends).Join(db.Users, friend => friend.sender == userId ? friend.receiver : friend.sender, user => user.id, (friend, user) => new UserResult{displayName = user.displayName, username = user.username, profileImageUrl = user.profileImageUrl, activityStatus = user.activityStatus, accountCreationTime = user.accountCreationTime}).ToListAsync();
+        List<UserResult> results = await db.Friends.Where(friend => (friend.sender == userId || friend.receiver == userId) && friend.status == FriendStatus.friends).Join(db.Users, friend => friend.sender == userId ? friend.receiver : friend.sender, user => user.id, (friend, user) => new UserResult{displayName = user.displayName, username = user.username, profileImageUrl = user.profileImageUrl, activityStatus = presenceService.GetDisplayedStatus(user.id, user.activityStatus), accountCreationTime = user.accountCreationTime}).ToListAsync();
 
         return Ok(results);
     }
 
-    [HttpGet("pending")]
+    [HttpGet("requests")]
     public async Task<ActionResult<List<UserResult>>> GetPendingFriends()
     {
         long? nullableUserId = GetUserId();
@@ -311,7 +319,7 @@ public class FriendController : ModifiedControllerBase
 
         long userId = nullableUserId.Value;
 
-        List<UserResult> results = await db.Friends.Where(friend => friend.receiver == userId && friend.status == FriendStatus.pending).Join(db.Users, friend => friend.sender, user => user.id, (friend, user) => new UserResult{displayName = user.displayName, username = user.username, profileImageUrl = user.profileImageUrl, activityStatus = user.activityStatus, accountCreationTime = user.accountCreationTime}).ToListAsync();
+        List<UserResult> results = await db.Friends.Where(friend => friend.receiver == userId && friend.status == FriendStatus.pending).Join(db.Users, friend => friend.sender, user => user.id, (friend, user) => new UserResult{displayName = user.displayName, username = user.username, profileImageUrl = user.profileImageUrl, activityStatus = presenceService.GetDisplayedStatus(user.id, user.activityStatus), accountCreationTime = user.accountCreationTime}).ToListAsync();
 
         return Ok(results);
     }
@@ -326,7 +334,7 @@ public class FriendController : ModifiedControllerBase
 
         long userId = nullableUserId.Value;
 
-        List<UserResult> results = await db.Friends.Where(friend => friend.sender == userId && friend.status == FriendStatus.blocked).Join(db.Users, friend => friend.receiver, user => user.id, (friend, user) => new UserResult{displayName = user.displayName, username = user.username, profileImageUrl = user.profileImageUrl, activityStatus = user.activityStatus, accountCreationTime = user.accountCreationTime}).ToListAsync();
+        List<UserResult> results = await db.Friends.Where(friend => friend.sender == userId && friend.status == FriendStatus.blocked).Join(db.Users, friend => friend.receiver, user => user.id, (friend, user) => new UserResult{displayName = user.displayName, username = user.username, profileImageUrl = user.profileImageUrl, activityStatus = presenceService.GetDisplayedStatus(user.id, user.activityStatus), accountCreationTime = user.accountCreationTime}).ToListAsync();
 
         return Ok(results);
     }

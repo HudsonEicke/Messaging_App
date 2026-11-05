@@ -35,7 +35,7 @@
             "header": [],
             "body": {
               "mode": "raw",
-              "raw": "{\r\n  \"username\": \"testuser\",\r\n  \"email\": \"test@email.com\",\r\n  \"password\": \"Test\"\r\n}",
+              "raw": "{\r\n  \"username\": \"testuser\",\r\n  \"email\": \"test@email.com\",\r\n  \"password\": \"Test1234\"\r\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -80,7 +80,7 @@
             "header": [],
             "body": {
               "mode": "raw",
-              "raw": "{\r\n  \"username\": \"testuser\",\r\n  \"password\": \"Test\"\r\n}",
+              "raw": "{\r\n  \"username\": \"testuser\",\r\n  \"password\": \"Test1234\"\r\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -186,12 +186,12 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{Messaging_App_HostAddress}}/user/me",
+              "raw": "{{Messaging_App_HostAddress}}/users/me",
               "host": [
                 "{{Messaging_App_HostAddress}}"
               ],
               "path": [
-                "user",
+                "users",
                 "me"
               ]
             }
@@ -201,7 +201,7 @@
         {
           "name": "Update Me",
           "request": {
-            "method": "PUT",
+            "method": "PATCH",
             "header": [],
             "body": {
               "mode": "raw",
@@ -213,12 +213,12 @@
               }
             },
             "url": {
-              "raw": "{{Messaging_App_HostAddress}}/user/me",
+              "raw": "{{Messaging_App_HostAddress}}/users/me",
               "host": [
                 "{{Messaging_App_HostAddress}}"
               ],
               "path": [
-                "user",
+                "users",
                 "me"
               ]
             }
@@ -232,7 +232,7 @@
             "header": [],
             "body": {
               "mode": "raw",
-              "raw": "{\r\n  \"currentPassword\": \"Test\",\r\n  \"newPassword\": \"Test2\"\r\n}",
+              "raw": "{\r\n  \"currentPassword\": \"Test1234\",\r\n  \"newPassword\": \"Test5678\"\r\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -240,12 +240,12 @@
               }
             },
             "url": {
-              "raw": "{{Messaging_App_HostAddress}}/user/me/password",
+              "raw": "{{Messaging_App_HostAddress}}/users/me/password",
               "host": [
                 "{{Messaging_App_HostAddress}}"
               ],
               "path": [
-                "user",
+                "users",
                 "me",
                 "password"
               ]
@@ -263,12 +263,12 @@
               "raw": "{\r\n  \"newStatus\": 0\r\n}"
             },
             "url": {
-              "raw": "{{Messaging_App_HostAddress}}/user/me/status",
+              "raw": "{{Messaging_App_HostAddress}}/users/me/status",
               "host": [
                 "{{Messaging_App_HostAddress}}"
               ],
               "path": [
-                "user",
+                "users",
                 "me",
                 "status"
               ]
@@ -282,12 +282,12 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{Messaging_App_HostAddress}}/user/username/{{username}}",
+              "raw": "{{Messaging_App_HostAddress}}/users/username/{{username}}",
               "host": [
                 "{{Messaging_App_HostAddress}}"
               ],
               "path": [
-                "user",
+                "users",
                 "username",
                 "{{username}}"
               ]
@@ -301,12 +301,12 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{Messaging_App_HostAddress}}/user/{{userID}}",
+              "raw": "{{Messaging_App_HostAddress}}/users/{{userID}}",
               "host": [
                 "{{Messaging_App_HostAddress}}"
               ],
               "path": [
-                "user",
+                "users",
                 "{{userID}}"
               ]
             }
@@ -333,13 +333,12 @@
               }
             },
             "url": {
-              "raw": "{{Messaging_App_HostAddress}}/server/createserver",
+              "raw": "{{Messaging_App_HostAddress}}/servers",
               "host": [
                 "{{Messaging_App_HostAddress}}"
               ],
               "path": [
-                "server",
-                "createserver"
+                "servers"
               ]
             }
           },
@@ -351,12 +350,11 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{Messaging_App_HostAddress}}/server/servers",
+              "raw": "{{Messaging_App_HostAddress}}/servers",
               "host": [
                 "{{Messaging_App_HostAddress}}"
               ],
               "path": [
-                "server",
                 "servers"
               ]
             }
@@ -369,12 +367,12 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{Messaging_App_HostAddress}}/server/{{serverID}}",
+              "raw": "{{Messaging_App_HostAddress}}/servers/{{serverID}}",
               "host": [
                 "{{Messaging_App_HostAddress}}"
               ],
               "path": [
-                "server",
+                "servers",
                 "{{serverID}}"
               ]
             }
@@ -387,12 +385,12 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{Messaging_App_HostAddress}}/server/{{serverID}}/members",
+              "raw": "{{Messaging_App_HostAddress}}/servers/{{serverID}}/members",
               "host": [
                 "{{Messaging_App_HostAddress}}"
               ],
               "path": [
-                "server",
+                "servers",
                 "{{serverID}}",
                 "members"
               ]
@@ -403,7 +401,7 @@
         {
           "name": "Update Server",
           "request": {
-            "method": "PUT",
+            "method": "PATCH",
             "header": [],
             "body": {
               "mode": "raw",
@@ -415,12 +413,12 @@
               }
             },
             "url": {
-              "raw": "{{Messaging_App_HostAddress}}/server/{{serverID}}",
+              "raw": "{{Messaging_App_HostAddress}}/servers/{{serverID}}",
               "host": [
                 "{{Messaging_App_HostAddress}}"
               ],
               "path": [
-                "server",
+                "servers",
                 "{{serverID}}"
               ]
             }
@@ -433,12 +431,12 @@
             "method": "DELETE",
             "header": [],
             "url": {
-              "raw": "{{Messaging_App_HostAddress}}/server/{{serverID}}",
+              "raw": "{{Messaging_App_HostAddress}}/servers/{{serverID}}",
               "host": [
                 "{{Messaging_App_HostAddress}}"
               ],
               "path": [
-                "server",
+                "servers",
                 "{{serverID}}"
               ]
             }
@@ -448,17 +446,18 @@
         {
           "name": "Leave Server",
           "request": {
-            "method": "POST",
+            "method": "DELETE",
             "header": [],
             "url": {
-              "raw": "{{Messaging_App_HostAddress}}/server/{{serverID}}/leave",
+              "raw": "{{Messaging_App_HostAddress}}/servers/{{serverID}}/members/me",
               "host": [
                 "{{Messaging_App_HostAddress}}"
               ],
               "path": [
-                "server",
+                "servers",
                 "{{serverID}}",
-                "leave"
+                "members",
+                "me"
               ]
             }
           },
@@ -470,12 +469,12 @@
             "method": "DELETE",
             "header": [],
             "url": {
-              "raw": "{{Messaging_App_HostAddress}}/server/{{serverID}}/members/{{username}}",
+              "raw": "{{Messaging_App_HostAddress}}/servers/{{serverID}}/members/{{username}}",
               "host": [
                 "{{Messaging_App_HostAddress}}"
               ],
               "path": [
-                "server",
+                "servers",
                 "{{serverID}}",
                 "members",
                 "{{username}}"
@@ -504,14 +503,14 @@
               }
             },
             "url": {
-              "raw": "{{Messaging_App_HostAddress}}/server/{{serverID}}/createchannel",
+              "raw": "{{Messaging_App_HostAddress}}/servers/{{serverID}}/channels",
               "host": [
                 "{{Messaging_App_HostAddress}}"
               ],
               "path": [
-                "server",
+                "servers",
                 "{{serverID}}",
-                "createchannel"
+                "channels"
               ]
             }
           },
@@ -523,12 +522,12 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{Messaging_App_HostAddress}}/server/{{serverID}}/channels",
+              "raw": "{{Messaging_App_HostAddress}}/servers/{{serverID}}/channels",
               "host": [
                 "{{Messaging_App_HostAddress}}"
               ],
               "path": [
-                "server",
+                "servers",
                 "{{serverID}}",
                 "channels"
               ]
@@ -551,15 +550,15 @@
               }
             },
             "url": {
-              "raw": "{{Messaging_App_HostAddress}}/server/{{serverID}}/channels/reorder",
+              "raw": "{{Messaging_App_HostAddress}}/servers/{{serverID}}/channels/order",
               "host": [
                 "{{Messaging_App_HostAddress}}"
               ],
               "path": [
-                "server",
+                "servers",
                 "{{serverID}}",
                 "channels",
-                "reorder"
+                "order"
               ]
             }
           },
@@ -568,7 +567,7 @@
         {
           "name": "Update Channel",
           "request": {
-            "method": "PUT",
+            "method": "PATCH",
             "header": [],
             "body": {
               "mode": "raw",
@@ -580,12 +579,12 @@
               }
             },
             "url": {
-              "raw": "{{Messaging_App_HostAddress}}/channel/{{channelID}}",
+              "raw": "{{Messaging_App_HostAddress}}/channels/{{channelID}}",
               "host": [
                 "{{Messaging_App_HostAddress}}"
               ],
               "path": [
-                "channel",
+                "channels",
                 "{{channelID}}"
               ]
             }
@@ -598,12 +597,12 @@
             "method": "DELETE",
             "header": [],
             "url": {
-              "raw": "{{Messaging_App_HostAddress}}/channel/{{channelID}}",
+              "raw": "{{Messaging_App_HostAddress}}/channels/{{channelID}}",
               "host": [
                 "{{Messaging_App_HostAddress}}"
               ],
               "path": [
-                "channel",
+                "channels",
                 "{{channelID}}"
               ]
             }
@@ -621,12 +620,12 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{Messaging_App_HostAddress}}/channel/{{channelID}}/messages",
+              "raw": "{{Messaging_App_HostAddress}}/channels/{{channelID}}/messages",
               "host": [
                 "{{Messaging_App_HostAddress}}"
               ],
               "path": [
-                "channel",
+                "channels",
                 "{{channelID}}",
                 "messages"
               ],
@@ -657,14 +656,14 @@
               }
             },
             "url": {
-              "raw": "{{Messaging_App_HostAddress}}/channel/{{channelID}}/sendmessage",
+              "raw": "{{Messaging_App_HostAddress}}/channels/{{channelID}}/messages",
               "host": [
                 "{{Messaging_App_HostAddress}}"
               ],
               "path": [
-                "channel",
+                "channels",
                 "{{channelID}}",
-                "sendmessage"
+                "messages"
               ]
             }
           },
@@ -673,7 +672,7 @@
         {
           "name": "Edit Message",
           "request": {
-            "method": "PUT",
+            "method": "PATCH",
             "header": [],
             "body": {
               "mode": "raw",
@@ -685,12 +684,12 @@
               }
             },
             "url": {
-              "raw": "{{Messaging_App_HostAddress}}/message/{{messageID}}",
+              "raw": "{{Messaging_App_HostAddress}}/messages/{{messageID}}",
               "host": [
                 "{{Messaging_App_HostAddress}}"
               ],
               "path": [
-                "message",
+                "messages",
                 "{{messageID}}"
               ]
             }
@@ -703,13 +702,41 @@
             "method": "DELETE",
             "header": [],
             "url": {
-              "raw": "{{Messaging_App_HostAddress}}/message/{{messageID}}",
+              "raw": "{{Messaging_App_HostAddress}}/messages/{{messageID}}",
               "host": [
                 "{{Messaging_App_HostAddress}}"
               ],
               "path": [
-                "message",
+                "messages",
                 "{{messageID}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Mark Channel Read",
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"lastReadMessageID\": {{messageID}}\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{Messaging_App_HostAddress}}/channels/{{channelID}}/read-state",
+              "host": [
+                "{{Messaging_App_HostAddress}}"
+              ],
+              "path": [
+                "channels",
+                "{{channelID}}",
+                "read-state"
               ]
             }
           },
@@ -749,14 +776,14 @@
               }
             },
             "url": {
-              "raw": "{{Messaging_App_HostAddress}}/server/{{serverID}}/invite",
+              "raw": "{{Messaging_App_HostAddress}}/servers/{{serverID}}/invites",
               "host": [
                 "{{Messaging_App_HostAddress}}"
               ],
               "path": [
-                "server",
+                "servers",
                 "{{serverID}}",
-                "invite"
+                "invites"
               ]
             }
           },
@@ -768,12 +795,12 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{Messaging_App_HostAddress}}/server/{{serverID}}/invites",
+              "raw": "{{Messaging_App_HostAddress}}/servers/{{serverID}}/invites",
               "host": [
                 "{{Messaging_App_HostAddress}}"
               ],
               "path": [
-                "server",
+                "servers",
                 "{{serverID}}",
                 "invites"
               ]
@@ -787,14 +814,32 @@
             "method": "DELETE",
             "header": [],
             "url": {
-              "raw": "{{Messaging_App_HostAddress}}/server/{{serverID}}/invite/{{inviteCode}}",
+              "raw": "{{Messaging_App_HostAddress}}/servers/{{serverID}}/invites/{{inviteCode}}",
               "host": [
                 "{{Messaging_App_HostAddress}}"
               ],
               "path": [
-                "server",
+                "servers",
                 "{{serverID}}",
-                "invite",
+                "invites",
+                "{{inviteCode}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Preview Invite",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{Messaging_App_HostAddress}}/invites/{{inviteCode}}",
+              "host": [
+                "{{Messaging_App_HostAddress}}"
+              ],
+              "path": [
+                "invites",
                 "{{inviteCode}}"
               ]
             }
@@ -807,12 +852,12 @@
             "method": "POST",
             "header": [],
             "url": {
-              "raw": "{{Messaging_App_HostAddress}}/invite/{{inviteCode}}/join",
+              "raw": "{{Messaging_App_HostAddress}}/invites/{{inviteCode}}/join",
               "host": [
                 "{{Messaging_App_HostAddress}}"
               ],
               "path": [
-                "invite",
+                "invites",
                 "{{inviteCode}}",
                 "join"
               ]
@@ -840,13 +885,12 @@
               }
             },
             "url": {
-              "raw": "{{Messaging_App_HostAddress}}/conversation/createconversation",
+              "raw": "{{Messaging_App_HostAddress}}/conversations",
               "host": [
                 "{{Messaging_App_HostAddress}}"
               ],
               "path": [
-                "conversation",
-                "createconversation"
+                "conversations"
               ]
             }
           },
@@ -858,12 +902,11 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{Messaging_App_HostAddress}}/conversation/conversations",
+              "raw": "{{Messaging_App_HostAddress}}/conversations",
               "host": [
                 "{{Messaging_App_HostAddress}}"
               ],
               "path": [
-                "conversation",
                 "conversations"
               ]
             }
@@ -876,12 +919,12 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{Messaging_App_HostAddress}}/conversation/{{conversationID}}",
+              "raw": "{{Messaging_App_HostAddress}}/conversations/{{conversationID}}",
               "host": [
                 "{{Messaging_App_HostAddress}}"
               ],
               "path": [
-                "conversation",
+                "conversations",
                 "{{conversationID}}"
               ]
             }
@@ -894,12 +937,12 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{Messaging_App_HostAddress}}/conversation/{{conversationID}}/members",
+              "raw": "{{Messaging_App_HostAddress}}/conversations/{{conversationID}}/members",
               "host": [
                 "{{Messaging_App_HostAddress}}"
               ],
               "path": [
-                "conversation",
+                "conversations",
                 "{{conversationID}}",
                 "members"
               ]
@@ -913,16 +956,24 @@
             "method": "POST",
             "header": [],
             "url": {
-              "raw": "{{Messaging_App_HostAddress}}/conversation/{{conversationID}}/members/{{username}}",
+              "raw": "{{Messaging_App_HostAddress}}/conversations/{{conversationID}}/members",
               "host": [
                 "{{Messaging_App_HostAddress}}"
               ],
               "path": [
-                "conversation",
+                "conversations",
                 "{{conversationID}}",
-                "members",
-                "{{username}}"
+                "members"
               ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"username\": \"{{username}}\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             }
           },
           "response": []
@@ -930,17 +981,18 @@
         {
           "name": "Leave Conversation",
           "request": {
-            "method": "POST",
+            "method": "DELETE",
             "header": [],
             "url": {
-              "raw": "{{Messaging_App_HostAddress}}/conversation/{{conversationID}}/leave",
+              "raw": "{{Messaging_App_HostAddress}}/conversations/{{conversationID}}/members/me",
               "host": [
                 "{{Messaging_App_HostAddress}}"
               ],
               "path": [
-                "conversation",
+                "conversations",
                 "{{conversationID}}",
-                "leave"
+                "members",
+                "me"
               ]
             }
           },
@@ -952,12 +1004,12 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{Messaging_App_HostAddress}}/conversation/{{conversationID}}/messages",
+              "raw": "{{Messaging_App_HostAddress}}/conversations/{{conversationID}}/messages",
               "host": [
                 "{{Messaging_App_HostAddress}}"
               ],
               "path": [
-                "conversation",
+                "conversations",
                 "{{conversationID}}",
                 "messages"
               ],
@@ -988,14 +1040,14 @@
               }
             },
             "url": {
-              "raw": "{{Messaging_App_HostAddress}}/conversation/{{conversationID}}/sendmessage",
+              "raw": "{{Messaging_App_HostAddress}}/conversations/{{conversationID}}/messages",
               "host": [
                 "{{Messaging_App_HostAddress}}"
               ],
               "path": [
-                "conversation",
+                "conversations",
                 "{{conversationID}}",
-                "sendmessage"
+                "messages"
               ]
             }
           },
@@ -1004,7 +1056,7 @@
         {
           "name": "Edit Conversation Message",
           "request": {
-            "method": "PUT",
+            "method": "PATCH",
             "header": [],
             "body": {
               "mode": "raw",
@@ -1016,12 +1068,12 @@
               }
             },
             "url": {
-              "raw": "{{Messaging_App_HostAddress}}/conversationmessage/{{conversationMessageID}}",
+              "raw": "{{Messaging_App_HostAddress}}/conversation-messages/{{conversationMessageID}}",
               "host": [
                 "{{Messaging_App_HostAddress}}"
               ],
               "path": [
-                "conversationmessage",
+                "conversation-messages",
                 "{{conversationMessageID}}"
               ]
             }
@@ -1034,13 +1086,41 @@
             "method": "DELETE",
             "header": [],
             "url": {
-              "raw": "{{Messaging_App_HostAddress}}/conversationmessage/{{conversationMessageID}}",
+              "raw": "{{Messaging_App_HostAddress}}/conversation-messages/{{conversationMessageID}}",
               "host": [
                 "{{Messaging_App_HostAddress}}"
               ],
               "path": [
-                "conversationmessage",
+                "conversation-messages",
                 "{{conversationMessageID}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Mark Conversation Read",
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"lastReadMessageID\": {{conversationMessageID}}\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{Messaging_App_HostAddress}}/conversations/{{conversationID}}/read-state",
+              "host": [
+                "{{Messaging_App_HostAddress}}"
+              ],
+              "path": [
+                "conversations",
+                "{{conversationID}}",
+                "read-state"
               ]
             }
           },
@@ -1057,15 +1137,23 @@
             "method": "POST",
             "header": [],
             "url": {
-              "raw": "{{Messaging_App_HostAddress}}/friend/request/{{username}}",
+              "raw": "{{Messaging_App_HostAddress}}/friends/requests",
               "host": [
                 "{{Messaging_App_HostAddress}}"
               ],
               "path": [
-                "friend",
-                "request",
-                "{{username}}"
+                "friends",
+                "requests"
               ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"username\": \"{{username}}\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             }
           },
           "response": []
@@ -1076,14 +1164,15 @@
             "method": "POST",
             "header": [],
             "url": {
-              "raw": "{{Messaging_App_HostAddress}}/friend/accept/{{username}}",
+              "raw": "{{Messaging_App_HostAddress}}/friends/requests/{{username}}/accept",
               "host": [
                 "{{Messaging_App_HostAddress}}"
               ],
               "path": [
-                "friend",
-                "accept",
-                "{{username}}"
+                "friends",
+                "requests",
+                "{{username}}",
+                "accept"
               ]
             }
           },
@@ -1092,16 +1181,16 @@
         {
           "name": "Decline Friend Request",
           "request": {
-            "method": "POST",
+            "method": "DELETE",
             "header": [],
             "url": {
-              "raw": "{{Messaging_App_HostAddress}}/friend/decline/{{username}}",
+              "raw": "{{Messaging_App_HostAddress}}/friends/requests/{{username}}",
               "host": [
                 "{{Messaging_App_HostAddress}}"
               ],
               "path": [
-                "friend",
-                "decline",
+                "friends",
+                "requests",
                 "{{username}}"
               ]
             }
@@ -1114,12 +1203,12 @@
             "method": "DELETE",
             "header": [],
             "url": {
-              "raw": "{{Messaging_App_HostAddress}}/friend/{{username}}",
+              "raw": "{{Messaging_App_HostAddress}}/friends/{{username}}",
               "host": [
                 "{{Messaging_App_HostAddress}}"
               ],
               "path": [
-                "friend",
+                "friends",
                 "{{username}}"
               ]
             }
@@ -1129,16 +1218,16 @@
         {
           "name": "Block",
           "request": {
-            "method": "POST",
+            "method": "PUT",
             "header": [],
             "url": {
-              "raw": "{{Messaging_App_HostAddress}}/friend/block/{{username}}",
+              "raw": "{{Messaging_App_HostAddress}}/friends/blocked/{{username}}",
               "host": [
                 "{{Messaging_App_HostAddress}}"
               ],
               "path": [
-                "friend",
-                "block",
+                "friends",
+                "blocked",
                 "{{username}}"
               ]
             }
@@ -1151,13 +1240,13 @@
             "method": "DELETE",
             "header": [],
             "url": {
-              "raw": "{{Messaging_App_HostAddress}}/friend/block/{{username}}",
+              "raw": "{{Messaging_App_HostAddress}}/friends/blocked/{{username}}",
               "host": [
                 "{{Messaging_App_HostAddress}}"
               ],
               "path": [
-                "friend",
-                "block",
+                "friends",
+                "blocked",
                 "{{username}}"
               ]
             }
@@ -1170,12 +1259,12 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{Messaging_App_HostAddress}}/friend",
+              "raw": "{{Messaging_App_HostAddress}}/friends",
               "host": [
                 "{{Messaging_App_HostAddress}}"
               ],
               "path": [
-                "friend"
+                "friends"
               ]
             }
           },
@@ -1187,13 +1276,13 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{Messaging_App_HostAddress}}/friend/pending",
+              "raw": "{{Messaging_App_HostAddress}}/friends/requests",
               "host": [
                 "{{Messaging_App_HostAddress}}"
               ],
               "path": [
-                "friend",
-                "pending"
+                "friends",
+                "requests"
               ]
             }
           },
@@ -1205,12 +1294,12 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{Messaging_App_HostAddress}}/friend/blocked",
+              "raw": "{{Messaging_App_HostAddress}}/friends/blocked",
               "host": [
                 "{{Messaging_App_HostAddress}}"
               ],
               "path": [
-                "friend",
+                "friends",
                 "blocked"
               ]
             }
@@ -1250,7 +1339,7 @@
                 "header": [],
                 "body": {
                   "mode": "raw",
-                  "raw": "{\r\n  \"username\": \"testuser2\",\r\n  \"email\": \"test2@email.com\",\r\n  \"password\": \"Test\"\r\n}",
+                  "raw": "{\r\n  \"username\": \"testuser2\",\r\n  \"email\": \"test2@email.com\",\r\n  \"password\": \"Test1234\"\r\n}",
                   "options": {
                     "raw": {
                       "language": "json"
@@ -1295,7 +1384,7 @@
                 "header": [],
                 "body": {
                   "mode": "raw",
-                  "raw": "{\r\n  \"username\": \"testuser2\",\r\n  \"password\": \"Test\"\r\n}",
+                  "raw": "{\r\n  \"username\": \"testuser2\",\r\n  \"password\": \"Test1234\"\r\n}",
                   "options": {
                     "raw": {
                       "language": "json"
@@ -1401,12 +1490,12 @@
                 "method": "GET",
                 "header": [],
                 "url": {
-                  "raw": "{{Messaging_App_HostAddress}}/user/me",
+                  "raw": "{{Messaging_App_HostAddress}}/users/me",
                   "host": [
                     "{{Messaging_App_HostAddress}}"
                   ],
                   "path": [
-                    "user",
+                    "users",
                     "me"
                   ]
                 }
@@ -1416,7 +1505,7 @@
             {
               "name": "Update Me",
               "request": {
-                "method": "PUT",
+                "method": "PATCH",
                 "header": [],
                 "body": {
                   "mode": "raw",
@@ -1428,12 +1517,12 @@
                   }
                 },
                 "url": {
-                  "raw": "{{Messaging_App_HostAddress}}/user/me",
+                  "raw": "{{Messaging_App_HostAddress}}/users/me",
                   "host": [
                     "{{Messaging_App_HostAddress}}"
                   ],
                   "path": [
-                    "user",
+                    "users",
                     "me"
                   ]
                 }
@@ -1447,7 +1536,7 @@
                 "header": [],
                 "body": {
                   "mode": "raw",
-                  "raw": "{\r\n  \"currentPassword\": \"Test\",\r\n  \"newPassword\": \"Test2\"\r\n}",
+                  "raw": "{\r\n  \"currentPassword\": \"Test1234\",\r\n  \"newPassword\": \"Test5678\"\r\n}",
                   "options": {
                     "raw": {
                       "language": "json"
@@ -1455,12 +1544,12 @@
                   }
                 },
                 "url": {
-                  "raw": "{{Messaging_App_HostAddress}}/user/me/password",
+                  "raw": "{{Messaging_App_HostAddress}}/users/me/password",
                   "host": [
                     "{{Messaging_App_HostAddress}}"
                   ],
                   "path": [
-                    "user",
+                    "users",
                     "me",
                     "password"
                   ]
@@ -1478,12 +1567,12 @@
                   "raw": "{\r\n  \"newStatus\": 0\r\n}"
                 },
                 "url": {
-                  "raw": "{{Messaging_App_HostAddress}}/user/me/status",
+                  "raw": "{{Messaging_App_HostAddress}}/users/me/status",
                   "host": [
                     "{{Messaging_App_HostAddress}}"
                   ],
                   "path": [
-                    "user",
+                    "users",
                     "me",
                     "status"
                   ]
@@ -1497,12 +1586,12 @@
                 "method": "GET",
                 "header": [],
                 "url": {
-                  "raw": "{{Messaging_App_HostAddress}}/user/username/{{username}}",
+                  "raw": "{{Messaging_App_HostAddress}}/users/username/{{username}}",
                   "host": [
                     "{{Messaging_App_HostAddress}}"
                   ],
                   "path": [
-                    "user",
+                    "users",
                     "username",
                     "{{username}}"
                   ]
@@ -1516,12 +1605,12 @@
                 "method": "GET",
                 "header": [],
                 "url": {
-                  "raw": "{{Messaging_App_HostAddress}}/user/{{userID}}",
+                  "raw": "{{Messaging_App_HostAddress}}/users/{{userID}}",
                   "host": [
                     "{{Messaging_App_HostAddress}}"
                   ],
                   "path": [
-                    "user",
+                    "users",
                     "{{userID}}"
                   ]
                 }
@@ -1548,13 +1637,12 @@
                   }
                 },
                 "url": {
-                  "raw": "{{Messaging_App_HostAddress}}/server/createserver",
+                  "raw": "{{Messaging_App_HostAddress}}/servers",
                   "host": [
                     "{{Messaging_App_HostAddress}}"
                   ],
                   "path": [
-                    "server",
-                    "createserver"
+                    "servers"
                   ]
                 }
               },
@@ -1566,12 +1654,11 @@
                 "method": "GET",
                 "header": [],
                 "url": {
-                  "raw": "{{Messaging_App_HostAddress}}/server/servers",
+                  "raw": "{{Messaging_App_HostAddress}}/servers",
                   "host": [
                     "{{Messaging_App_HostAddress}}"
                   ],
                   "path": [
-                    "server",
                     "servers"
                   ]
                 }
@@ -1584,12 +1671,12 @@
                 "method": "GET",
                 "header": [],
                 "url": {
-                  "raw": "{{Messaging_App_HostAddress}}/server/{{serverID}}",
+                  "raw": "{{Messaging_App_HostAddress}}/servers/{{serverID}}",
                   "host": [
                     "{{Messaging_App_HostAddress}}"
                   ],
                   "path": [
-                    "server",
+                    "servers",
                     "{{serverID}}"
                   ]
                 }
@@ -1602,12 +1689,12 @@
                 "method": "GET",
                 "header": [],
                 "url": {
-                  "raw": "{{Messaging_App_HostAddress}}/server/{{serverID}}/members",
+                  "raw": "{{Messaging_App_HostAddress}}/servers/{{serverID}}/members",
                   "host": [
                     "{{Messaging_App_HostAddress}}"
                   ],
                   "path": [
-                    "server",
+                    "servers",
                     "{{serverID}}",
                     "members"
                   ]
@@ -1618,7 +1705,7 @@
             {
               "name": "Update Server",
               "request": {
-                "method": "PUT",
+                "method": "PATCH",
                 "header": [],
                 "body": {
                   "mode": "raw",
@@ -1630,12 +1717,12 @@
                   }
                 },
                 "url": {
-                  "raw": "{{Messaging_App_HostAddress}}/server/{{serverID}}",
+                  "raw": "{{Messaging_App_HostAddress}}/servers/{{serverID}}",
                   "host": [
                     "{{Messaging_App_HostAddress}}"
                   ],
                   "path": [
-                    "server",
+                    "servers",
                     "{{serverID}}"
                   ]
                 }
@@ -1648,12 +1735,12 @@
                 "method": "DELETE",
                 "header": [],
                 "url": {
-                  "raw": "{{Messaging_App_HostAddress}}/server/{{serverID}}",
+                  "raw": "{{Messaging_App_HostAddress}}/servers/{{serverID}}",
                   "host": [
                     "{{Messaging_App_HostAddress}}"
                   ],
                   "path": [
-                    "server",
+                    "servers",
                     "{{serverID}}"
                   ]
                 }
@@ -1663,17 +1750,18 @@
             {
               "name": "Leave Server",
               "request": {
-                "method": "POST",
+                "method": "DELETE",
                 "header": [],
                 "url": {
-                  "raw": "{{Messaging_App_HostAddress}}/server/{{serverID}}/leave",
+                  "raw": "{{Messaging_App_HostAddress}}/servers/{{serverID}}/members/me",
                   "host": [
                     "{{Messaging_App_HostAddress}}"
                   ],
                   "path": [
-                    "server",
+                    "servers",
                     "{{serverID}}",
-                    "leave"
+                    "members",
+                    "me"
                   ]
                 }
               },
@@ -1685,12 +1773,12 @@
                 "method": "DELETE",
                 "header": [],
                 "url": {
-                  "raw": "{{Messaging_App_HostAddress}}/server/{{serverID}}/members/{{username}}",
+                  "raw": "{{Messaging_App_HostAddress}}/servers/{{serverID}}/members/{{username}}",
                   "host": [
                     "{{Messaging_App_HostAddress}}"
                   ],
                   "path": [
-                    "server",
+                    "servers",
                     "{{serverID}}",
                     "members",
                     "{{username}}"
@@ -1719,14 +1807,14 @@
                   }
                 },
                 "url": {
-                  "raw": "{{Messaging_App_HostAddress}}/server/{{serverID}}/createchannel",
+                  "raw": "{{Messaging_App_HostAddress}}/servers/{{serverID}}/channels",
                   "host": [
                     "{{Messaging_App_HostAddress}}"
                   ],
                   "path": [
-                    "server",
+                    "servers",
                     "{{serverID}}",
-                    "createchannel"
+                    "channels"
                   ]
                 }
               },
@@ -1738,12 +1826,12 @@
                 "method": "GET",
                 "header": [],
                 "url": {
-                  "raw": "{{Messaging_App_HostAddress}}/server/{{serverID}}/channels",
+                  "raw": "{{Messaging_App_HostAddress}}/servers/{{serverID}}/channels",
                   "host": [
                     "{{Messaging_App_HostAddress}}"
                   ],
                   "path": [
-                    "server",
+                    "servers",
                     "{{serverID}}",
                     "channels"
                   ]
@@ -1766,15 +1854,15 @@
                   }
                 },
                 "url": {
-                  "raw": "{{Messaging_App_HostAddress}}/server/{{serverID}}/channels/reorder",
+                  "raw": "{{Messaging_App_HostAddress}}/servers/{{serverID}}/channels/order",
                   "host": [
                     "{{Messaging_App_HostAddress}}"
                   ],
                   "path": [
-                    "server",
+                    "servers",
                     "{{serverID}}",
                     "channels",
-                    "reorder"
+                    "order"
                   ]
                 }
               },
@@ -1783,7 +1871,7 @@
             {
               "name": "Update Channel",
               "request": {
-                "method": "PUT",
+                "method": "PATCH",
                 "header": [],
                 "body": {
                   "mode": "raw",
@@ -1795,12 +1883,12 @@
                   }
                 },
                 "url": {
-                  "raw": "{{Messaging_App_HostAddress}}/channel/{{channelID}}",
+                  "raw": "{{Messaging_App_HostAddress}}/channels/{{channelID}}",
                   "host": [
                     "{{Messaging_App_HostAddress}}"
                   ],
                   "path": [
-                    "channel",
+                    "channels",
                     "{{channelID}}"
                   ]
                 }
@@ -1813,12 +1901,12 @@
                 "method": "DELETE",
                 "header": [],
                 "url": {
-                  "raw": "{{Messaging_App_HostAddress}}/channel/{{channelID}}",
+                  "raw": "{{Messaging_App_HostAddress}}/channels/{{channelID}}",
                   "host": [
                     "{{Messaging_App_HostAddress}}"
                   ],
                   "path": [
-                    "channel",
+                    "channels",
                     "{{channelID}}"
                   ]
                 }
@@ -1836,12 +1924,12 @@
                 "method": "GET",
                 "header": [],
                 "url": {
-                  "raw": "{{Messaging_App_HostAddress}}/channel/{{channelID}}/messages",
+                  "raw": "{{Messaging_App_HostAddress}}/channels/{{channelID}}/messages",
                   "host": [
                     "{{Messaging_App_HostAddress}}"
                   ],
                   "path": [
-                    "channel",
+                    "channels",
                     "{{channelID}}",
                     "messages"
                   ],
@@ -1872,14 +1960,14 @@
                   }
                 },
                 "url": {
-                  "raw": "{{Messaging_App_HostAddress}}/channel/{{channelID}}/sendmessage",
+                  "raw": "{{Messaging_App_HostAddress}}/channels/{{channelID}}/messages",
                   "host": [
                     "{{Messaging_App_HostAddress}}"
                   ],
                   "path": [
-                    "channel",
+                    "channels",
                     "{{channelID}}",
-                    "sendmessage"
+                    "messages"
                   ]
                 }
               },
@@ -1888,7 +1976,7 @@
             {
               "name": "Edit Message",
               "request": {
-                "method": "PUT",
+                "method": "PATCH",
                 "header": [],
                 "body": {
                   "mode": "raw",
@@ -1900,12 +1988,12 @@
                   }
                 },
                 "url": {
-                  "raw": "{{Messaging_App_HostAddress}}/message/{{messageID}}",
+                  "raw": "{{Messaging_App_HostAddress}}/messages/{{messageID}}",
                   "host": [
                     "{{Messaging_App_HostAddress}}"
                   ],
                   "path": [
-                    "message",
+                    "messages",
                     "{{messageID}}"
                   ]
                 }
@@ -1918,13 +2006,41 @@
                 "method": "DELETE",
                 "header": [],
                 "url": {
-                  "raw": "{{Messaging_App_HostAddress}}/message/{{messageID}}",
+                  "raw": "{{Messaging_App_HostAddress}}/messages/{{messageID}}",
                   "host": [
                     "{{Messaging_App_HostAddress}}"
                   ],
                   "path": [
-                    "message",
+                    "messages",
                     "{{messageID}}"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Mark Channel Read",
+              "request": {
+                "method": "PUT",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n  \"lastReadMessageID\": {{messageID}}\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{Messaging_App_HostAddress}}/channels/{{channelID}}/read-state",
+                  "host": [
+                    "{{Messaging_App_HostAddress}}"
+                  ],
+                  "path": [
+                    "channels",
+                    "{{channelID}}",
+                    "read-state"
                   ]
                 }
               },
@@ -1964,14 +2080,14 @@
                   }
                 },
                 "url": {
-                  "raw": "{{Messaging_App_HostAddress}}/server/{{serverID}}/invite",
+                  "raw": "{{Messaging_App_HostAddress}}/servers/{{serverID}}/invites",
                   "host": [
                     "{{Messaging_App_HostAddress}}"
                   ],
                   "path": [
-                    "server",
+                    "servers",
                     "{{serverID}}",
-                    "invite"
+                    "invites"
                   ]
                 }
               },
@@ -1983,12 +2099,12 @@
                 "method": "GET",
                 "header": [],
                 "url": {
-                  "raw": "{{Messaging_App_HostAddress}}/server/{{serverID}}/invites",
+                  "raw": "{{Messaging_App_HostAddress}}/servers/{{serverID}}/invites",
                   "host": [
                     "{{Messaging_App_HostAddress}}"
                   ],
                   "path": [
-                    "server",
+                    "servers",
                     "{{serverID}}",
                     "invites"
                   ]
@@ -2002,14 +2118,32 @@
                 "method": "DELETE",
                 "header": [],
                 "url": {
-                  "raw": "{{Messaging_App_HostAddress}}/server/{{serverID}}/invite/{{inviteCode}}",
+                  "raw": "{{Messaging_App_HostAddress}}/servers/{{serverID}}/invites/{{inviteCode}}",
                   "host": [
                     "{{Messaging_App_HostAddress}}"
                   ],
                   "path": [
-                    "server",
+                    "servers",
                     "{{serverID}}",
-                    "invite",
+                    "invites",
+                    "{{inviteCode}}"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Preview Invite",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{Messaging_App_HostAddress}}/invites/{{inviteCode}}",
+                  "host": [
+                    "{{Messaging_App_HostAddress}}"
+                  ],
+                  "path": [
+                    "invites",
                     "{{inviteCode}}"
                   ]
                 }
@@ -2022,12 +2156,12 @@
                 "method": "POST",
                 "header": [],
                 "url": {
-                  "raw": "{{Messaging_App_HostAddress}}/invite/{{inviteCode}}/join",
+                  "raw": "{{Messaging_App_HostAddress}}/invites/{{inviteCode}}/join",
                   "host": [
                     "{{Messaging_App_HostAddress}}"
                   ],
                   "path": [
-                    "invite",
+                    "invites",
                     "{{inviteCode}}",
                     "join"
                   ]
@@ -2055,13 +2189,12 @@
                   }
                 },
                 "url": {
-                  "raw": "{{Messaging_App_HostAddress}}/conversation/createconversation",
+                  "raw": "{{Messaging_App_HostAddress}}/conversations",
                   "host": [
                     "{{Messaging_App_HostAddress}}"
                   ],
                   "path": [
-                    "conversation",
-                    "createconversation"
+                    "conversations"
                   ]
                 }
               },
@@ -2073,12 +2206,11 @@
                 "method": "GET",
                 "header": [],
                 "url": {
-                  "raw": "{{Messaging_App_HostAddress}}/conversation/conversations",
+                  "raw": "{{Messaging_App_HostAddress}}/conversations",
                   "host": [
                     "{{Messaging_App_HostAddress}}"
                   ],
                   "path": [
-                    "conversation",
                     "conversations"
                   ]
                 }
@@ -2091,12 +2223,12 @@
                 "method": "GET",
                 "header": [],
                 "url": {
-                  "raw": "{{Messaging_App_HostAddress}}/conversation/{{conversationID}}",
+                  "raw": "{{Messaging_App_HostAddress}}/conversations/{{conversationID}}",
                   "host": [
                     "{{Messaging_App_HostAddress}}"
                   ],
                   "path": [
-                    "conversation",
+                    "conversations",
                     "{{conversationID}}"
                   ]
                 }
@@ -2109,12 +2241,12 @@
                 "method": "GET",
                 "header": [],
                 "url": {
-                  "raw": "{{Messaging_App_HostAddress}}/conversation/{{conversationID}}/members",
+                  "raw": "{{Messaging_App_HostAddress}}/conversations/{{conversationID}}/members",
                   "host": [
                     "{{Messaging_App_HostAddress}}"
                   ],
                   "path": [
-                    "conversation",
+                    "conversations",
                     "{{conversationID}}",
                     "members"
                   ]
@@ -2128,16 +2260,24 @@
                 "method": "POST",
                 "header": [],
                 "url": {
-                  "raw": "{{Messaging_App_HostAddress}}/conversation/{{conversationID}}/members/{{username}}",
+                  "raw": "{{Messaging_App_HostAddress}}/conversations/{{conversationID}}/members",
                   "host": [
                     "{{Messaging_App_HostAddress}}"
                   ],
                   "path": [
-                    "conversation",
+                    "conversations",
                     "{{conversationID}}",
-                    "members",
-                    "{{username}}"
+                    "members"
                   ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n  \"username\": \"{{username}}\"\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
                 }
               },
               "response": []
@@ -2145,17 +2285,18 @@
             {
               "name": "Leave Conversation",
               "request": {
-                "method": "POST",
+                "method": "DELETE",
                 "header": [],
                 "url": {
-                  "raw": "{{Messaging_App_HostAddress}}/conversation/{{conversationID}}/leave",
+                  "raw": "{{Messaging_App_HostAddress}}/conversations/{{conversationID}}/members/me",
                   "host": [
                     "{{Messaging_App_HostAddress}}"
                   ],
                   "path": [
-                    "conversation",
+                    "conversations",
                     "{{conversationID}}",
-                    "leave"
+                    "members",
+                    "me"
                   ]
                 }
               },
@@ -2167,12 +2308,12 @@
                 "method": "GET",
                 "header": [],
                 "url": {
-                  "raw": "{{Messaging_App_HostAddress}}/conversation/{{conversationID}}/messages",
+                  "raw": "{{Messaging_App_HostAddress}}/conversations/{{conversationID}}/messages",
                   "host": [
                     "{{Messaging_App_HostAddress}}"
                   ],
                   "path": [
-                    "conversation",
+                    "conversations",
                     "{{conversationID}}",
                     "messages"
                   ],
@@ -2203,14 +2344,14 @@
                   }
                 },
                 "url": {
-                  "raw": "{{Messaging_App_HostAddress}}/conversation/{{conversationID}}/sendmessage",
+                  "raw": "{{Messaging_App_HostAddress}}/conversations/{{conversationID}}/messages",
                   "host": [
                     "{{Messaging_App_HostAddress}}"
                   ],
                   "path": [
-                    "conversation",
+                    "conversations",
                     "{{conversationID}}",
-                    "sendmessage"
+                    "messages"
                   ]
                 }
               },
@@ -2219,7 +2360,7 @@
             {
               "name": "Edit Conversation Message",
               "request": {
-                "method": "PUT",
+                "method": "PATCH",
                 "header": [],
                 "body": {
                   "mode": "raw",
@@ -2231,12 +2372,12 @@
                   }
                 },
                 "url": {
-                  "raw": "{{Messaging_App_HostAddress}}/conversationmessage/{{conversationMessageID}}",
+                  "raw": "{{Messaging_App_HostAddress}}/conversation-messages/{{conversationMessageID}}",
                   "host": [
                     "{{Messaging_App_HostAddress}}"
                   ],
                   "path": [
-                    "conversationmessage",
+                    "conversation-messages",
                     "{{conversationMessageID}}"
                   ]
                 }
@@ -2249,13 +2390,41 @@
                 "method": "DELETE",
                 "header": [],
                 "url": {
-                  "raw": "{{Messaging_App_HostAddress}}/conversationmessage/{{conversationMessageID}}",
+                  "raw": "{{Messaging_App_HostAddress}}/conversation-messages/{{conversationMessageID}}",
                   "host": [
                     "{{Messaging_App_HostAddress}}"
                   ],
                   "path": [
-                    "conversationmessage",
+                    "conversation-messages",
                     "{{conversationMessageID}}"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Mark Conversation Read",
+              "request": {
+                "method": "PUT",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n  \"lastReadMessageID\": {{conversationMessageID}}\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{Messaging_App_HostAddress}}/conversations/{{conversationID}}/read-state",
+                  "host": [
+                    "{{Messaging_App_HostAddress}}"
+                  ],
+                  "path": [
+                    "conversations",
+                    "{{conversationID}}",
+                    "read-state"
                   ]
                 }
               },
@@ -2272,15 +2441,23 @@
                 "method": "POST",
                 "header": [],
                 "url": {
-                  "raw": "{{Messaging_App_HostAddress}}/friend/request/{{username}}",
+                  "raw": "{{Messaging_App_HostAddress}}/friends/requests",
                   "host": [
                     "{{Messaging_App_HostAddress}}"
                   ],
                   "path": [
-                    "friend",
-                    "request",
-                    "{{username}}"
+                    "friends",
+                    "requests"
                   ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n  \"username\": \"{{username}}\"\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
                 }
               },
               "response": []
@@ -2291,14 +2468,15 @@
                 "method": "POST",
                 "header": [],
                 "url": {
-                  "raw": "{{Messaging_App_HostAddress}}/friend/accept/{{username}}",
+                  "raw": "{{Messaging_App_HostAddress}}/friends/requests/{{username}}/accept",
                   "host": [
                     "{{Messaging_App_HostAddress}}"
                   ],
                   "path": [
-                    "friend",
-                    "accept",
-                    "{{username}}"
+                    "friends",
+                    "requests",
+                    "{{username}}",
+                    "accept"
                   ]
                 }
               },
@@ -2307,16 +2485,16 @@
             {
               "name": "Decline Friend Request",
               "request": {
-                "method": "POST",
+                "method": "DELETE",
                 "header": [],
                 "url": {
-                  "raw": "{{Messaging_App_HostAddress}}/friend/decline/{{username}}",
+                  "raw": "{{Messaging_App_HostAddress}}/friends/requests/{{username}}",
                   "host": [
                     "{{Messaging_App_HostAddress}}"
                   ],
                   "path": [
-                    "friend",
-                    "decline",
+                    "friends",
+                    "requests",
                     "{{username}}"
                   ]
                 }
@@ -2329,12 +2507,12 @@
                 "method": "DELETE",
                 "header": [],
                 "url": {
-                  "raw": "{{Messaging_App_HostAddress}}/friend/{{username}}",
+                  "raw": "{{Messaging_App_HostAddress}}/friends/{{username}}",
                   "host": [
                     "{{Messaging_App_HostAddress}}"
                   ],
                   "path": [
-                    "friend",
+                    "friends",
                     "{{username}}"
                   ]
                 }
@@ -2344,16 +2522,16 @@
             {
               "name": "Block",
               "request": {
-                "method": "POST",
+                "method": "PUT",
                 "header": [],
                 "url": {
-                  "raw": "{{Messaging_App_HostAddress}}/friend/block/{{username}}",
+                  "raw": "{{Messaging_App_HostAddress}}/friends/blocked/{{username}}",
                   "host": [
                     "{{Messaging_App_HostAddress}}"
                   ],
                   "path": [
-                    "friend",
-                    "block",
+                    "friends",
+                    "blocked",
                     "{{username}}"
                   ]
                 }
@@ -2366,13 +2544,13 @@
                 "method": "DELETE",
                 "header": [],
                 "url": {
-                  "raw": "{{Messaging_App_HostAddress}}/friend/block/{{username}}",
+                  "raw": "{{Messaging_App_HostAddress}}/friends/blocked/{{username}}",
                   "host": [
                     "{{Messaging_App_HostAddress}}"
                   ],
                   "path": [
-                    "friend",
-                    "block",
+                    "friends",
+                    "blocked",
                     "{{username}}"
                   ]
                 }
@@ -2385,12 +2563,12 @@
                 "method": "GET",
                 "header": [],
                 "url": {
-                  "raw": "{{Messaging_App_HostAddress}}/friend",
+                  "raw": "{{Messaging_App_HostAddress}}/friends",
                   "host": [
                     "{{Messaging_App_HostAddress}}"
                   ],
                   "path": [
-                    "friend"
+                    "friends"
                   ]
                 }
               },
@@ -2402,13 +2580,13 @@
                 "method": "GET",
                 "header": [],
                 "url": {
-                  "raw": "{{Messaging_App_HostAddress}}/friend/pending",
+                  "raw": "{{Messaging_App_HostAddress}}/friends/requests",
                   "host": [
                     "{{Messaging_App_HostAddress}}"
                   ],
                   "path": [
-                    "friend",
-                    "pending"
+                    "friends",
+                    "requests"
                   ]
                 }
               },
@@ -2420,12 +2598,12 @@
                 "method": "GET",
                 "header": [],
                 "url": {
-                  "raw": "{{Messaging_App_HostAddress}}/friend/blocked",
+                  "raw": "{{Messaging_App_HostAddress}}/friends/blocked",
                   "host": [
                     "{{Messaging_App_HostAddress}}"
                   ],
                   "path": [
-                    "friend",
+                    "friends",
                     "blocked"
                   ]
                 }

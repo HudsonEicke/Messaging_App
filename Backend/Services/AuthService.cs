@@ -1,7 +1,6 @@
 using System.Security.Cryptography;
 using System.Text;
 using Messaging_App.Data;
-using Messaging_App.Models;
 using Microsoft.EntityFrameworkCore;
 
 namespace Messaging_App.Services;
@@ -32,5 +31,10 @@ public class AuthService
     {
         refreshToken.revoked = true;
         await db.SaveChangesAsync();
+    }
+
+    public async Task DeleteExpiredRefreshTokens(long userID)
+    {
+        await db.RefreshTokens.Where(token => token.userID == userID && token.expiresDate < DateTimeOffset.UtcNow).ExecuteDeleteAsync();
     }
 }

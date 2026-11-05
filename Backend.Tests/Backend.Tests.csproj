@@ -18,14 +18,26 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" Version="10.0.6" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.3" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="10.0.3" />
-    <PackageReference Include="xunit.v3.mtp-v2" Version="3.2.2" />
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" Version="10.0.14" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.14" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="10.0.14" />
+    <PackageReference Include="xunit.v3.mtp-v2" Version="4.0.2" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\Backend\Messaging_App.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Messaging_App.Models.Entities" />
+    <Using Include="Messaging_App.Models.DTOs.Auth" />
+    <Using Include="Messaging_App.Models.DTOs.Users" />
+    <Using Include="Messaging_App.Models.DTOs.Servers" />
+    <Using Include="Messaging_App.Models.DTOs.Channels" />
+    <Using Include="Messaging_App.Models.DTOs.Messages" />
+    <Using Include="Messaging_App.Models.DTOs.Invites" />
+    <Using Include="Messaging_App.Models.DTOs.Conversations" />
+    <Using Include="Messaging_App.Models.DTOs.Friends" />
   </ItemGroup>
 
 </Project>

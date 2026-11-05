@@ -7,7 +7,7 @@
 ###Conversation
 
 ###Create a conversation
-POST {{Messaging_App_HostAddress}}/conversation/createconversation
+POST {{Messaging_App_HostAddress}}/conversations
 Content-Type: application/json
 Authorization: Bearer {{accessToken}}
 
@@ -18,33 +18,38 @@ Authorization: Bearer {{accessToken}}
 }
 
 ###Get all conversations for a user
-GET {{Messaging_App_HostAddress}}/conversation/conversations
+GET {{Messaging_App_HostAddress}}/conversations
 Authorization: Bearer {{accessToken}}
 
 ###Get conversation by id
-GET {{Messaging_App_HostAddress}}/conversation/{{id}}
+GET {{Messaging_App_HostAddress}}/conversations/{{id}}
 Authorization: Bearer {{accessToken}}
 
 ###Get the members of a conversation
-GET {{Messaging_App_HostAddress}}/conversation/{{id}}/members
+GET {{Messaging_App_HostAddress}}/conversations/{{id}}/members
 Authorization: Bearer {{accessToken}}
 
 ###Add a user to a conversation
-POST {{Messaging_App_HostAddress}}/conversation/{{id}}/members/{{username}}
+POST {{Messaging_App_HostAddress}}/conversations/{{id}}/members
 Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "username": "{{username}}"
+}
 
 ###Leave a conversation
-POST {{Messaging_App_HostAddress}}/conversation/{{id}}/leave
+DELETE {{Messaging_App_HostAddress}}/conversations/{{id}}/members/me
 Authorization: Bearer {{accessToken}}
 
 ###Conversation Messages
 
 ###Get all messages in a conversation
-GET {{Messaging_App_HostAddress}}/conversation/{{id}}/messages
+GET {{Messaging_App_HostAddress}}/conversations/{{id}}/messages
 Authorization: Bearer {{accessToken}}
 
 ###Send message in conversation
-POST {{Messaging_App_HostAddress}}/conversation/{{id}}/sendmessage
+POST {{Messaging_App_HostAddress}}/conversations/{{id}}/messages
 Content-Type: application/json
 Authorization: Bearer {{accessToken}}
 
@@ -54,7 +59,7 @@ Authorization: Bearer {{accessToken}}
 }
 
 ###Edit conversation message
-PUT {{Messaging_App_HostAddress}}/conversationmessage/{{id}}
+PATCH {{Messaging_App_HostAddress}}/conversation-messages/{{id}}
 Content-Type: application/json
 Authorization: Bearer {{accessToken}}
 
@@ -63,5 +68,14 @@ Authorization: Bearer {{accessToken}}
 }
 
 ###Delete conversation message
-DELETE {{Messaging_App_HostAddress}}/conversationmessage/{{id}}
+DELETE {{Messaging_App_HostAddress}}/conversation-messages/{{id}}
 Authorization: Bearer {{accessToken}}
+
+###Mark a conversation as read
+PUT {{Messaging_App_HostAddress}}/conversations/{{id}}/read-state
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "lastReadMessageID": 1
+}

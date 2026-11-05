@@ -1,7 +1,6 @@
 using System.Net;
 using System.Net.Http.Json;
 using Backend.Tests.Helpers;
-using Messaging_App.Models;
 
 namespace Backend.Tests.Integration;
 
@@ -65,6 +64,20 @@ public class AuthTests : IClassFixture<TestWebApplicationFactory>
     }
 
     [Fact]
+    public async Task Register_SameUsernameAtOnce_OneSucceedsAndOneConflicts()
+    {
+        //arrange
+        RegisterRequest first = new RegisterRequest { username = "racereguser", email = "racereg1@email.com", password = "Test123!" };
+        RegisterRequest second = new RegisterRequest { username = "racereguser", email = "racereg2@email.com", password = "Test123!" };
+
+        //act
+        HttpResponseMessage[] responses = await Task.WhenAll(client.PostAsJsonAsync("/auth/register", first, TestContext.Current.CancellationToken), client.PostAsJsonAsync("/auth/register", second, TestContext.Current.CancellationToken));
+
+        //assert: the loser gets a 409, never a 500
+        Assert.Equal(new[] { HttpStatusCode.OK, HttpStatusCode.Conflict }, responses.Select(response => response.StatusCode).OrderBy(status => status).ToArray());
+    }
+
+    [Fact]
     public async Task Register_WithDuplicateEmail_ReturnsConflict()
     {
         //arrange
@@ -99,6 +112,24 @@ public class AuthTests : IClassFixture<TestWebApplicationFactory>
             username = "",
             email = "",
             password = ""
+        };
+
+        //act
+        HttpResponseMessage response = await client.PostAsJsonAsync("/auth/register", request, TestContext.Current.CancellationToken);
+
+        //assert
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task Register_WithReservedUsername_ReturnsBadRequest()
+    {
+        //arrange
+        RegisterRequest request = new RegisterRequest
+        {
+            username = "Me",
+            email = "reservedme@email.com",
+            password = "Test123!"
         };
 
         //act
@@ -282,5 +313,31 @@ public class AuthTests : IClassFixture<TestWebApplicationFactory>
 
         //assert
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task Register_WithUsernameOverMaxLength_ReturnsBadRequest()
+    {
+        //arrange
+        RegisterRequest request = new RegisterRequest { username = new string('u', 33), email = "lmlongname@email.com", password = "Test123!" };
+
+        //act
+        HttpResponseMessage response = await client.PostAsJsonAsync("/auth/register", request, TestContext.Current.CancellationToken);
+
+        //assert
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task Register_WithPasswordUnderMinLength_ReturnsBadRequest()
+    {
+        //arrange
+        RegisterRequest request = new RegisterRequest { username = "lmshortpass", email = "lmshortpass@email.com", password = "Test123" };
+
+        //act
+        HttpResponseMessage response = await client.PostAsJsonAsync("/auth/register", request, TestContext.Current.CancellationToken);
+
+        //assert
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
     }
 }

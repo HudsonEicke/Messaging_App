@@ -1,5 +1,4 @@
 using Microsoft.EntityFrameworkCore;
-using Messaging_App.Models;
 
 namespace Messaging_App.Data;
 
@@ -20,6 +19,12 @@ public class MessagingAppContext : DbContext
     public DbSet<ConversationMember> ConversationMembers { get; set; }
     public DbSet<ConversationMessage> ConversationMessages { get; set; }
     public DbSet<Friend> Friends { get; set; }
+    public DbSet<ChannelReadState> ChannelReadStates { get; set; }
+
+    public async Task LockServerAsync(long serverId)
+    {
+        await Database.ExecuteSqlInterpolatedAsync($"SELECT id FROM servers WHERE id = {serverId} FOR UPDATE");
+    }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -33,7 +38,7 @@ public class MessagingAppContext : DbContext
             entity.HasIndex(u => u.email).IsUnique();
 
             entity.Property(u => u.accountCreationTime).ValueGeneratedOnAdd();
-            entity.Property(u => u.activityStatus).HasDefaultValue(ActivityStatus.offline);
+            entity.Property(u => u.activityStatus).HasDefaultValue(ActivityStatus.online);
         });
 
         modelBuilder.Entity<RefreshToken>(entity =>
@@ -44,6 +49,7 @@ public class MessagingAppContext : DbContext
         modelBuilder.Entity<ServerMember>(entity =>
         {
             entity.HasKey(sm => new { sm.serverID, sm.userID });
+            entity.HasOne<Server>().WithMany(server => server.members).HasForeignKey(sm => sm.serverID);
         });
 
         modelBuilder.Entity<Message>(entity =>
@@ -66,6 +72,12 @@ public class MessagingAppContext : DbContext
         modelBuilder.Entity<ConversationMember>(entity =>
         {
             entity.HasKey(cm => new { cm.conversationID, cm.userID });
+            entity.HasOne<Conversation>().WithMany(conversation => conversation.members).HasForeignKey(cm => cm.conversationID);
+        });
+
+        modelBuilder.Entity<ChannelReadState>(entity =>
+        {
+            entity.HasKey(rs => new { rs.userID, rs.channelID });
         });
 
         modelBuilder.Entity<ConversationMessage>(entity =>

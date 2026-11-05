@@ -1,6 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using Messaging_App.Models;
 using Messaging_App.Data;
 using Microsoft.AspNetCore.Identity;
 using Messaging_App.Services;
@@ -14,7 +13,7 @@ using System.Text;
 namespace Messaging_App.Controllers;
 
 [ApiController]
-[Route("[controller]")]
+[Route("auth")]
 public class AuthController : ControllerBase
 {
     private readonly MessagingAppContext db;
@@ -41,6 +40,14 @@ public class AuthController : ControllerBase
         if(string.IsNullOrWhiteSpace(registerRequest.username) || string.IsNullOrWhiteSpace(registerRequest.password) || string.IsNullOrWhiteSpace(registerRequest.email))
         {
             result.message = "All fields must not be empty";
+            result.success = false;
+            return BadRequest(result);
+        }
+
+        //"me" is reserved because routes like /servers/{id}/members/me refer to the logged in user
+        if(string.Equals(registerRequest.username, "me", StringComparison.OrdinalIgnoreCase))
+        {
+            result.message = "That username is reserved";
             result.success = false;
             return BadRequest(result);
         }
@@ -81,7 +88,17 @@ public class AuthController : ControllerBase
 
         db.Users.Add(newUser);
 
-        await db.SaveChangesAsync();
+        //the checks above can both pass when two people sign up with the same name at once, the unique constraint catches the second
+        try
+        {
+            await db.SaveChangesAsync();
+        }
+        catch(DbUpdateException exception) when (exception.IsUniqueViolation())
+        {
+            result.message = exception.IsUniqueViolation("users_email_key") ? "Email already in use" : "Username already in use";
+            result.success = false;
+            return Conflict(result);
+        }
 
         //generates a refresh token and access token for the user
         Claim[] claims = {new Claim(ClaimTypes.Name, newUser.username), new Claim(ClaimTypes.NameIdentifier, newUser.id.ToString())};
@@ -155,6 +172,7 @@ public class AuthController : ControllerBase
         newToken.userID = foundUser.id;
         newToken.token = Convert.ToBase64String(SHA256.HashData(Encoding.UTF8.GetBytes(refreshToken)));
         newToken.expiresDate = DateTime.UtcNow.AddDays(jwtSettings.RefreshTokenExpirationDays);
+        await authService.DeleteExpiredRefreshTokens(foundUser.id);
         await authService.SaveRefreshToken(newToken);
 
         result.success = true;
@@ -226,6 +244,7 @@ public class AuthController : ControllerBase
         newToken.userID = foundUser.id;
         newToken.token = Convert.ToBase64String(SHA256.HashData(Encoding.UTF8.GetBytes(refreshToken)));
         newToken.expiresDate = DateTime.UtcNow.AddDays(jwtSettings.RefreshTokenExpirationDays);
+        await authService.DeleteExpiredRefreshTokens(foundUser.id);
         await authService.SaveRefreshToken(newToken);
 
         result.accessToken = accessToken;

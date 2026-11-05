@@ -1,6 +1,5 @@
 using Messaging_App.Data;
 using Microsoft.EntityFrameworkCore;
-using Messaging_App.Models;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
@@ -10,6 +9,8 @@ using Microsoft.AspNetCore.RateLimiting;
 using Messaging_App.Hubs;
 
 var builder = WebApplication.CreateBuilder(args);
+
+builder.WebHost.ConfigureKestrel(options => options.Limits.MaxRequestBodySize = 1_048_576);
 
 var jwtSettings = builder.Configuration.GetSection("JwtSettings").Get<JwtSettings>() ?? throw new InvalidOperationException("JwtSettings is not configured.");
 var secretKey = Encoding.UTF8.GetBytes(jwtSettings.SecretKey);
@@ -80,6 +81,10 @@ builder.Services.AddSingleton<EncryptionService>();
 builder.Services.AddDbContext<MessagingAppContext>(options => options.UseNpgsql(builder.Configuration.GetConnectionString("MessagingAppContext"), options => {options.MapEnum<ActivityStatus>("activitystatus"); options.MapEnum<ConversationType>("conversationtype"); options.MapEnum<FriendStatus>("friendstatus");}));
 builder.Services.AddAuthorization();
 builder.Services.AddScoped<AuthService>();
+builder.Services.AddScoped<ReadStateService>();
+builder.Services.AddSingleton<ConnectionTracker>();
+builder.Services.AddSingleton<HubGroupService>();
+builder.Services.AddSingleton<PresenceService>();
 
 var app = builder.Build();
 

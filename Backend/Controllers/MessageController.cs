@@ -1,6 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using Messaging_App.Models;
 using Messaging_App.Data;
 using Messaging_App.Services;
 using Microsoft.AspNetCore.Authorization;
@@ -11,7 +10,7 @@ namespace Messaging_App.Controllers;
 
 [Authorize]
 [ApiController]
-[Route("[controller]")]
+[Route("messages")]
 public class MessageController : ModifiedControllerBase
 {
     private readonly MessagingAppContext db;
@@ -25,7 +24,7 @@ public class MessageController : ModifiedControllerBase
         this.hubContext = hubContext;
     }
 
-    [HttpPut("{id}")]
+    [HttpPatch("{id:long}")]
     public async Task<IActionResult> EditMessage(long id, EditMessageRequest editMessageRequest)
     {
         if(string.IsNullOrWhiteSpace(editMessageRequest.messageText))
@@ -72,7 +71,7 @@ public class MessageController : ModifiedControllerBase
         return NoContent();
     }
 
-    [HttpDelete("{id}")]
+    [HttpDelete("{id:long}")]
     public async Task<IActionResult> DeleteMessage(long id)
     {
         long? userId = GetUserId();

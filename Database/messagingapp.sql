@@ -14,12 +14,12 @@ CREATE TYPE CONVERSATIONTYPE AS ENUM('direct', 'group');
 create table Users
 (
     id BIGSERIAL PRIMARY KEY, --auto increments on new user
-    displayName VARCHAR(100) NOT NULL,
-    userName VARCHAR(100) NOT NULL UNIQUE, --used for friend requests
-    email TEXT NOT NULL UNIQUE, --may not be used
+    displayName VARCHAR(32) NOT NULL,
+    userName VARCHAR(32) NOT NULL UNIQUE, --used for friend requests
+    email VARCHAR(254) NOT NULL UNIQUE, --may not be used
     passwordHash TEXT NOT NULL, --passwords are stored as hashs for security
-    profileImageUrl TEXT NOT NULL, --link to pfp
-    activityStatus ACTIVITYSTATUS NOT NULL DEFAULT 'offline',
+    profileImageUrl VARCHAR(2048) NOT NULL, --link to pfp
+    activityStatus ACTIVITYSTATUS NOT NULL DEFAULT 'online',
     accountCreationTime TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
@@ -27,7 +27,7 @@ create table RefreshTokens
 (
     id BIGSERIAL PRIMARY KEY,
     userID BIGINT NOT NULL REFERENCES Users(id) ON DELETE CASCADE,
-    token CHAR(200) NOT NULL,
+    token VARCHAR(44) NOT NULL UNIQUE,
     revoked BOOLEAN NOT NULL DEFAULT false,
     createdDate TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     expiresDate TIMESTAMPTZ NOT NULL
@@ -45,9 +45,9 @@ create table Friends
 create table Servers
 (
     id BIGSERIAL PRIMARY KEY,
-    serverName TEXT NOT NULL,
+    serverName VARCHAR(100) NOT NULL,
     ownerID BIGINT NOT NULL REFERENCES Users(id),
-    iconUrl TEXT NOT NULL
+    iconUrl VARCHAR(2048) NOT NULL
 );
 
 create table ServerMembers --links members and servers together
@@ -72,8 +72,9 @@ create table Channels
 (
     id BIGSERIAL PRIMARY KEY,
     serverID BIGINT NOT NULL REFERENCES Servers(id) ON DELETE CASCADE,
-    channelName TEXT NOT NULL,
-    channelOrder INT NOT NULL DEFAULT 0
+    channelName VARCHAR(100) NOT NULL,
+    channelOrder INT NOT NULL DEFAULT 0,
+    CONSTRAINT uq_channels_server_order UNIQUE (serverID, channelOrder) DEFERRABLE INITIALLY DEFERRED
 );
 
 create table Messages
@@ -84,23 +85,34 @@ create table Messages
     sender BIGINT NOT NULL REFERENCES Users(id) ON DELETE CASCADE, --who the message is from
     timeSent TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     edited BOOLEAN NOT NULL DEFAULT false,
-    replyToID BIGINT REFERENCES Messages(id)
+    replyToID BIGINT REFERENCES Messages(id) ON DELETE SET NULL
+);
+
+create table ChannelReadStates
+(
+    userID BIGINT NOT NULL REFERENCES Users(id) ON DELETE CASCADE,
+    channelID BIGINT NOT NULL REFERENCES Channels(id) ON DELETE CASCADE,
+    lastReadMessageID BIGINT NOT NULL,
+    PRIMARY KEY(userID, channelID)
 );
 
 --DIRECT MESSAGES DB START
 create table Conversations
 (
     id BIGSERIAL PRIMARY KEY,
-    conversationName TEXT,
+    conversationName VARCHAR(100),
     ownerID BIGINT REFERENCES Users(id),
-    iconUrl TEXT,
-    conversationType CONVERSATIONTYPE NOT NULL DEFAULT 'direct'
+    iconUrl VARCHAR(2048),
+    conversationType CONVERSATIONTYPE NOT NULL DEFAULT 'direct',
+    directUserLowID BIGINT REFERENCES Users(id) ON DELETE SET NULL,
+    directUserHighID BIGINT REFERENCES Users(id) ON DELETE SET NULL
 );
 
 create table ConversationMembers
 (
     conversationID BIGINT NOT NULL REFERENCES Conversations(id) ON DELETE CASCADE,
     userID BIGINT NOT NULL REFERENCES Users(id) ON DELETE CASCADE,
+    lastReadMessageID BIGINT, --newest message the user has read, null means nothing read yet
     PRIMARY KEY(conversationID, userID)
 );
 
@@ -112,15 +124,17 @@ create table ConversationMessages
     sender BIGINT NOT NULL REFERENCES Users(id) ON DELETE CASCADE,
     timeSent TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     edited BOOLEAN NOT NULL DEFAULT false,
-    replyToID BIGINT REFERENCES ConversationMessages(id)
+    replyToID BIGINT REFERENCES ConversationMessages(id) ON DELETE SET NULL
 );
 
 --INDEXES
-CREATE INDEX idx_messages_channel_time_desc ON Messages(channelID, timeSent DESC);
-CREATE INDEX idx_conversation_messages_time_desc ON ConversationMessages(conversationID, timeSent DESC);
+CREATE INDEX idx_messages_channel_id_desc ON Messages(channelID, id DESC);
+CREATE INDEX idx_conversation_messages_conversation_id_desc ON ConversationMessages(conversationID, id DESC);
 CREATE INDEX idx_servermembers_userid ON ServerMembers(userID);
 CREATE INDEX idx_serverinvites_serverid ON ServerInvites(serverID);
-CREATE INDEX idx_channels_serverid ON Channels(serverID);
 CREATE INDEX idx_conversationmembers_userid ON ConversationMembers(userID);
+CREATE UNIQUE INDEX idx_conversations_direct_pair ON Conversations(directUserLowID, directUserHighID) WHERE conversationType = 'direct';
 CREATE INDEX idx_friends_receiver ON Friends(receiver);
-CREATE INDEX idx_refreshtokens_token ON RefreshTokens(token);
+CREATE INDEX idx_refreshtokens_userid ON RefreshTokens(userID);
+CREATE INDEX idx_messages_replytoid ON Messages(replyToID) WHERE replyToID IS NOT NULL;
+CREATE INDEX idx_conversation_messages_replytoid ON ConversationMessages(replyToID) WHERE replyToID IS NOT NULL;

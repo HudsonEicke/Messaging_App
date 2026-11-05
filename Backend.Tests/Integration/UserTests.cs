@@ -3,7 +3,6 @@ using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using Backend.Tests.Helpers;
 using Messaging_App.Data;
-using Messaging_App.Models;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Backend.Tests.Integration;
@@ -51,7 +50,7 @@ public class UserTests : IClassFixture<TestWebApplicationFactory>
         string token = await RegisterAndGetToken("getmetest", "getmetest@email.com");
 
         //act
-        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Get, "/user/me", token), TestContext.Current.CancellationToken);
+        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Get, "/users/me", token), TestContext.Current.CancellationToken);
         UserDetailedResult? result = await response.Content.ReadFromJsonAsync<UserDetailedResult>(TestContext.Current.CancellationToken);
 
         //assert
@@ -65,7 +64,7 @@ public class UserTests : IClassFixture<TestWebApplicationFactory>
     public async Task GetMe_WithoutToken_ReturnsUnauthorized()
     {
         //act
-        HttpResponseMessage response = await client.GetAsync("/user/me", TestContext.Current.CancellationToken);
+        HttpResponseMessage response = await client.GetAsync("/users/me", TestContext.Current.CancellationToken);
 
         //assert
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
@@ -83,7 +82,7 @@ public class UserTests : IClassFixture<TestWebApplicationFactory>
         User user = db.Users.First(u => u.username == "getbyidtest");
 
         //act
-        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Get, $"/user/{user.id}", token), TestContext.Current.CancellationToken);
+        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Get, $"/users/{user.id}", token), TestContext.Current.CancellationToken);
         UserResult? result = await response.Content.ReadFromJsonAsync<UserResult>(TestContext.Current.CancellationToken);
 
         //assert
@@ -99,7 +98,7 @@ public class UserTests : IClassFixture<TestWebApplicationFactory>
         string token = await RegisterAndGetToken("getbyidnotfound", "getbyidnotfound@email.com");
 
         //act
-        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Get, "/user/999999999", token), TestContext.Current.CancellationToken);
+        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Get, "/users/999999999", token), TestContext.Current.CancellationToken);
 
         //assert
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
@@ -109,7 +108,7 @@ public class UserTests : IClassFixture<TestWebApplicationFactory>
     public async Task GetUserById_WithoutToken_ReturnsUnauthorized()
     {
         //act
-        HttpResponseMessage response = await client.GetAsync("/user/999999999", TestContext.Current.CancellationToken);
+        HttpResponseMessage response = await client.GetAsync("/users/999999999", TestContext.Current.CancellationToken);
 
         //assert
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
@@ -123,7 +122,7 @@ public class UserTests : IClassFixture<TestWebApplicationFactory>
         string token = await RegisterAndGetToken("getbyusernametest", "getbyusernametest@email.com");
 
         //act
-        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Get, "/user/username/getbyusernametest", token), TestContext.Current.CancellationToken);
+        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Get, "/users/username/getbyusernametest", token), TestContext.Current.CancellationToken);
         UserResult? result = await response.Content.ReadFromJsonAsync<UserResult>(TestContext.Current.CancellationToken);
 
         //assert
@@ -139,7 +138,7 @@ public class UserTests : IClassFixture<TestWebApplicationFactory>
         string token = await RegisterAndGetToken("getbyusernamenotfound", "getbyusrnamenotfound@email.com");
 
         //act
-        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Get, "/user/username/nonexistentuser99999", token), TestContext.Current.CancellationToken);
+        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Get, "/users/username/nonexistentuser99999", token), TestContext.Current.CancellationToken);
 
         //assert
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
@@ -149,7 +148,7 @@ public class UserTests : IClassFixture<TestWebApplicationFactory>
     public async Task GetUserByUsername_WithoutToken_ReturnsUnauthorized()
     {
         //act
-        HttpResponseMessage response = await client.GetAsync("/user/username/someuser", TestContext.Current.CancellationToken);
+        HttpResponseMessage response = await client.GetAsync("/users/username/someuser", TestContext.Current.CancellationToken);
 
         //assert
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
@@ -164,7 +163,7 @@ public class UserTests : IClassFixture<TestWebApplicationFactory>
         UpdateMeRequest updateRequest = new UpdateMeRequest { displayName = "New Display Name" };
 
         //act
-        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Put, "/user/me", token, updateRequest), TestContext.Current.CancellationToken);
+        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Patch, "/users/me", token, updateRequest), TestContext.Current.CancellationToken);
         UserResult? result = await response.Content.ReadFromJsonAsync<UserResult>(TestContext.Current.CancellationToken);
 
         //assert
@@ -181,7 +180,7 @@ public class UserTests : IClassFixture<TestWebApplicationFactory>
         UpdateMeRequest updateRequest = new UpdateMeRequest { profileImageUrl = "https://example.com/image.png" };
 
         //act
-        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Put, "/user/me", token, updateRequest), TestContext.Current.CancellationToken);
+        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Patch, "/users/me", token, updateRequest), TestContext.Current.CancellationToken);
         UserResult? result = await response.Content.ReadFromJsonAsync<UserResult>(TestContext.Current.CancellationToken);
 
         //assert
@@ -198,7 +197,7 @@ public class UserTests : IClassFixture<TestWebApplicationFactory>
         UpdateMeRequest updateRequest = new UpdateMeRequest();
 
         //act
-        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Put, "/user/me", token, updateRequest), TestContext.Current.CancellationToken);
+        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Patch, "/users/me", token, updateRequest), TestContext.Current.CancellationToken);
 
         //assert
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
@@ -211,7 +210,7 @@ public class UserTests : IClassFixture<TestWebApplicationFactory>
         UpdateMeRequest updateRequest = new UpdateMeRequest { displayName = "New Name" };
 
         //act
-        HttpResponseMessage response = await client.PutAsJsonAsync("/user/me", updateRequest, TestContext.Current.CancellationToken);
+        HttpResponseMessage response = await client.PatchAsJsonAsync("/users/me", updateRequest, TestContext.Current.CancellationToken);
 
         //assert
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
@@ -230,7 +229,7 @@ public class UserTests : IClassFixture<TestWebApplicationFactory>
         };
 
         //act
-        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Put, "/user/me/password", token, updateRequest), TestContext.Current.CancellationToken);
+        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Put, "/users/me/password", token, updateRequest), TestContext.Current.CancellationToken);
 
         //assert
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
@@ -246,7 +245,7 @@ public class UserTests : IClassFixture<TestWebApplicationFactory>
             currentPassword = "Test123!",
             newPassword = "NewTest456!"
         };
-        await client.SendAsync(CreateRequest(HttpMethod.Put, "/user/me/password", token, updateRequest), TestContext.Current.CancellationToken);
+        await client.SendAsync(CreateRequest(HttpMethod.Put, "/users/me/password", token, updateRequest), TestContext.Current.CancellationToken);
 
         LoginRequest loginRequest = new LoginRequest
         {
@@ -273,7 +272,7 @@ public class UserTests : IClassFixture<TestWebApplicationFactory>
         };
 
         //act
-        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Put, "/user/me/password", token, updateRequest), TestContext.Current.CancellationToken);
+        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Put, "/users/me/password", token, updateRequest), TestContext.Current.CancellationToken);
 
         //assert
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
@@ -291,7 +290,7 @@ public class UserTests : IClassFixture<TestWebApplicationFactory>
         };
 
         //act
-        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Put, "/user/me/password", token, updateRequest), TestContext.Current.CancellationToken);
+        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Put, "/users/me/password", token, updateRequest), TestContext.Current.CancellationToken);
 
         //assert
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
@@ -309,7 +308,7 @@ public class UserTests : IClassFixture<TestWebApplicationFactory>
         };
 
         //act
-        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Put, "/user/me/password", token, updateRequest), TestContext.Current.CancellationToken);
+        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Put, "/users/me/password", token, updateRequest), TestContext.Current.CancellationToken);
 
         //assert
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
@@ -326,7 +325,7 @@ public class UserTests : IClassFixture<TestWebApplicationFactory>
         };
 
         //act
-        HttpResponseMessage response = await client.PutAsJsonAsync("/user/me/password", updateRequest, TestContext.Current.CancellationToken);
+        HttpResponseMessage response = await client.PutAsJsonAsync("/users/me/password", updateRequest, TestContext.Current.CancellationToken);
 
         //assert
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
@@ -341,7 +340,7 @@ public class UserTests : IClassFixture<TestWebApplicationFactory>
         UpdateStatusRequest statusRequest = new UpdateStatusRequest { newStatus = ActivityStatus.away };
 
         //act
-        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Put, "/user/me/status", token, statusRequest), TestContext.Current.CancellationToken);
+        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Put, "/users/me/status", token, statusRequest), TestContext.Current.CancellationToken);
 
         //assert
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
@@ -354,9 +353,69 @@ public class UserTests : IClassFixture<TestWebApplicationFactory>
         UpdateStatusRequest statusRequest = new UpdateStatusRequest { newStatus = ActivityStatus.away };
 
         //act
-        HttpResponseMessage response = await client.PutAsJsonAsync("/user/me/status", statusRequest, TestContext.Current.CancellationToken);
+        HttpResponseMessage response = await client.PutAsJsonAsync("/users/me/status", statusRequest, TestContext.Current.CancellationToken);
 
         //assert
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+    }
+
+    //PRESENCE
+    [Fact]
+    public async Task GetMe_NewUser_ReturnsOnlineAsChosenStatus()
+    {
+        //arrange
+        string token = await RegisterAndGetToken("prsnewuser", "prsnewuser@email.com");
+
+        //act
+        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Get, "/users/me", token), TestContext.Current.CancellationToken);
+        UserDetailedResult? result = await response.Content.ReadFromJsonAsync<UserDetailedResult>(TestContext.Current.CancellationToken);
+
+        //assert
+        Assert.Equal(ActivityStatus.online, result!.activityStatus);
+    }
+
+    [Fact]
+    public async Task UpdateStatus_ToDnd_IsKeptAsChosenStatus()
+    {
+        //arrange
+        string token = await RegisterAndGetToken("prskeepdnd", "prskeepdnd@email.com");
+        await client.SendAsync(CreateRequest(HttpMethod.Put, "/users/me/status", token, new UpdateStatusRequest { newStatus = ActivityStatus.dnd }), TestContext.Current.CancellationToken);
+
+        //act
+        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Get, "/users/me", token), TestContext.Current.CancellationToken);
+        UserDetailedResult? result = await response.Content.ReadFromJsonAsync<UserDetailedResult>(TestContext.Current.CancellationToken);
+
+        //assert
+        Assert.Equal(ActivityStatus.dnd, result!.activityStatus);
+    }
+
+    [Fact]
+    public async Task GetUserByUsername_WhenUserNotConnected_ReturnsOffline()
+    {
+        //arrange: the user picks dnd but has no SignalR connection
+        string userToken = await RegisterAndGetToken("prsnotconn", "prsnotconn@email.com");
+        await client.SendAsync(CreateRequest(HttpMethod.Put, "/users/me/status", userToken, new UpdateStatusRequest { newStatus = ActivityStatus.dnd }), TestContext.Current.CancellationToken);
+        string viewerToken = await RegisterAndGetToken("prsviewer", "prsviewer@email.com");
+
+        //act
+        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Get, "/users/username/prsnotconn", viewerToken), TestContext.Current.CancellationToken);
+        UserResult? result = await response.Content.ReadFromJsonAsync<UserResult>(TestContext.Current.CancellationToken);
+
+        //assert
+        Assert.Equal(ActivityStatus.offline, result!.activityStatus);
+    }
+
+    [Fact]
+    public async Task UpdatePassword_WithNewPasswordUnderMinLength_ReturnsBadRequest()
+    {
+        //arrange
+        string token = await RegisterAndGetToken("lmshortnewpass", "lmshortnewpass@email.com");
+        UpdatePasswordRequest updateRequest = new UpdatePasswordRequest { currentPassword = "Test123!", newPassword = "Short12" };
+
+        //act
+        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Put, "/users/me/password", token, updateRequest), TestContext.Current.CancellationToken);
+
+        //assert
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
     }
 }
