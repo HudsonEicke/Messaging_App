@@ -6,13 +6,18 @@ import { clearTokens } from './authSlice';
 import { updateChannel, deleteChannel } from './channelSlice';
 import { getServers, getServer, createServer as createServerRequest, updateServer as updateServerRequest, deleteServer as deleteServerRequest, leaveServer as leaveServerRequest, getServerMembers, kickMember as kickMemberRequest, getChannels, createChannel as createChannelRequest, reorderChannels as reorderChannelsRequest, getInvites, createInvite as createInviteRequest, deleteInvite as deleteInviteRequest, joinServer as joinServerRequest } from '@/services/serverService';
 
+type FetchStatus = 'idle' | 'loading' | 'succeeded' | 'failed';
+
 interface ServerState
 {
     servers: ServerResponse[];
     channelsByServer: Record<number, ChannelResponse[]>;
     membersByServer: Record<number, UserResponse[]>;
     invitesByServer: Record<number, InviteResponse[]>;
-    status: 'idle' | 'loading' | 'succeeded' | 'failed';
+    serversStatus: FetchStatus;
+    serversError: ApiError | null;
+    channelsStatus: FetchStatus;
+    channelsError: ApiError | null;
     error: ApiError | null;
 }
 
@@ -21,7 +26,10 @@ const initialState: ServerState = {
     channelsByServer: {},
     membersByServer: {},
     invitesByServer: {},
-    status: 'idle',
+    serversStatus: 'idle',
+    serversError: null,
+    channelsStatus: 'idle',
+    channelsError: null,
     error: null
 };
 
@@ -237,16 +245,16 @@ const serverSlice = createSlice({
             // clearTokens fires on logout and when the token refresh fails, so reset everything
             .addCase(clearTokens, () => initialState)
             .addCase(fetchServers.pending, (state) => {
-                state.status = 'loading';
-                state.error = null;
+                state.serversStatus = 'loading';
+                state.serversError = null;
             })
             .addCase(fetchServers.fulfilled, (state, action) => {
-                state.status = 'succeeded';
+                state.serversStatus = 'succeeded';
                 state.servers = action.payload;
             })
             .addCase(fetchServers.rejected, (state, action) => {
-                state.status = 'failed';
-                state.error = action.payload ?? { message: 'Could not load servers' };
+                state.serversStatus = 'failed';
+                state.serversError = action.payload ?? { message: 'Could not load servers' };
             })
             .addCase(createServer.fulfilled, (state, action) => {
                 state.servers.push(action.payload);
@@ -302,16 +310,16 @@ const serverSlice = createSlice({
                 state.error = action.payload ?? { message: 'Could not kick member' };
             })
             .addCase(fetchChannels.pending, (state) => {
-                state.status = 'loading';
-                state.error = null;
+                state.channelsStatus = 'loading';
+                state.channelsError = null;
             })
             .addCase(fetchChannels.fulfilled, (state, action) => {
-                state.status = 'succeeded';
+                state.channelsStatus = 'succeeded';
                 state.channelsByServer[action.payload.serverID] = action.payload.channels;
             })
             .addCase(fetchChannels.rejected, (state, action) => {
-                state.status = 'failed';
-                state.error = action.payload ?? { message: 'Could not load channels' };
+                state.channelsStatus = 'failed';
+                state.channelsError = action.payload ?? { message: 'Could not load channels' };
             })
             .addCase(createChannel.fulfilled, (state, action) => {
                 const { serverID, channel } = action.payload;
