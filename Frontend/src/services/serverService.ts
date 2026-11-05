@@ -1,4 +1,4 @@
-import type { CreateServerRequest, CreateServerResponse, ServerResponse, UpdateServerRequest, UserResponse, CreateChannelRequest, CreateChannelResponse, ChannelResponse, ReorderChannelRequest, CreateInviteRequest, CreateInviteResponse, InviteResponse } from "@/types";
+import type { CreateServerRequest, CreateServerResponse, ServerResponse, UpdateServerRequest, UserResponse, CreateChannelRequest, CreateChannelResponse, ChannelResponse, ReorderChannelRequest, CreateInviteRequest, CreateInviteResponse, InviteResponse, InvitePreviewResponse } from "@/types";
 import api from "./api";
 
 export const createServer = async(request: CreateServerRequest): Promise<CreateServerResponse> => {
@@ -63,6 +63,11 @@ export const getInvites = async(id: number): Promise<InviteResponse[]> => {
 
 export const deleteInvite = async(id: number, code: string): Promise<void> => {
     await api.delete(`/servers/${id}/invites/${code}`);
+};
+
+export const getInvitePreview = async(code: string): Promise<InvitePreviewResponse> => {
+    const { data } = await api.get<InvitePreviewResponse>(`/invites/${code}`);
+    return data;
 };
 
 export const joinServer = async(code: string): Promise<ServerResponse> => {

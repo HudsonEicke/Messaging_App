@@ -195,7 +195,12 @@ const conversationSlice = createSlice({
                 state.error = action.payload ?? { message: 'Could not load conversations' };
             })
             .addCase(createConversation.fulfilled, (state, action) => {
-                state.conversations.push(action.payload);
+                const alreadyListed = state.conversations.some((conversation) => conversation.id === action.payload.id);
+
+                if (!alreadyListed)
+                {
+                    state.conversations.push(action.payload);
+                }
             })
             .addCase(createConversation.rejected, (state, action) => {
                 state.error = action.payload ?? { message: 'Could not create conversation' };

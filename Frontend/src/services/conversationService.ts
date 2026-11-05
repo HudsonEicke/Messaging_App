@@ -1,5 +1,5 @@
 import api from "./api";
-import type { ConversationResponse, CreateConversationRequest, CreateConversationResponse, UpdateConversationRequest, AddConversationMemberRequest, MessageResponse, UserResponse, SendMessageRequest, SendMessageResponse, EditMessageRequest } from "@/types";
+import type { ConversationResponse, CreateConversationRequest, CreateConversationResponse, UpdateConversationRequest, AddConversationMemberRequest, MessageResponse, UserResponse, SendMessageRequest, SendMessageResponse, EditMessageRequest, UpdateReadStateRequest } from "@/types";
 
 export const createConversation = async(request: CreateConversationRequest): Promise<CreateConversationResponse> => {
     const { data } = await api.post<CreateConversationResponse>('/conversations', request);
@@ -51,4 +51,9 @@ export const editMessage = async(messageId: number, request: EditMessageRequest)
 
 export const deleteMessage = async(messageId: number): Promise<void> => {
     await api.delete(`/conversation-messages/${messageId}`);
+};
+
+export const markConversationRead = async(id: number, lastReadMessageID: number): Promise<void> => {
+    const request: UpdateReadStateRequest = { lastReadMessageID };
+    await api.put(`/conversations/${id}/read-state`, request);
 };

@@ -1,5 +1,5 @@
 import api from "./api";
-import type { UpdateChannelRequest, MessageResponse, SendMessageRequest, SendMessageResponse, EditMessageRequest } from "@/types";
+import type { UpdateChannelRequest, MessageResponse, SendMessageRequest, SendMessageResponse, EditMessageRequest, UpdateReadStateRequest } from "@/types";
 
 export const updateChannel = async(id: number, request: UpdateChannelRequest): Promise<void> => {
     await api.patch(`/channels/${id}`, request);
@@ -25,4 +25,9 @@ export const editMessage = async(messageId: number, request: EditMessageRequest)
 
 export const deleteMessage = async(messageId: number): Promise<void> => {
     await api.delete(`/messages/${messageId}`);
+};
+
+export const markChannelRead = async(id: number, lastReadMessageID: number): Promise<void> => {
+    const request: UpdateReadStateRequest = { lastReadMessageID };
+    await api.put(`/channels/${id}/read-state`, request);
 };
