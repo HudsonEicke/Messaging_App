@@ -4,6 +4,7 @@ import GuestRoute from './components/GuestRoute';
 import AppShell from './components/layout/AppShell';
 import { LoginPage } from '@/pages/login';
 import { RegisterPage } from '@/pages/register';
+import { ServerIndexPage } from '@/pages/server';
 
 function App()
 {
@@ -18,7 +19,7 @@ function App()
                     <Route element={<AppShell />}>
                         <Route path="/channels/@me" element={<div>home</div>} />
                         <Route path="/channels/@me/:conversationId" element={<div>conversation</div>} />
-                        <Route path="/channels/:serverId" element={<div>server</div>} />
+                        <Route path="/channels/:serverId" element={<ServerIndexPage />} />
                         <Route path="/channels/:serverId/:channelId" element={<div>channel</div>} />
                     </Route>
                 </Route>

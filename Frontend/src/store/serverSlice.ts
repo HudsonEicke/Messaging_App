@@ -1,7 +1,9 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
+import type { PayloadAction } from '@reduxjs/toolkit';
 import type { ChannelResponse, CreateChannelRequest, CreateInviteRequest, CreateInviteResponse, CreateServerRequest, InviteResponse, ServerResponse, UpdateServerRequest, UserResponse } from '@/types';
 import type { ApiError } from '@/lib/utils';
 import { getApiError } from '@/lib/utils';
+import { loadLastChannels } from '@/lib/lastChannelStorage';
 import { clearTokens } from './authSlice';
 import { updateChannel, deleteChannel } from './channelSlice';
 import { getServers, getServer, createServer as createServerRequest, updateServer as updateServerRequest, deleteServer as deleteServerRequest, leaveServer as leaveServerRequest, getServerMembers, kickMember as kickMemberRequest, getChannels, createChannel as createChannelRequest, reorderChannels as reorderChannelsRequest, getInvites, createInvite as createInviteRequest, deleteInvite as deleteInviteRequest, joinServer as joinServerRequest } from '@/services/serverService';
@@ -16,8 +18,9 @@ interface ServerState
     invitesByServer: Record<number, InviteResponse[]>;
     serversStatus: FetchStatus;
     serversError: ApiError | null;
-    channelsStatus: FetchStatus;
-    channelsError: ApiError | null;
+    channelsStatusByServer: Record<number, FetchStatus>;
+    channelsErrorByServer: Record<number, ApiError | null>;
+    lastChannelByServer: Record<number, number>;
     error: ApiError | null;
 }
 
@@ -28,8 +31,9 @@ const initialState: ServerState = {
     invitesByServer: {},
     serversStatus: 'idle',
     serversError: null,
-    channelsStatus: 'idle',
-    channelsError: null,
+    channelsStatusByServer: {},
+    channelsErrorByServer: {},
+    lastChannelByServer: loadLastChannels(),
     error: null
 };
 
@@ -37,6 +41,9 @@ const initialState: ServerState = {
 const removeServer = (state: ServerState, serverID: number) => {
     state.servers = state.servers.filter(server => server.serverID !== serverID);
     delete state.channelsByServer[serverID];
+    delete state.channelsStatusByServer[serverID];
+    delete state.channelsErrorByServer[serverID];
+    delete state.lastChannelByServer[serverID];
     delete state.membersByServer[serverID];
     delete state.invitesByServer[serverID];
 };
@@ -239,11 +246,16 @@ export const deleteInvite = createAsyncThunk<{ serverID: number; code: string },
 const serverSlice = createSlice({
     name: 'server',
     initialState,
-    reducers: {},
+    reducers: {
+        setLastChannel: (state, action: PayloadAction<{ serverID: number; channelID: number }>) => {
+            state.lastChannelByServer[action.payload.serverID] = action.payload.channelID;
+        }
+    },
     extraReducers: (builder) => {
         builder
             // clearTokens fires on logout and when the token refresh fails, so reset everything
-            .addCase(clearTokens, () => initialState)
+            // initialState holds the map loaded at startup, so empty it here or the old user's channels come back
+            .addCase(clearTokens, () => ({ ...initialState, lastChannelByServer: {} }))
             .addCase(fetchServers.pending, (state) => {
                 state.serversStatus = 'loading';
                 state.serversError = null;
@@ -309,17 +321,18 @@ const serverSlice = createSlice({
             .addCase(kickMember.rejected, (state, action) => {
                 state.error = action.payload ?? { message: 'Could not kick member' };
             })
-            .addCase(fetchChannels.pending, (state) => {
-                state.channelsStatus = 'loading';
-                state.channelsError = null;
+            // keyed by server so a late response for one server can't change another's status; meta.arg is the serverID
+            .addCase(fetchChannels.pending, (state, action) => {
+                state.channelsStatusByServer[action.meta.arg] = 'loading';
+                state.channelsErrorByServer[action.meta.arg] = null;
             })
             .addCase(fetchChannels.fulfilled, (state, action) => {
-                state.channelsStatus = 'succeeded';
+                state.channelsStatusByServer[action.payload.serverID] = 'succeeded';
                 state.channelsByServer[action.payload.serverID] = action.payload.channels;
             })
             .addCase(fetchChannels.rejected, (state, action) => {
-                state.channelsStatus = 'failed';
-                state.channelsError = action.payload ?? { message: 'Could not load channels' };
+                state.channelsStatusByServer[action.meta.arg] = 'failed';
+                state.channelsErrorByServer[action.meta.arg] = action.payload ?? { message: 'Could not load channels' };
             })
             .addCase(createChannel.fulfilled, (state, action) => {
                 const { serverID, channel } = action.payload;
@@ -395,5 +408,7 @@ const serverSlice = createSlice({
             });
     }
 });
+
+export const { setLastChannel } = serverSlice.actions;
 
 export default serverSlice.reducer;
