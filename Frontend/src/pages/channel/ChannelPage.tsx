@@ -5,6 +5,7 @@ import type { ChannelResponse } from '@/types';
 import type { RootState } from '@/store/store';
 import { useActiveIds } from '@/hooks/useActiveIds';
 import { useChannelMessages } from '@/hooks/useChannelMessages';
+import ChannelIntro from '@/components/channel/ChannelIntro';
 import ChatHeader from '@/components/message/ChatHeader';
 import MessageView from '@/components/message/MessageView';
 
@@ -49,12 +50,7 @@ const ChannelChat = ({ serverId, channel }: { serverId: number; channel: Channel
                 <MessageView
                     source={source}
                     placeholder={`Message #${channel.channelName}`}
-                    intro={
-                        <>
-                            <p className="text-2xl font-bold">Welcome to #{channel.channelName}</p>
-                            <p className="text-sm text-muted-foreground">This is the start of the #{channel.channelName} channel.</p>
-                        </>
-                    }
+                    intro={<ChannelIntro channelID={channel.channelID} channelName={channel.channelName} />}
                 />
             </section>
         </div>
