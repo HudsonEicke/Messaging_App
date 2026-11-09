@@ -5,7 +5,7 @@ import type { ApiError } from '@/lib/utils';
 import { getApiError } from '@/lib/utils';
 import { editMessageText, insertMessage, removeMessage } from '@/lib/messageList';
 import { clearTokens } from './authSlice';
-import { conversationMemberAdded, conversationMemberRemoved, conversationMessageDeleted, conversationMessageEdited, conversationMessageReceived, conversationOwnerChanged, conversationRemoved, conversationUpdated } from './hubEvents';
+import { conversationCreated, conversationMemberAdded, conversationMemberRemoved, conversationMessageDeleted, conversationMessageEdited, conversationMessageReceived, conversationOwnerChanged, conversationRemoved, conversationUpdated } from './hubEvents';
 import { getConversations, getConversation, createConversation as createConversationRequest, updateConversation as updateConversationRequest, leaveConversation as leaveConversationRequest, getMessages, sendMessage as sendMessageRequest, editMessage as editMessageRequest, deleteMessage as deleteMessageRequest, getConversationMembers, addMember as addMemberRequest, markConversationRead as markConversationReadRequest } from '@/services/conversationService';
 
 const MESSAGE_PAGE_SIZE = 50;
@@ -81,6 +81,23 @@ const bumpConversation = (state: ConversationState, conversationID: number, mess
     conversation.lastMessageID = messageID;
     conversation.unreadCount = isOwnMessage ? 0 : conversation.unreadCount + 1;
     state.conversations.unshift(conversation);
+};
+
+// matches the backend's order: most recent activity first, then conversations with no messages, newest first
+const comesBefore = (conversation: ConversationResponse, other: ConversationResponse) =>
+    (conversation.lastMessageID ?? 0) > (other.lastMessageID ?? 0)
+    || ((conversation.lastMessageID ?? 0) === (other.lastMessageID ?? 0) && conversation.id > other.id);
+
+// the hub also delivers conversations you created, so it may already be listed
+const insertConversation = (state: ConversationState, conversation: ConversationResponse) => {
+    if (state.conversations.some(listedConversation => listedConversation.id === conversation.id))
+    {
+        return;
+    }
+
+    const index = state.conversations.findIndex(listedConversation => comesBefore(conversation, listedConversation));
+
+    state.conversations.splice(index === -1 ? state.conversations.length : index, 0, conversation);
 };
 
 const removeConversation = (state: ConversationState, conversationID: number) => {
@@ -296,12 +313,7 @@ const conversationSlice = createSlice({
                 state.conversationsError = action.payload ?? { message: 'Could not load conversations' };
             })
             .addCase(createConversation.fulfilled, (state, action) => {
-                const alreadyListed = state.conversations.some((conversation) => conversation.id === action.payload.id);
-
-                if (!alreadyListed)
-                {
-                    state.conversations.push(action.payload);
-                }
+                insertConversation(state, action.payload);
             })
             .addCase(createConversation.rejected, (state, action) => {
                 state.error = action.payload ?? { message: 'Could not create conversation' };
@@ -393,6 +405,9 @@ const conversationSlice = createSlice({
             })
             .addCase(addMember.rejected, (state, action) => {
                 state.error = action.payload ?? { message: 'Could not add member' };
+            })
+            .addCase(conversationCreated, (state, action) => {
+                insertConversation(state, action.payload.conversation);
             })
             .addCase(conversationMessageReceived, (state, action) => {
                 const { conversationID, message, isOwnMessage } = action.payload;

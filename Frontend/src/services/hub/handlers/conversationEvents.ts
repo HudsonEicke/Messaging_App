@@ -1,12 +1,17 @@
 import type { HubConnection } from '@microsoft/signalr';
 import { store } from '@/store/store';
-import { conversationMemberAdded, conversationMemberRemoved, conversationMessageDeleted, conversationMessageEdited, conversationMessageReceived, conversationOwnerChanged, conversationRemoved, conversationUpdated } from '@/store/hubEvents';
+import { conversationCreated, conversationMemberAdded, conversationMemberRemoved, conversationMessageDeleted, conversationMessageEdited, conversationMessageReceived, conversationOwnerChanged, conversationRemoved, conversationUpdated } from '@/store/hubEvents';
 import { onHubEvent } from '@/services/hub/events';
 
 const isCurrentUser = (username: string) => username === store.getState().user.user?.username;
 
 export const registerConversationEvents = (connection: HubConnection) =>
 {
+    onHubEvent(connection, 'ConversationCreated', (conversation) =>
+    {
+        store.dispatch(conversationCreated({ conversation }));
+    });
+
     onHubEvent(connection, 'ReceiveConversationMessage', (conversationID, message) =>
     {
         store.dispatch(conversationMessageReceived({ conversationID, message: { ...message, edited: false }, isOwnMessage: isCurrentUser(message.senderUsername) }));
