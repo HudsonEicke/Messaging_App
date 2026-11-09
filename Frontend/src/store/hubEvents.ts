@@ -1,5 +1,5 @@
 import { createAction } from '@reduxjs/toolkit';
-import type { ChannelResponse, ConversationResponse, MessageResponse, UserResponse } from '@/types';
+import type { ActivityStatus, ChannelResponse, ConversationResponse, MessageResponse, UserResponse } from '@/types';
 
 // one action per SignalR event, kept apart from the slices so any slice can respond without importing another
 export const channelMessageReceived = createAction<{ serverID: number; channelID: number; message: MessageResponse; isOwnMessage: boolean }>('hub/channelMessageReceived');
@@ -23,3 +23,4 @@ export const conversationMemberAdded = createAction<{ conversationID: number; me
 export const conversationMemberRemoved = createAction<{ conversationID: number; username: string }>('hub/conversationMemberRemoved');
 export const conversationOwnerChanged = createAction<{ conversationID: number; ownerUsername: string }>('hub/conversationOwnerChanged');
 export const conversationRemoved = createAction<{ conversationID: number }>('hub/conversationRemoved');
+export const userStatusChanged = createAction<{ username: string; status: ActivityStatus }>('hub/userStatusChanged');

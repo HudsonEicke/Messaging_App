@@ -4,6 +4,7 @@ import type { ActivityStatus, UserDetailedResponse } from '@/types';
 import type { ApiError } from '@/lib/utils';
 import { getApiError } from '@/lib/utils';
 import { clearTokens } from './authSlice';
+import { userStatusChanged } from './hubEvents';
 import { getMe, updateStatus } from '@/services/userService';
 
 interface UserState
@@ -71,6 +72,13 @@ const userSlice = createSlice({
                 if (state.user)
                 {
                     state.user.activityStatus = action.meta.arg;
+                }
+            })
+            // while you're connected the backend sends your own picked status, so this keeps your other tabs' picker in sync
+            .addCase(userStatusChanged, (state, action) => {
+                if (state.user?.username === action.payload.username)
+                {
+                    state.user.activityStatus = action.payload.status;
                 }
             });
     }

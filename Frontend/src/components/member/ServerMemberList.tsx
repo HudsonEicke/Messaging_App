@@ -18,7 +18,7 @@ const ServerMemberList = ({ serverId, ownerUsername }: ServerMemberListProps) =>
     const members = useSelector((state: RootState) => state.server.membersByServer[serverId]);
     const [loadError, setLoadError] = useState<string | null>(null);
 
-    // refetched on every open since nothing pushes status changes until SignalR
+    // the hub keeps a cached list current, but not across a reconnect, so it's refetched on every open
     const fetchList = useCallback(() =>
     {
         dispatch(fetchServerMembers(serverId))

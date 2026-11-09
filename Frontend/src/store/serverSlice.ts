@@ -6,7 +6,7 @@ import { getApiError } from '@/lib/utils';
 import { loadLastChannels } from '@/lib/lastChannelStorage';
 import { clearTokens } from './authSlice';
 import { updateChannel, deleteChannel, markChannelRead, sendMessage } from './channelSlice';
-import { channelCreated, channelDeleted, channelMessageReceived, channelsReordered, channelUpdated, serverMemberJoined, serverMemberRemoved, serverOwnerChanged, serverRemoved, serverUpdated } from './hubEvents';
+import { channelCreated, channelDeleted, channelMessageReceived, channelsReordered, channelUpdated, serverMemberJoined, serverMemberRemoved, serverOwnerChanged, serverRemoved, serverUpdated, userStatusChanged } from './hubEvents';
 import { getServers, getServer, createServer as createServerRequest, updateServer as updateServerRequest, deleteServer as deleteServerRequest, leaveServer as leaveServerRequest, getServerMembers, kickMember as kickMemberRequest, getChannels, createChannel as createChannelRequest, reorderChannels as reorderChannelsRequest, getInvites, createInvite as createInviteRequest, deleteInvite as deleteInviteRequest, joinServer as joinServerRequest } from '@/services/serverService';
 
 type FetchStatus = 'idle' | 'loading' | 'succeeded' | 'failed';
@@ -543,6 +543,17 @@ const serverSlice = createSlice({
             })
             .addCase(serverRemoved, (state, action) => {
                 removeServer(state, action.payload.serverID);
+            })
+            .addCase(userStatusChanged, (state, action) => {
+                for (const members of Object.values(state.membersByServer))
+                {
+                    const member = members.find(listedMember => listedMember.username === action.payload.username);
+
+                    if (member)
+                    {
+                        member.activityStatus = action.payload.status;
+                    }
+                }
             })
             .addCase(fetchInvites.fulfilled, (state, action) => {
                 state.invitesByServer[action.payload.serverID] = action.payload.invites;
