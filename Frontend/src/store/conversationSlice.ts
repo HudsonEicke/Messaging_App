@@ -214,11 +214,14 @@ const conversationSlice = createSlice({
                 state.error = action.payload ?? { message: 'Could not create conversation' };
             })
             .addCase(updateConversation.fulfilled, (state, action) => {
-                const index = state.conversations.findIndex(conversation => conversation.id === action.payload.id);
+                const conversation = state.conversations.find(listedConversation => listedConversation.id === action.payload.id);
 
-                if (index !== -1)
+                // GET /conversations/{id} has no lastMessageID or unreadCount, so only take the fields that can change
+                if (conversation)
                 {
-                    state.conversations[index] = action.payload;
+                    conversation.conversationName = action.payload.conversationName;
+                    conversation.iconUrl = action.payload.iconUrl;
+                    conversation.ownerUsername = action.payload.ownerUsername;
                 }
             })
             .addCase(updateConversation.rejected, (state, action) => {

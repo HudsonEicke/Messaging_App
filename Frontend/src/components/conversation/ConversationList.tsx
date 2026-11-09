@@ -1,11 +1,17 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
+import { useNavigate } from 'react-router-dom';
+import { Plus } from 'lucide-react';
 import type { AppDispatch, RootState } from '@/store/store';
 import { useActiveIds } from '@/hooks/useActiveIds';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { fetchConversations } from '@/store/conversationSlice';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { fetchConversations, leaveConversation } from '@/store/conversationSlice';
+import { getErrorMessage } from '@/lib/utils';
 import ConversationItem from './ConversationItem';
+import GroupSettingsDialog from './GroupSettingsDialog';
+import NewConversationDialog from './NewConversationDialog';
 
 const PLACEHOLDER_COUNT = 5;
 
@@ -15,24 +21,66 @@ const ConversationList = () =>
     const dispatch = useDispatch<AppDispatch>();
     const { conversations, conversationsStatus, conversationsError } = useSelector((state: RootState) => state.conversation);
     const { conversationId } = useActiveIds();
+    const navigate = useNavigate();
+    const [isNewOpen, setIsNewOpen] = useState(false);
+    const [settingsConversationId, setSettingsConversationId] = useState<number | null>(null);
+    const [closeError, setCloseError] = useState<string | null>(null);
+
+    const settingsConversation = conversations.find(conversation => conversation.id === settingsConversationId);
 
     useEffect(() =>
     {
         dispatch(fetchConversations());
     }, [dispatch]);
 
+    // no confirmation: messaging the same person again reopens the DM with its history
+    const handleCloseDm = async (id: number) =>
+    {
+        setCloseError(null);
+
+        try
+        {
+            await dispatch(leaveConversation(id)).unwrap();
+
+            if (id === conversationId)
+            {
+                navigate('/channels/@me', { replace: true });
+            }
+        }
+        catch (error)
+        {
+            setCloseError(getErrorMessage(error, 'Could not close conversation'));
+        }
+    };
+
     return (
         <div className="flex min-h-0 flex-1 flex-col">
-            <header className="flex h-12 shrink-0 items-center border-b px-4">
+            <header className="flex h-12 shrink-0 items-center justify-between gap-2 border-b pr-2 pl-4">
                 <h2 className="truncate text-sm font-semibold">Direct Messages</h2>
+                <Tooltip>
+                    <TooltipTrigger asChild>
+                        <Button variant="ghost" size="icon-sm" aria-label="New message" onClick={() => setIsNewOpen(true)}>
+                            <Plus aria-hidden="true" />
+                        </Button>
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom">New message</TooltipContent>
+                </Tooltip>
             </header>
+
+            {closeError && <p role="alert" className="px-4 pt-2 text-sm text-destructive">{closeError}</p>}
 
             <ScrollArea className="min-h-0 flex-1">
                 <nav aria-label="Direct messages" className="flex flex-col gap-0.5 py-3">
                     {
                         conversations.length > 0
                             ? conversations.map(conversation => (
-                                <ConversationItem key={conversation.id} conversation={conversation} isActive={conversation.id === conversationId} />
+                                <ConversationItem
+                                    key={conversation.id}
+                                    conversation={conversation}
+                                    isActive={conversation.id === conversationId}
+                                    onClose={handleCloseDm}
+                                    onOpenSettings={setSettingsConversationId}
+                                />
                             ))
                             : conversationsStatus === 'failed'
                                 ? (
@@ -52,6 +100,18 @@ const ConversationList = () =>
                     }
                 </nav>
             </ScrollArea>
+
+            <NewConversationDialog open={isNewOpen} onOpenChange={setIsNewOpen} />
+            {
+                settingsConversation && (
+                    <GroupSettingsDialog
+                        conversation={settingsConversation}
+                        isActive={settingsConversation.id === conversationId}
+                        open
+                        onOpenChange={open => { if (!open) setSettingsConversationId(null); }}
+                    />
+                )
+            }
         </div>
     );
 };

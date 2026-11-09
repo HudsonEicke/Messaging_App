@@ -1,9 +1,10 @@
 import { NavLink } from 'react-router-dom';
-import { User, Users } from 'lucide-react';
+import { Settings, User, Users, X } from 'lucide-react';
 import type { ConversationResponse } from '@/types';
 import { ConversationType } from '@/types';
 import { cn } from '@/lib/utils';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 
 const MAX_SHOWN_UNREAD = 99;
 
@@ -11,21 +12,26 @@ interface ConversationItemProps
 {
     conversation: ConversationResponse;
     isActive: boolean;
+    onClose: (conversationId: number) => void;
+    onOpenSettings: (conversationId: number) => void;
 }
 
 // one row in the DM list; for a DM the backend already fills in the other user's display name and picture
-const ConversationItem = ({ conversation, isActive }: ConversationItemProps) =>
+const ConversationItem = ({ conversation, isActive, onClose, onOpenSettings }: ConversationItemProps) =>
 {
     const hasUnread = conversation.unreadCount > 0;
-    const FallbackIcon = conversation.conversationType === ConversationType.group ? Users : User;
+    const isGroup = conversation.conversationType === ConversationType.group;
+    const FallbackIcon = isGroup ? Users : User;
+    const ActionIcon = isGroup ? Settings : X;
+    const actionLabel = isGroup ? 'Group settings' : 'Close conversation';
 
     return (
-        <div className="px-2">
+        <div className="group relative px-2">
             <NavLink
                 to={`/channels/@me/${conversation.id}`}
                 aria-current={isActive ? 'page' : undefined}
                 className={cn(
-                    'flex h-11 items-center gap-3 rounded-md px-2 text-sm outline-none transition-colors focus-visible:ring-3 focus-visible:ring-ring/50',
+                    'flex h-11 items-center gap-3 rounded-md pr-9 pl-2 text-sm outline-none transition-colors focus-visible:ring-3 focus-visible:ring-ring/50',
                     isActive
                         ? 'bg-sidebar-accent font-medium text-sidebar-accent-foreground'
                         : cn(
@@ -53,6 +59,23 @@ const ConversationItem = ({ conversation, isActive }: ConversationItemProps) =>
                     )
                 }
             </NavLink>
+
+            <Tooltip>
+                <TooltipTrigger asChild>
+                    <button
+                        type="button"
+                        aria-label={`${actionLabel}: ${conversation.conversationName}`}
+                        onClick={() => (isGroup ? onOpenSettings : onClose)(conversation.id)}
+                        className={cn(
+                            'absolute top-1/2 right-3 flex size-6 -translate-y-1/2 items-center justify-center rounded-sm text-muted-foreground outline-none transition-opacity hover:text-sidebar-foreground focus-visible:opacity-100 focus-visible:ring-3 focus-visible:ring-ring/50 group-hover:opacity-100',
+                            isActive ? 'opacity-100' : 'opacity-0'
+                        )}
+                    >
+                        <ActionIcon className="size-4" aria-hidden="true" />
+                    </button>
+                </TooltipTrigger>
+                <TooltipContent side="top">{actionLabel}</TooltipContent>
+            </Tooltip>
         </div>
     );
 };
