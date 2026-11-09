@@ -1,10 +1,9 @@
 import { useSelector } from 'react-redux';
-import { LogOut, User } from 'lucide-react';
+import { LogOut } from 'lucide-react';
 import type { RootState } from '@/store/store';
 import { useAuth } from '@/hooks/useAuth';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
-import StatusBadge from '@/components/user/StatusBadge';
+import StatusPicker from '@/components/user/StatusPicker';
 
 const UserPanel = () =>
 {
@@ -32,16 +31,7 @@ const UserPanel = () =>
 
     return (
         <div className="flex h-14 items-center gap-2 border-t px-2">
-            <Avatar>
-                <AvatarImage src={user.profileImageUrl} alt={user.displayName} />
-                <AvatarFallback><User/></AvatarFallback>
-                <StatusBadge status={user.activityStatus} />
-            </Avatar>
-
-            <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-medium">{user.displayName}</p>
-                <p className="truncate text-xs text-muted-foreground">{user.username}</p>
-            </div>
+            <StatusPicker user={user} />
 
             {logoutButton}
         </div>

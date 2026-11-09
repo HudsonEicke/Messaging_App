@@ -174,7 +174,7 @@ const GroupMembers = ({ conversation, isOwner }: { conversation: ConversationRes
                                                 <AvatarImage src={member.profileImageUrl} alt="" />
                                                 <AvatarFallback><User className="size-3.5" aria-hidden="true" /></AvatarFallback>
                                             </Avatar>
-                                            <StatusBadge status={member.activityStatus} className="size-3 bg-popover ring-popover" />
+                                            <StatusBadge status={member.activityStatus} className="bg-popover ring-popover" />
                                         </div>
                                         <div className="min-w-0 flex-1">
                                             <p className="truncate text-sm">{member.displayName}</p>

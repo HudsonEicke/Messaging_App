@@ -1,10 +1,10 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import type { PayloadAction } from '@reduxjs/toolkit';
-import type { UserDetailedResponse } from '@/types';
+import type { ActivityStatus, UserDetailedResponse } from '@/types';
 import type { ApiError } from '@/lib/utils';
 import { getApiError } from '@/lib/utils';
 import { clearTokens } from './authSlice';
-import { getMe } from '@/services/userService';
+import { getMe, updateStatus } from '@/services/userService';
 
 interface UserState
 {
@@ -27,6 +27,17 @@ export const fetchMe = createAsyncThunk<UserDetailedResponse, void, { rejectValu
     catch (error)
     {
         return rejectWithValue(getApiError(error, 'Could not load your profile'));
+    }
+});
+
+export const updateMyStatus = createAsyncThunk<void, ActivityStatus, { rejectValue: ApiError }>('user/updateMyStatus', async (newStatus, { rejectWithValue }) => {
+    try
+    {
+        await updateStatus({ newStatus });
+    }
+    catch (error)
+    {
+        return rejectWithValue(getApiError(error, 'Could not change your status'));
     }
 });
 
@@ -55,6 +66,12 @@ const userSlice = createSlice({
             .addCase(fetchMe.rejected, (state, action) => {
                 state.status = 'failed';
                 state.error = action.payload ?? { message: 'Could not load your profile' };
+            })
+            .addCase(updateMyStatus.fulfilled, (state, action) => {
+                if (state.user)
+                {
+                    state.user.activityStatus = action.meta.arg;
+                }
             });
     }
 });

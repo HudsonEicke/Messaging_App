@@ -12,16 +12,17 @@ interface StatusBadgeProps
 // so pass e.g. "bg-background ring-background" when it's on a different background
 const StatusBadge = ({ status, className }: StatusBadgeProps) =>
 {
-    const { label, Icon, filled, colorClass } = activityStatusDisplay[status] ?? activityStatusDisplay[ActivityStatus.offline];
+    const { label, Icon, filled, color } = activityStatusDisplay[status] ?? activityStatusDisplay[ActivityStatus.offline];
 
     return (
         <span
             role="img"
             aria-label={label}
             title={label}
-            className={cn('absolute -right-0.5 -bottom-0.5 z-10 flex size-3.5 items-center justify-center rounded-full bg-sidebar ring-2 ring-sidebar', colorClass, className)}
+            className={cn('absolute -right-0.5 -bottom-0.5 z-10 flex size-3 items-center justify-center rounded-full bg-sidebar ring-2 ring-sidebar', className)}
+            style={{ color }}
         >
-            <Icon size={14} strokeWidth={2} fill={filled ? 'currentColor' : 'none'} aria-hidden="true" />
+            <Icon strokeWidth={2} className="size-full" fill={filled ? 'currentColor' : 'none'} aria-hidden="true" />
         </span>
     );
 };
