@@ -239,6 +239,23 @@ public class ConversationTests : IClassFixture<TestWebApplicationFactory>
     }
 
     [Fact]
+    public async Task GetConversations_AfterOtherUserLeavesDm_StillListsDm()
+    {
+        //arrange
+        (string tokenA, string tokenB, long conversationId) = await CreateDmConversation("cvdmstaysA", "cvdmstaysB");
+        await client.SendAsync(CreateRequest(HttpMethod.Delete, $"/conversations/{conversationId}/members/me", tokenB), TestContext.Current.CancellationToken);
+
+        //act
+        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Get, "/conversations", tokenA), TestContext.Current.CancellationToken);
+        List<ConversationResult>? result = await response.Content.ReadFromJsonAsync<List<ConversationResult>>(TestContext.Current.CancellationToken);
+
+        //assert
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        ConversationResult dm = Assert.Single(result!, conversation => conversation.id == conversationId);
+        Assert.Equal("cvdmstaysB", dm.conversationName);
+    }
+
+    [Fact]
     public async Task GetConversations_WhenNone_ReturnsEmptyList()
     {
         //arrange
@@ -280,6 +297,22 @@ public class ConversationTests : IClassFixture<TestWebApplicationFactory>
         Assert.NotNull(result);
         Assert.Equal(conversationId, result.id);
         Assert.Equal(ConversationType.direct, result.conversationType);
+    }
+
+    [Fact]
+    public async Task GetConversation_AfterOtherUserLeavesDm_ReturnsOtherUsersName()
+    {
+        //arrange
+        (string tokenA, string tokenB, long conversationId) = await CreateDmConversation("cvdmnameA", "cvdmnameB");
+        await client.SendAsync(CreateRequest(HttpMethod.Delete, $"/conversations/{conversationId}/members/me", tokenB), TestContext.Current.CancellationToken);
+
+        //act
+        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Get, $"/conversations/{conversationId}", tokenA), TestContext.Current.CancellationToken);
+        ConversationResult? result = await response.Content.ReadFromJsonAsync<ConversationResult>(TestContext.Current.CancellationToken);
+
+        //assert
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Equal("cvdmnameB", result!.conversationName);
     }
 
     [Fact]
