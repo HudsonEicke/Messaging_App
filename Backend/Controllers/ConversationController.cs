@@ -45,6 +45,81 @@ public class ConversationController : ModifiedControllerBase
         return result;
     }
 
+    private async Task<ConversationResult> BuildConversationResult(Conversation conversation, long userId)
+    {
+        ConversationResult result = new ConversationResult();
+
+        result.id = conversation.id;
+        result.conversationType = conversation.conversationType;
+
+        if(conversation.conversationType == ConversationType.direct)
+        {
+            //the pair columns still name the other user after they leave, unlike the members table
+            long? otherUserId = conversation.directUserLowID == userId ? conversation.directUserHighID : conversation.directUserLowID;
+            User? otherUser = await db.Users.AsNoTracking().FirstOrDefaultAsync(user => user.id == otherUserId);
+            
+            if(otherUser == null)
+            {
+                result.conversationName = "UNKNOWN USER";
+                //add default url once a path is made later in development
+            }
+            else
+            {
+                result.conversationName = otherUser.displayName;
+                result.iconUrl = otherUser.profileImageUrl;
+            }
+        }
+        else
+        {
+            if(conversation.conversationName == null)
+            {
+                result.conversationName = "UNKNOWN CONVERSATION";
+            }
+            else
+            {
+                result.conversationName = conversation.conversationName;
+            }
+
+            result.iconUrl = conversation.iconUrl;
+            
+            User? owner = await db.Users.AsNoTracking().FirstOrDefaultAsync(user => user.id == conversation.ownerID);
+
+            if(owner == null)
+            {
+                result.ownerUsername = "UNKNOWN USER";
+            }
+            else
+            {
+                result.ownerUsername = owner.username;
+            }
+        }
+
+        result.lastMessageID = await db.ConversationMessages.AsNoTracking().Where(message => message.conversationID == conversation.id).MaxAsync(message => (long?)message.id);
+
+        long? lastReadMessageID = await db.ConversationMembers.AsNoTracking().Where(member => member.conversationID == conversation.id && member.userID == userId).Select(member => member.lastReadMessageID).FirstOrDefaultAsync();
+
+        result.unreadCount = await db.ConversationMessages.AsNoTracking().Where(message => message.conversationID == conversation.id && message.id > (lastReadMessageID ?? 0)).Take(MAXUNREADCOUNT).CountAsync();
+
+        return result;
+    }
+
+    //sent to every connection the user has, since a new conversation isn't in any of their groups yet
+    private async Task SendConversationCreated(Conversation conversation, long userId)
+    {
+        ConversationResult result = await BuildConversationResult(conversation, userId);
+
+        await hubContext.Clients.User(userId.ToString()).SendAsync("ConversationCreated", result);
+    }
+
+    //puts someone back in a dm they closed, read up to the latest message so old messages don't come back as unread
+    //returns false if they were already a member, which also covers two requests adding them at once
+    private async Task<bool> RejoinDirectConversation(long conversationId, long userId)
+    {
+        int addedRows = await db.Database.ExecuteSqlInterpolatedAsync($"INSERT INTO conversationmembers (conversationid, userid, lastreadmessageid) SELECT {conversationId}, {userId}, MAX(id) FROM conversationmessages WHERE conversationid = {conversationId} ON CONFLICT DO NOTHING");
+
+        return addedRows == 1;
+    }
+
     [HttpPost]
     public async Task<ActionResult<CreateConversationResult>> CreateConversation(CreateConversationRequest createConversationRequest)
     {
@@ -96,26 +171,12 @@ public class ConversationController : ModifiedControllerBase
 
             if(existingConversation != null)
             {
-                List<long> currentMemberIds = await db.ConversationMembers.AsNoTracking().Where(member => member.conversationID == existingConversation.id).Select(member => member.userID).ToListAsync();
-                List<long> missingMemberIds = new List<long> { userId, otherUser.id }.Where(memberId => !currentMemberIds.Contains(memberId)).ToList();
-
-                //get-or-create: an open dm is returned as is, and whoever left it is added back
-                if(missingMemberIds.Count > 0)
+                //get-or-create: an open dm is returned as is, and if you had closed it you're added back
+                //the other person only comes back when a message is sent, so opening a dm doesn't reappear for them
+                if(await RejoinDirectConversation(existingConversation.id, userId))
                 {
-                    foreach(long missingMemberId in missingMemberIds)
-                    {
-                        ConversationMember returningMember = new ConversationMember();
-                        returningMember.conversationID = existingConversation.id;
-                        returningMember.userID = missingMemberId;
-                        db.ConversationMembers.Add(returningMember);
-                    }
-
-                    await db.SaveChangesAsync();
-
-                    foreach(long missingMemberId in missingMemberIds)
-                    {
-                        await hubGroupService.AddUserToGroup(missingMemberId, $"conversation_{existingConversation.id}");
-                    }
+                    await hubGroupService.AddUserToGroup(userId, $"conversation_{existingConversation.id}");
+                    await SendConversationCreated(existingConversation, userId);
                 }
 
                 return Ok(CreateDirectResult(existingConversation.id, creatingUser, otherUser));
@@ -151,6 +212,9 @@ public class ConversationController : ModifiedControllerBase
             //adds both users' live connections so messages in the new dm arrive without reconnecting
             await hubGroupService.AddUserToGroup(userId, $"conversation_{newConversation.id}");
             await hubGroupService.AddUserToGroup(otherUser.id, $"conversation_{newConversation.id}");
+
+            await SendConversationCreated(newConversation, userId);
+            await SendConversationCreated(newConversation, otherUser.id);
 
             result = new CreateConversationResult();
             result.conversationID = newConversation.id;
@@ -211,6 +275,10 @@ public class ConversationController : ModifiedControllerBase
             await hubGroupService.AddUserToGroup(member.userID, $"conversation_{newConversation.id}");
         }
 
+        //a group looks the same to every member, so one result goes to the whole group
+        ConversationResult createdResult = await BuildConversationResult(newConversation, userId);
+        await hubContext.Clients.Group($"conversation_{newConversation.id}").SendAsync("ConversationCreated", createdResult);
+
         result = new CreateConversationResult();
         result.conversationID = newConversation.id;
         result.conversationName = newConversation.conversationName;
@@ -266,54 +334,7 @@ public class ConversationController : ModifiedControllerBase
             return Forbid();
         }
 
-        ConversationResult result = new ConversationResult();
-
-        result.id = conversation.id;
-        result.conversationType = conversation.conversationType;
-
-        if(conversation.conversationType == ConversationType.direct)
-        {
-            //the pair columns still name the other user after they leave, unlike the members table
-            long? otherUserId = conversation.directUserLowID == userId ? conversation.directUserHighID : conversation.directUserLowID;
-            User? otherUser = await db.Users.AsNoTracking().FirstOrDefaultAsync(user => user.id == otherUserId);
-            
-            if(otherUser == null)
-            {
-                result.conversationName = "UNKNOWN USER";
-                //add default url once a path is made later in development
-            }
-            else
-            {
-                result.conversationName = otherUser.displayName;
-                result.iconUrl = otherUser.profileImageUrl;
-            }
-        }
-        else
-        {
-            if(conversation.conversationName == null)
-            {
-                result.conversationName = "UNKNOWN CONVERSATION";
-            }
-            else
-            {
-                result.conversationName = conversation.conversationName;
-            }
-
-            result.iconUrl = conversation.iconUrl;
-            
-            User? owner = await db.Users.AsNoTracking().FirstOrDefaultAsync(user => user.id == conversation.ownerID);
-
-            if(owner == null)
-            {
-                result.ownerUsername = "UNKNOWN USER";
-            }
-            else
-            {
-                result.ownerUsername = owner.username;
-            }
-        }
-
-        return Ok(result);
+        return Ok(await BuildConversationResult(conversation, userId));
     }
     
     [HttpPatch("{id:long}")]
@@ -469,6 +490,7 @@ public class ConversationController : ModifiedControllerBase
         result.accountCreationTime = foundUser.accountCreationTime;
 
         await hubGroupService.AddUserToGroup(foundUser.id, $"conversation_{id}");
+        await SendConversationCreated(conversation, foundUser.id);
         await hubContext.Clients.Group($"conversation_{id}").SendAsync("ConversationMemberAdded", id, result);
 
         return Ok(result);
@@ -621,14 +643,16 @@ public class ConversationController : ModifiedControllerBase
 
         long userId = nullableUserId.Value;
 
-        bool? isMember = await db.Conversations.Where(conversation => conversation.id == id).Select(conversation => (bool?)db.ConversationMembers.Any(member => member.conversationID == conversation.id && member.userID == userId)).FirstOrDefaultAsync();
+        Conversation? conversation = await db.Conversations.AsNoTracking().FirstOrDefaultAsync(conversation => conversation.id == id);
 
-        if(isMember == null)
+        if(conversation == null)
         {
             return NotFound();
         }
 
-        if(isMember == false)
+        bool isMember = await db.ConversationMembers.AsNoTracking().AnyAsync(member => member.conversationID == id && member.userID == userId);
+
+        if(!isMember)
         {
             return Forbid();
         }
@@ -654,6 +678,19 @@ public class ConversationController : ModifiedControllerBase
             newMessage.replyToID = sendMessageRequest.replyToID;
         }
 
+        long? rejoinedUserId = null;
+
+        //if the other person closed the dm, this message brings it back for them; done before saving the message so only it is unread
+        if(conversation.conversationType == ConversationType.direct)
+        {
+            long? otherUserId = conversation.directUserLowID == userId ? conversation.directUserHighID : conversation.directUserLowID;
+
+            if(otherUserId != null && await RejoinDirectConversation(id, otherUserId.Value))
+            {
+                rejoinedUserId = otherUserId;
+            }
+        }
+
         db.ConversationMessages.Add(newMessage);
 
         await db.SaveChangesAsync();
@@ -677,6 +714,13 @@ public class ConversationController : ModifiedControllerBase
         result.timeSent = newMessage.timeSent;
         result.replyToID = newMessage.replyToID;
         result.replyTo = replyPreview;
+
+        //they get the conversation first so the message has somewhere to go
+        if(rejoinedUserId != null)
+        {
+            await hubGroupService.AddUserToGroup(rejoinedUserId.Value, $"conversation_{id}");
+            await SendConversationCreated(conversation, rejoinedUserId.Value);
+        }
 
         await hubContext.Clients.Group($"conversation_{id}").SendAsync("ReceiveConversationMessage", id, result);
 
