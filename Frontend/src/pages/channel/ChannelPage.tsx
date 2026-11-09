@@ -5,8 +5,11 @@ import type { ChannelResponse } from '@/types';
 import type { RootState } from '@/store/store';
 import { useActiveIds } from '@/hooks/useActiveIds';
 import { useChannelMessages } from '@/hooks/useChannelMessages';
+import { useMemberListPreference } from '@/hooks/useMemberListPreference';
 import ChannelIntro from '@/components/channel/ChannelIntro';
 import ChatHeader from '@/components/message/ChatHeader';
+import MemberListToggle from '@/components/member/MemberListToggle';
+import ServerMemberList from '@/components/member/ServerMemberList';
 import MessageView from '@/components/message/MessageView';
 
 export const ChannelPage = () =>
@@ -37,22 +40,29 @@ export const ChannelPage = () =>
 const ChannelChat = ({ serverId, channel }: { serverId: number; channel: ChannelResponse }) =>
 {
     const currentUsername = useSelector((state: RootState) => state.user.user?.username);
-    const isOwner = useSelector((state: RootState) =>
-        currentUsername !== undefined && state.server.servers.some(server => server.serverID === serverId && server.ownerUsername === currentUsername)
-    );
+    const ownerUsername = useSelector((state: RootState) => state.server.servers.find(server => server.serverID === serverId)?.ownerUsername);
+    const isOwner = currentUsername !== undefined && ownerUsername === currentUsername;
     const source = useChannelMessages(channel.channelID, channel.hasUnread, isOwner);
+    const memberList = useMemberListPreference();
 
     return (
-        // a row so the member list can sit on the right
-        <div className="flex min-h-0 flex-1">
-            <section aria-label={`#${channel.channelName}`} className="flex min-w-0 flex-1 flex-col">
-                <ChatHeader icon={<Hash className="size-5 shrink-0 text-muted-foreground" aria-hidden="true" />} title={channel.channelName} />
+        <section aria-label={`#${channel.channelName}`} className="flex min-h-0 min-w-0 flex-1 flex-col">
+            <ChatHeader
+                icon={<Hash className="size-5 shrink-0 text-muted-foreground" aria-hidden="true" />}
+                title={channel.channelName}
+                actions={<MemberListToggle isOpen={memberList.isOpen} onToggle={memberList.toggle} />}
+            />
+
+            {/* the header spans the full width; the member list sits beside the messages under it */}
+            <div className="relative flex min-h-0 flex-1">
                 <MessageView
                     source={source}
                     placeholder={`Message #${channel.channelName}`}
                     intro={<ChannelIntro channelID={channel.channelID} channelName={channel.channelName} />}
                 />
-            </section>
-        </div>
+
+                {memberList.isOpen && <ServerMemberList serverId={serverId} ownerUsername={ownerUsername} />}
+            </div>
+        </section>
     );
 };

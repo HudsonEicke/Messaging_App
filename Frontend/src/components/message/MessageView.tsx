@@ -17,7 +17,7 @@ const MessageView = ({ source, placeholder, intro }: MessageViewProps) =>
     const currentUsername = useSelector((state: RootState) => state.user.user?.username);
 
     return (
-        <div className="flex min-h-0 flex-1 flex-col">
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col">
             <MessageList source={source} currentUsername={currentUsername} intro={intro} />
             <MessageComposer placeholder={placeholder} onSend={source.send} />
         </div>
