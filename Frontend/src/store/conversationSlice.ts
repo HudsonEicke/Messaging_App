@@ -7,13 +7,18 @@ import { getConversations, getConversation, createConversation as createConversa
 
 const MESSAGE_PAGE_SIZE = 50;
 
+type FetchStatus = 'idle' | 'loading' | 'succeeded' | 'failed';
+
 interface ConversationState
 {
     conversations: ConversationResponse[];
     messagesByConversation: Record<number, MessageResponse[]>;
     hasMoreMessages: Record<number, boolean>;
     membersByConversation: Record<number, UserResponse[]>;
-    status: 'idle' | 'loading' | 'succeeded' | 'failed';
+    conversationsStatus: FetchStatus;
+    conversationsError: ApiError | null;
+    messagesStatusByConversation: Record<number, FetchStatus>;
+    messagesErrorByConversation: Record<number, ApiError | null>;
     error: ApiError | null;
 }
 
@@ -22,7 +27,10 @@ const initialState: ConversationState = {
     messagesByConversation: {},
     hasMoreMessages: {},
     membersByConversation: {},
-    status: 'idle',
+    conversationsStatus: 'idle',
+    conversationsError: null,
+    messagesStatusByConversation: {},
+    messagesErrorByConversation: {},
     error: null
 };
 
@@ -183,16 +191,16 @@ const conversationSlice = createSlice({
         builder
             .addCase(clearTokens, () => initialState)
             .addCase(fetchConversations.pending, (state) => {
-                state.status = 'loading';
-                state.error = null;
+                state.conversationsStatus = 'loading';
+                state.conversationsError = null;
             })
             .addCase(fetchConversations.fulfilled, (state, action) => {
-                state.status = 'succeeded';
+                state.conversationsStatus = 'succeeded';
                 state.conversations = action.payload;
             })
             .addCase(fetchConversations.rejected, (state, action) => {
-                state.status = 'failed';
-                state.error = action.payload ?? { message: 'Could not load conversations' };
+                state.conversationsStatus = 'failed';
+                state.conversationsError = action.payload ?? { message: 'Could not load conversations' };
             })
             .addCase(createConversation.fulfilled, (state, action) => {
                 const alreadyListed = state.conversations.some((conversation) => conversation.id === action.payload.id);
@@ -223,18 +231,21 @@ const conversationSlice = createSlice({
                 delete state.messagesByConversation[id];
                 delete state.hasMoreMessages[id];
                 delete state.membersByConversation[id];
+                delete state.messagesStatusByConversation[id];
+                delete state.messagesErrorByConversation[id];
             })
             .addCase(leaveConversation.rejected, (state, action) => {
                 state.error = action.payload ?? { message: 'Could not leave conversation' };
             })
-            .addCase(fetchMessages.pending, (state) => {
-                state.status = 'loading';
-                state.error = null;
+            // keyed by conversation so a late response for one conversation can't change another's status
+            .addCase(fetchMessages.pending, (state, action) => {
+                state.messagesStatusByConversation[action.meta.arg.conversationID] = 'loading';
+                state.messagesErrorByConversation[action.meta.arg.conversationID] = null;
             })
             .addCase(fetchMessages.fulfilled, (state, action) => {
                 const { conversationID, before, messages, hasMore } = action.payload;
 
-                state.status = 'succeeded';
+                state.messagesStatusByConversation[conversationID] = 'succeeded';
                 state.hasMoreMessages[conversationID] = hasMore;
 
                 // no before means a fresh load, otherwise it's an older page that goes in front
@@ -248,8 +259,8 @@ const conversationSlice = createSlice({
                 }
             })
             .addCase(fetchMessages.rejected, (state, action) => {
-                state.status = 'failed';
-                state.error = action.payload ?? { message: 'Could not load messages' };
+                state.messagesStatusByConversation[action.meta.arg.conversationID] = 'failed';
+                state.messagesErrorByConversation[action.meta.arg.conversationID] = action.payload ?? { message: 'Could not load messages' };
             })
             .addCase(sendMessage.fulfilled, (state, action) => {
                 const { conversationID, message } = action.payload;

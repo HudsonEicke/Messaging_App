@@ -6,6 +6,7 @@ import type { AppDispatch } from '@/store/store';
 import { fetchMe } from '@/store/userSlice';
 import { useActiveIds } from '@/hooks/useActiveIds';
 import ChannelList from '@/components/channel/ChannelList';
+import ConversationList from '@/components/conversation/ConversationList';
 import ServerList from '@/components/server/ServerList';
 import UserPanel from './UserPanel';
 
@@ -25,15 +26,10 @@ const AppShell = () =>
             </nav>
 
             <aside className="flex w-60 shrink-0 flex-col border-r bg-sidebar">
-                
                 {
                     serverId !== null
                         ? <ChannelList serverId={serverId} />
-                        : (
-                            <ScrollArea className="min-h-0 flex-1">
-                                <div>PLACEHOLDER DMLIST</div>
-                            </ScrollArea>
-                        )
+                        : <ConversationList />
                 }
 
                 <UserPanel />
