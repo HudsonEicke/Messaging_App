@@ -5,6 +5,7 @@ import conversationReducer from './conversationSlice'
 import serverReducer from './serverSlice'
 import channelReducer from './channelSlice'
 import friendReducer from './friendSlice'
+import hubReducer from './hubSlice'
 import { listenerMiddleware } from './listenerMiddleware';
 
 export const store = configureStore({
@@ -14,7 +15,8 @@ export const store = configureStore({
         conversation: conversationReducer,
         server: serverReducer,
         channel: channelReducer,
-        friend: friendReducer
+        friend: friendReducer,
+        hub: hubReducer
     },
     middleware: (getDefaultMiddleware) => getDefaultMiddleware().prepend(listenerMiddleware.middleware)
 });

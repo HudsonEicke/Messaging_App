@@ -3,6 +3,7 @@ import { useDispatch, useSelector, useStore } from 'react-redux';
 import type { AppDispatch, RootState } from '@/store/store';
 import { deleteMessage, editMessage, fetchMessages, markChannelRead, sendMessage } from '@/store/channelSlice';
 import type { MessageSource } from '@/components/message/messageSource';
+import { useOnReconnect } from './useOnReconnect';
 
 export const useChannelMessages = (channelID: number, hasUnread: boolean, canDeleteOthers: boolean): MessageSource =>
 {
@@ -24,6 +25,9 @@ export const useChannelMessages = (channelID: number, hasUnread: boolean, canDel
     {
         reload();
     }, [reload]);
+
+    // replaces the loaded pages with the newest one, so a reader scrolled up into history lands back at the bottom
+    useOnReconnect(reload);
 
     const loadOlder = useCallback(() =>
     {

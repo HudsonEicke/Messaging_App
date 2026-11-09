@@ -6,6 +6,7 @@ import type { Announcements, DragEndEvent, Modifier, UniqueIdentifier } from '@d
 import { SortableContext, arrayMove, sortableKeyboardCoordinates, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import type { AppDispatch, RootState } from '@/store/store';
 import { useActiveIds } from '@/hooks/useActiveIds';
+import { useOnReconnect } from '@/hooks/useOnReconnect';
 import { useSuppressClickAfterDrag } from '@/hooks/useSuppressClickAfterDrag';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -61,6 +62,8 @@ const ChannelList = ({ serverId }: ChannelListProps) =>
     {
         dispatch(fetchChannels(serverId));
     }, [dispatch, serverId]);
+
+    useOnReconnect(() => dispatch(fetchChannels(serverId)));
 
     // remember the open channel so coming back to this server returns to it; ServerIndexPage checks it still exists
     useEffect(() =>

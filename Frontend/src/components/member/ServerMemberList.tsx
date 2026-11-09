@@ -3,6 +3,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import type { AppDispatch, RootState } from '@/store/store';
 import { fetchServerMembers } from '@/store/serverSlice';
 import { getErrorMessage } from '@/lib/utils';
+import { useOnReconnect } from '@/hooks/useOnReconnect';
 import MemberList from './MemberList';
 
 interface ServerMemberListProps
@@ -29,6 +30,8 @@ const ServerMemberList = ({ serverId, ownerUsername }: ServerMemberListProps) =>
     {
         fetchList();
     }, [fetchList]);
+
+    useOnReconnect(fetchList);
 
     const handleRetry = () =>
     {

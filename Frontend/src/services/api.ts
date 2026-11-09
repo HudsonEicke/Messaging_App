@@ -2,6 +2,9 @@ import axios from 'axios';
 import { store } from '@/store/store';
 import { setTokens, clearTokens } from '@/store/authSlice';
 import type { AuthResponse } from '@/types';
+import { isTokenExpiring } from '@/lib/jwt';
+
+const TOKEN_REFRESH_MARGIN_MS = 30_000;
 
 const api = axios.create({
     baseURL: import.meta.env.VITE_API_URL,
@@ -44,6 +47,32 @@ function refreshAccessToken(): Promise<string>
     }
 
     return refreshPromise;
+}
+
+// for the SignalR hub, which can't use the axios retry-on-401
+export async function getFreshAccessToken(): Promise<string>
+{
+    const { accessToken } = store.getState().auth;
+
+    if (accessToken && !isTokenExpiring(accessToken, TOKEN_REFRESH_MARGIN_MS))
+    {
+        return accessToken;
+    }
+
+    try
+    {
+        return await refreshAccessToken();
+    }
+    catch (error)
+    {
+        // only a refused refresh ends the session; a network error is left for the hub's next retry
+        if (axios.isAxiosError(error) && error.response?.status === 401)
+        {
+            store.dispatch(clearTokens());
+        }
+
+        throw error;
+    }
 }
 
 api.interceptors.response.use(

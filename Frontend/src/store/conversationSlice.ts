@@ -14,6 +14,7 @@ type FetchStatus = 'idle' | 'loading' | 'succeeded' | 'failed';
 interface ConversationState
 {
     conversations: ConversationResponse[];
+    hasLoadedConversations: boolean;
     messagesByConversation: Record<number, MessageResponse[]>;
     hasMoreMessages: Record<number, boolean>;
     membersByConversation: Record<number, UserResponse[]>;
@@ -26,6 +27,7 @@ interface ConversationState
 
 const initialState: ConversationState = {
     conversations: [],
+    hasLoadedConversations: false,
     messagesByConversation: {},
     hasMoreMessages: {},
     membersByConversation: {},
@@ -213,6 +215,7 @@ const conversationSlice = createSlice({
             })
             .addCase(fetchConversations.fulfilled, (state, action) => {
                 state.conversationsStatus = 'succeeded';
+                state.hasLoadedConversations = true;
                 state.conversations = action.payload;
             })
             .addCase(fetchConversations.rejected, (state, action) => {

@@ -13,6 +13,7 @@ type FetchStatus = 'idle' | 'loading' | 'succeeded' | 'failed';
 interface ServerState
 {
     servers: ServerResponse[];
+    hasLoadedServers: boolean;
     channelsByServer: Record<number, ChannelResponse[]>;
     membersByServer: Record<number, UserResponse[]>;
     invitesByServer: Record<number, InviteResponse[]>;
@@ -26,6 +27,7 @@ interface ServerState
 
 const initialState: ServerState = {
     servers: [],
+    hasLoadedServers: false,
     channelsByServer: {},
     membersByServer: {},
     invitesByServer: {},
@@ -280,6 +282,7 @@ const serverSlice = createSlice({
             })
             .addCase(fetchServers.fulfilled, (state, action) => {
                 state.serversStatus = 'succeeded';
+                state.hasLoadedServers = true;
                 state.servers = action.payload;
             })
             .addCase(fetchServers.rejected, (state, action) => {

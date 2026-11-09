@@ -3,6 +3,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import type { AppDispatch, RootState } from '@/store/store';
 import { fetchMembers } from '@/store/conversationSlice';
 import { getErrorMessage } from '@/lib/utils';
+import { useOnReconnect } from '@/hooks/useOnReconnect';
 import MemberList from './MemberList';
 
 interface ConversationMemberListProps
@@ -29,6 +30,8 @@ const ConversationMemberList = ({ conversationId, ownerUsername }: ConversationM
     {
         fetchList();
     }, [fetchList]);
+
+    useOnReconnect(fetchList);
 
     const handleRetry = () =>
     {

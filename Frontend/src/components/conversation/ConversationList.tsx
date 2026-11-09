@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { Plus } from 'lucide-react';
 import type { AppDispatch, RootState } from '@/store/store';
 import { useActiveIds } from '@/hooks/useActiveIds';
+import { useOnReconnect } from '@/hooks/useOnReconnect';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
@@ -19,7 +20,7 @@ const PLACEHOLDER_COUNT = 5;
 const ConversationList = () =>
 {
     const dispatch = useDispatch<AppDispatch>();
-    const { conversations, conversationsStatus, conversationsError } = useSelector((state: RootState) => state.conversation);
+    const { conversations, hasLoadedConversations, conversationsStatus, conversationsError } = useSelector((state: RootState) => state.conversation);
     const { conversationId } = useActiveIds();
     const navigate = useNavigate();
     const [isNewOpen, setIsNewOpen] = useState(false);
@@ -35,6 +36,8 @@ const ConversationList = () =>
     {
         dispatch(fetchConversations());
     }, [dispatch]);
+
+    useOnReconnect(() => dispatch(fetchConversations()));
 
     // no confirmation: messaging the same person again reopens the DM with its history
     const handleCloseDm = async (id: number) =>
@@ -86,17 +89,18 @@ const ConversationList = () =>
                                     onLeaveGroup={openLeaveGroup}
                                 />
                             ))
-                            : conversationsStatus === 'failed'
-                                ? (
-                                    <div className="flex flex-col items-start gap-2 px-4">
-                                        <p className="text-sm text-muted-foreground">{conversationsError?.message ?? 'Could not load conversations'}</p>
-                                        <Button variant="outline" size="sm" onClick={() => dispatch(fetchConversations())}>
-                                            Retry
-                                        </Button>
-                                    </div>
-                                )
-                                : conversationsStatus === 'succeeded'
-                                    ? <p className="px-4 text-sm text-muted-foreground">No conversations yet</p>
+                            // once loaded, a refetch keeps showing the cached state, so placeholders and Retry only appear before that
+                            : hasLoadedConversations
+                                ? <p className="px-4 text-sm text-muted-foreground">No conversations yet</p>
+                                : conversationsStatus === 'failed'
+                                    ? (
+                                        <div className="flex flex-col items-start gap-2 px-4">
+                                            <p className="text-sm text-muted-foreground">{conversationsError?.message ?? 'Could not load conversations'}</p>
+                                            <Button variant="outline" size="sm" onClick={() => dispatch(fetchConversations())}>
+                                                Retry
+                                            </Button>
+                                        </div>
+                                    )
                                     : Array.from({ length: PLACEHOLDER_COUNT }, (_, index) => (
                                         // the placeholders never reorder, so the index is a safe key
                                         <div key={index} aria-hidden="true" className="mx-2 h-11 animate-pulse rounded-md bg-muted" />

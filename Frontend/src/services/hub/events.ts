@@ -1,0 +1,25 @@
+import type { HubConnection } from '@microsoft/signalr';
+import type { ActivityStatus } from '@/types';
+
+// every server-to-client event the client handles, with the arguments the backend sends it
+// events whose payloads are still missing an id are added as each one is fixed and wired up
+export interface HubEventMap
+{
+    ChannelUpdated: [channelID: number, channelName: string];
+    ChannelDeleted: [channelID: number];
+    ChannelMessageEdited: [channelID: number, messageID: number, messageText: string];
+    ChannelMessageDeleted: [channelID: number, messageID: number];
+    ConversationMessageEdited: [conversationID: number, messageID: number, messageText: string];
+    ConversationMessageDeleted: [conversationID: number, messageID: number];
+    ServerDeleted: [serverID: number];
+    UserStatusChanged: [username: string, status: ActivityStatus];
+    UserUpdated: [username: string, displayName: string, profileImageUrl: string];
+}
+
+export const onHubEvent = <EventName extends keyof HubEventMap>(
+    connection: HubConnection,
+    eventName: EventName,
+    handler: (...args: HubEventMap[EventName]) => void
+) => {
+    connection.on(eventName, handler);
+};
