@@ -203,7 +203,7 @@ public class ServerController : ModifiedControllerBase
         result.ownerUsername = owner.username;
         result.iconUrl = foundServer.iconUrl;
 
-        await hubContext.Clients.Group($"server_{foundServer.id}").SendAsync("ServerUpdated", foundServer.serverName, foundServer.iconUrl);
+        await hubContext.Clients.Group($"server_{foundServer.id}").SendAsync("ServerUpdated", foundServer.id, foundServer.serverName, foundServer.iconUrl);
 
         return Ok(result);
     }
@@ -230,15 +230,17 @@ public class ServerController : ModifiedControllerBase
             return Forbid();
         }
 
+        //loaded before the delete, which also removes the memberships
         List<long> memberIds = await db.ServerMembers.AsNoTracking().Where(member => member.serverID == id).Select(member => member.userID).ToListAsync();
-
-        await hubContext.Clients.Group($"server_{foundServer.id}").SendAsync("ServerDeleted", foundServer.id);
-
-        foreach (long memberId in memberIds)
-            await hubGroupService.RemoveUserFromGroup(memberId, $"server_{foundServer.id}");
 
         db.Servers.Remove(foundServer);
         await db.SaveChangesAsync();
+
+        //sent only once the delete is saved, so clients never drop a server that still exists
+        await hubContext.Clients.Group($"server_{id}").SendAsync("ServerDeleted", id);
+
+        foreach (long memberId in memberIds)
+            await hubGroupService.RemoveUserFromGroup(memberId, $"server_{id}");
 
         return NoContent();
     }
