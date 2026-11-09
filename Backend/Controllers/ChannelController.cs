@@ -153,7 +153,7 @@ public class ChannelController : ModifiedControllerBase
             messageQuery = messageQuery.Where(message => message.id < before);
         }
 
-        List<MessageResult> results = await messageQuery.OrderByDescending(message => message.id).Take(MESSAGEGRABAMOUNT).Join(db.Users, message => message.sender, user => user.id, (message, user) => new MessageResult{id = message.id, messageText = encryptionService.Decrypt(message.messageText), senderUsername = user.username, senderDisplayName = user.displayName, edited = message.edited, timeSent = message.timeSent, replyToID = message.replyToID}).ToListAsync();
+        List<MessageResult> results = await messageQuery.OrderByDescending(message => message.id).Take(MESSAGEGRABAMOUNT).Join(db.Users, message => message.sender, user => user.id, (message, user) => new MessageResult{id = message.id, messageText = encryptionService.Decrypt(message.messageText), senderUsername = user.username, senderDisplayName = user.displayName, senderProfileImageUrl = user.profileImageUrl, edited = message.edited, timeSent = message.timeSent, replyToID = message.replyToID}).ToListAsync();
 
         return Ok(results);
     }
@@ -180,10 +180,10 @@ public class ChannelController : ModifiedControllerBase
             return NotFound();
         }
 
-        //checks membership and gets the sender's display name in one query, null means they aren't in the server
-        string? displayName = await db.ServerMembers.AsNoTracking().Where(member => member.serverID == foundChannel.serverID && member.userID == userId).Join(db.Users, member => member.userID, user => user.id, (member, user) => user.displayName).FirstOrDefaultAsync();
+        //checks membership and gets the sender in one query, null means they aren't in the server
+        User? sender = await db.ServerMembers.AsNoTracking().Where(member => member.serverID == foundChannel.serverID && member.userID == userId).Join(db.Users, member => member.userID, user => user.id, (member, user) => user).FirstOrDefaultAsync();
 
-        if(displayName == null)
+        if(sender == null)
         {
             return Forbid();
         }
@@ -224,7 +224,8 @@ public class ChannelController : ModifiedControllerBase
         result.id = newMessage.id;
         result.messageText = sendMessageRequest.messageText;
         result.senderUsername = username;
-        result.senderDisplayName = displayName;
+        result.senderDisplayName = sender.displayName;
+        result.senderProfileImageUrl = sender.profileImageUrl;
         result.timeSent = newMessage.timeSent;
         result.replyToID = newMessage.replyToID;
 

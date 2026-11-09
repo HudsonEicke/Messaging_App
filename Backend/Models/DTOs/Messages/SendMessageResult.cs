@@ -6,6 +6,7 @@ public class SendMessageResult
     public string messageText { get; set; } = string.Empty;
     public string senderUsername { get; set; } = string.Empty;
     public string senderDisplayName { get; set; } = string.Empty;
+    public string senderProfileImageUrl { get; set; } = string.Empty;
     public DateTimeOffset timeSent { get; set; }
     public long? replyToID { get; set; } = null;
 }

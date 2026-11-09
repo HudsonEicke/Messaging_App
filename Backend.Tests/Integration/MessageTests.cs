@@ -158,6 +158,44 @@ public class MessageTests : IClassFixture<TestWebApplicationFactory>
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
     }
 
+    [Fact]
+    public async Task GetMessages_AfterSendingMessage_ReturnsSenderProfileImage()
+    {
+        //arrange
+        (string token, long serverId) = await CreateServerAndGetId("mggetmsgsimage");
+        long channelId = await CreateChannel(token, serverId, "general");
+        await client.SendAsync(CreateRequest(HttpMethod.Patch, "/users/me", token, new UpdateMeRequest { profileImageUrl = "https://example.com/mggetmsgsimage.png" }), TestContext.Current.CancellationToken);
+        await SendMessage(token, channelId, "Hello world");
+
+        //act
+        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Get, $"/channels/{channelId}/messages", token), TestContext.Current.CancellationToken);
+        List<MessageResult>? result = await response.Content.ReadFromJsonAsync<List<MessageResult>>(TestContext.Current.CancellationToken);
+
+        //assert
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.NotNull(result);
+        Assert.Single(result);
+        Assert.Equal("https://example.com/mggetmsgsimage.png", result[0].senderProfileImageUrl);
+    }
+
+    [Fact]
+    public async Task SendMessage_WithProfileImage_ReturnsSenderProfileImage()
+    {
+        //arrange
+        (string token, long serverId) = await CreateServerAndGetId("mgsendmsgimage");
+        long channelId = await CreateChannel(token, serverId, "general");
+        await client.SendAsync(CreateRequest(HttpMethod.Patch, "/users/me", token, new UpdateMeRequest { profileImageUrl = "https://example.com/mgsendmsgimage.png" }), TestContext.Current.CancellationToken);
+
+        //act
+        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Post, $"/channels/{channelId}/messages", token, new SendMessageRequest { messageText = "Hello world" }), TestContext.Current.CancellationToken);
+        SendMessageResult? result = await response.Content.ReadFromJsonAsync<SendMessageResult>(TestContext.Current.CancellationToken);
+
+        //assert
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.NotNull(result);
+        Assert.Equal("https://example.com/mgsendmsgimage.png", result.senderProfileImageUrl);
+    }
+
     //SEND MESSAGE
     [Fact]
     public async Task SendMessage_AsMember_ReturnsOkWithMessage()

@@ -139,6 +139,42 @@ public class ConversationMessageTests : IClassFixture<TestWebApplicationFactory>
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
     }
 
+    [Fact]
+    public async Task GetConversationMessages_AfterSendingMessage_ReturnsSenderProfileImage()
+    {
+        //arrange
+        (string tokenA, _, long conversationId) = await CreateDmConversation("cmgetmsgsimage", "cmgetmsgsimageb");
+        await client.SendAsync(CreateRequest(HttpMethod.Patch, "/users/me", tokenA, new UpdateMeRequest { profileImageUrl = "https://example.com/cmgetmsgsimage.png" }), TestContext.Current.CancellationToken);
+        await SendConversationMessage(tokenA, conversationId, "Hello world");
+
+        //act
+        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Get, $"/conversations/{conversationId}/messages", tokenA), TestContext.Current.CancellationToken);
+        List<MessageResult>? result = await response.Content.ReadFromJsonAsync<List<MessageResult>>(TestContext.Current.CancellationToken);
+
+        //assert
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.NotNull(result);
+        Assert.Single(result);
+        Assert.Equal("https://example.com/cmgetmsgsimage.png", result[0].senderProfileImageUrl);
+    }
+
+    [Fact]
+    public async Task SendConversationMessage_WithProfileImage_ReturnsSenderProfileImage()
+    {
+        //arrange
+        (string tokenA, _, long conversationId) = await CreateDmConversation("cmsendmsgimage", "cmsendmsgimageb");
+        await client.SendAsync(CreateRequest(HttpMethod.Patch, "/users/me", tokenA, new UpdateMeRequest { profileImageUrl = "https://example.com/cmsendmsgimage.png" }), TestContext.Current.CancellationToken);
+
+        //act
+        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Post, $"/conversations/{conversationId}/messages", tokenA, new SendMessageRequest { messageText = "Hello world" }), TestContext.Current.CancellationToken);
+        SendMessageResult? result = await response.Content.ReadFromJsonAsync<SendMessageResult>(TestContext.Current.CancellationToken);
+
+        //assert
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.NotNull(result);
+        Assert.Equal("https://example.com/cmsendmsgimage.png", result.senderProfileImageUrl);
+    }
+
     //SEND MESSAGE
     [Fact]
     public async Task SendConversationMessage_AsMember_ReturnsOkWithMessage()

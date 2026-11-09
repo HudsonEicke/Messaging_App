@@ -572,7 +572,7 @@ public class ConversationController : ModifiedControllerBase
             messageQuery = messageQuery.Where(message => message.id < before);
         }
 
-        List<MessageResult> results = await messageQuery.OrderByDescending(message => message.id).Take(MESSAGEGRABAMOUNT).Join(db.Users, message => message.sender, user => user.id, (message, user) => new MessageResult{id = message.id, messageText = encryptionService.Decrypt(message.messageText), senderUsername = user.username, senderDisplayName = user.displayName, edited = message.edited, timeSent = message.timeSent, replyToID = message.replyToID}).ToListAsync();
+        List<MessageResult> results = await messageQuery.OrderByDescending(message => message.id).Take(MESSAGEGRABAMOUNT).Join(db.Users, message => message.sender, user => user.id, (message, user) => new MessageResult{id = message.id, messageText = encryptionService.Decrypt(message.messageText), senderUsername = user.username, senderDisplayName = user.displayName, senderProfileImageUrl = user.profileImageUrl, edited = message.edited, timeSent = message.timeSent, replyToID = message.replyToID}).ToListAsync();
 
         return Ok(results);
     }
@@ -634,13 +634,14 @@ public class ConversationController : ModifiedControllerBase
         if(username == null)
             username = string.Empty;
 
-        string displayName = await db.Users.AsNoTracking().Where(u => u.id == userId).Select(u => u.displayName).FirstOrDefaultAsync() ?? username;
+        User? sender = await db.Users.AsNoTracking().FirstOrDefaultAsync(user => user.id == userId);
 
         SendMessageResult result = new SendMessageResult();
         result.id = newMessage.id;
         result.messageText = sendMessageRequest.messageText;
         result.senderUsername = username;
-        result.senderDisplayName = displayName;
+        result.senderDisplayName = sender?.displayName ?? username;
+        result.senderProfileImageUrl = sender?.profileImageUrl ?? string.Empty;
         result.timeSent = newMessage.timeSent;
         result.replyToID = newMessage.replyToID;
 
