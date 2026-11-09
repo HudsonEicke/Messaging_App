@@ -5,6 +5,7 @@ import type { ApiError } from '@/lib/utils';
 import { getApiError } from '@/lib/utils';
 import { shortenReplyPreview } from '@/lib/replyPreview';
 import { clearTokens } from './authSlice';
+import { channelMessageDeleted, channelMessageEdited, channelMessageReceived } from './hubEvents';
 import { updateChannel as updateChannelRequest, deleteChannel as deleteChannelRequest, getMessages, sendMessage as sendMessageRequest, editMessage as editMessageRequest, deleteMessage as deleteMessageRequest, markChannelRead as markChannelReadRequest } from '@/services/channelService';
 
 const MESSAGE_PAGE_SIZE = 50;
@@ -26,6 +27,54 @@ const initialState: ChannelState = {
     messagesStatusByChannel: {},
     messagesErrorByChannel: {},
     error: null
+};
+
+// shared by sendMessage and the hub event; a channel that hasn't been opened has no cache to add to
+const addMessage = (state: ChannelState, channelID: number, message: MessageResponse) => {
+    const messages = state.messagesByChannel[channelID];
+
+    // the hub also delivers your own message, so it may already be listed
+    if (!messages || messages.some(listedMessage => listedMessage.id === message.id))
+    {
+        return;
+    }
+
+    // ids only go up, so two messages that arrive out of order still end up oldest first
+    let index = messages.length;
+
+    while (index > 0 && messages[index - 1].id > message.id)
+    {
+        index--;
+    }
+
+    messages.splice(index, 0, message);
+};
+
+const applyMessageEdit = (state: ChannelState, channelID: number, messageID: number, messageText: string) => {
+    for (const message of state.messagesByChannel[channelID] ?? [])
+    {
+        if (message.id === messageID)
+        {
+            message.messageText = messageText;
+            message.edited = true;
+        }
+        else if (message.replyTo?.id === messageID)
+        {
+            message.replyTo.messageText = shortenReplyPreview(messageText);
+        }
+    }
+};
+
+const applyMessageDelete = (state: ChannelState, channelID: number, messageID: number) => {
+    const messages = state.messagesByChannel[channelID];
+
+    if (messages)
+    {
+        // the backend clears replyToID on replies to a deleted message
+        state.messagesByChannel[channelID] = messages
+            .filter(message => message.id !== messageID)
+            .map(message => message.replyTo?.id === messageID ? { ...message, replyToID: undefined, replyTo: null } : message);
+    }
 };
 
 export const updateChannel = createAsyncThunk<{ serverID: number; channelID: number; channelName: string }, { serverID: number; channelID: number; channelName: string }, { rejectValue: ApiError }>('channel/updateChannel', async ({ serverID, channelID, channelName }, { rejectWithValue }) => {
@@ -180,14 +229,7 @@ const channelSlice = createSlice({
                 state.messagesErrorByChannel[action.meta.arg.channelID] = action.payload ?? { message: 'Could not load messages' };
             })
             .addCase(sendMessage.fulfilled, (state, action) => {
-                const { channelID, message } = action.payload;
-                const messages = state.messagesByChannel[channelID] ?? [];
-
-                // SignalR will also deliver your own message, so it may already be listed
-                if (!messages.some(listedMessage => listedMessage.id === message.id))
-                {
-                    state.messagesByChannel[channelID] = [...messages, message];
-                }
+                addMessage(state, action.payload.channelID, action.payload.message);
             })
             .addCase(sendMessage.rejected, (state, action) => {
                 state.error = action.payload ?? { message: 'Could not send message' };
@@ -195,36 +237,27 @@ const channelSlice = createSlice({
             .addCase(editMessage.fulfilled, (state, action) => {
                 const { channelID, messageID, messageText } = action.payload;
 
-                for (const message of state.messagesByChannel[channelID] ?? [])
-                {
-                    if (message.id === messageID)
-                    {
-                        message.messageText = messageText;
-                        message.edited = true;
-                    }
-                    else if (message.replyTo?.id === messageID)
-                    {
-                        message.replyTo.messageText = shortenReplyPreview(messageText);
-                    }
-                }
+                applyMessageEdit(state, channelID, messageID, messageText);
             })
             .addCase(editMessage.rejected, (state, action) => {
                 state.error = action.payload ?? { message: 'Could not edit message' };
             })
             .addCase(deleteMessage.fulfilled, (state, action) => {
-                const { channelID, messageID } = action.payload;
-                const messages = state.messagesByChannel[channelID];
-
-                if (messages)
-                {
-                    // the backend clears replyToID on replies to a deleted message
-                    state.messagesByChannel[channelID] = messages
-                        .filter(message => message.id !== messageID)
-                        .map(message => message.replyTo?.id === messageID ? { ...message, replyToID: undefined, replyTo: null } : message);
-                }
+                applyMessageDelete(state, action.payload.channelID, action.payload.messageID);
             })
             .addCase(deleteMessage.rejected, (state, action) => {
                 state.error = action.payload ?? { message: 'Could not delete message' };
+            })
+            .addCase(channelMessageReceived, (state, action) => {
+                addMessage(state, action.payload.channelID, action.payload.message);
+            })
+            .addCase(channelMessageEdited, (state, action) => {
+                const { channelID, messageID, messageText } = action.payload;
+
+                applyMessageEdit(state, channelID, messageID, messageText);
+            })
+            .addCase(channelMessageDeleted, (state, action) => {
+                applyMessageDelete(state, action.payload.channelID, action.payload.messageID);
             });
     }
 });

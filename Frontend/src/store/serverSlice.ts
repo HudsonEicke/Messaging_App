@@ -6,6 +6,7 @@ import { getApiError } from '@/lib/utils';
 import { loadLastChannels } from '@/lib/lastChannelStorage';
 import { clearTokens } from './authSlice';
 import { updateChannel, deleteChannel, markChannelRead, sendMessage } from './channelSlice';
+import { channelMessageReceived } from './hubEvents';
 import { getServers, getServer, createServer as createServerRequest, updateServer as updateServerRequest, deleteServer as deleteServerRequest, leaveServer as leaveServerRequest, getServerMembers, kickMember as kickMemberRequest, getChannels, createChannel as createChannelRequest, reorderChannels as reorderChannelsRequest, getInvites, createInvite as createInviteRequest, deleteInvite as deleteInviteRequest, joinServer as joinServerRequest } from '@/services/serverService';
 
 type FetchStatus = 'idle' | 'loading' | 'succeeded' | 'failed';
@@ -69,6 +70,22 @@ const clearChannelUnread = (state: ServerState, channelID: number) => {
 
             return;
         }
+    }
+};
+
+// the channel's dot only shows if its server's channels are loaded, the server's dot shows either way
+const markChannelUnread = (state: ServerState, serverID: number, channelID: number) => {
+    const channel = state.channelsByServer[serverID]?.find(listedChannel => listedChannel.channelID === channelID);
+    const server = state.servers.find(listedServer => listedServer.serverID === serverID);
+
+    if (channel)
+    {
+        channel.hasUnread = true;
+    }
+
+    if (server)
+    {
+        server.hasUnread = true;
     }
 };
 
@@ -397,6 +414,20 @@ const serverSlice = createSlice({
             })
             .addCase(sendMessage.fulfilled, (state, action) => {
                 clearChannelUnread(state, action.payload.channelID);
+            })
+            // a message you sent from another tab is already read on the backend; if you're viewing
+            // the channel, MessageList marks someone else's message read once the bottom is in view
+            .addCase(channelMessageReceived, (state, action) => {
+                const { serverID, channelID, isOwnMessage } = action.payload;
+
+                if (isOwnMessage)
+                {
+                    clearChannelUnread(state, channelID);
+                }
+                else
+                {
+                    markChannelUnread(state, serverID, channelID);
+                }
             })
             .addCase(deleteChannel.fulfilled, (state, action) => {
                 const { serverID, channelID } = action.payload;

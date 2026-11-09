@@ -20,7 +20,7 @@ export const useChannelMessages = (channelID: number, hasUnread: boolean, canDel
         dispatch(fetchMessages({ channelID }));
     }, [dispatch, channelID]);
 
-    // nothing pushes new messages until SignalR, so get the newest page every time the channel opens
+    // the hub keeps a cached channel current, but not across a reconnect, so get the newest page every time the channel opens
     useEffect(() =>
     {
         reload();
