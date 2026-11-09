@@ -4,6 +4,7 @@ export interface MessageResponse
     messageText: string;
     senderUsername: string;
     senderDisplayName: string;
+    senderProfileImageUrl: string;
     timeSent: string;
     edited: boolean;
     replyToID?: number;

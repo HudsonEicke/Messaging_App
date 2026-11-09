@@ -1,0 +1,23 @@
+import type { MessageResponse } from '@/types';
+import type { ApiError } from '@/lib/utils';
+
+export const MESSAGE_MAX_LENGTH = 2000;
+
+export type MessagesStatus = 'idle' | 'loading' | 'succeeded' | 'failed';
+
+// what MessageView needs from a channel or a conversation, so the UI is written once
+export interface MessageSource
+{
+    messages: MessageResponse[] | undefined;
+    status: MessagesStatus;
+    error: ApiError | null;
+    hasMore: boolean;
+    hasUnread: boolean;
+    canDeleteOthers: boolean;
+    reload: () => void;
+    loadOlder: () => void;
+    send: (messageText: string) => Promise<void>;
+    edit: (messageID: number, messageText: string) => Promise<void>;
+    remove: (messageID: number) => Promise<void>;
+    markRead: (messageID: number) => void;
+}

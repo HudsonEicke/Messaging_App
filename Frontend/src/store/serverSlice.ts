@@ -5,7 +5,7 @@ import type { ApiError } from '@/lib/utils';
 import { getApiError } from '@/lib/utils';
 import { loadLastChannels } from '@/lib/lastChannelStorage';
 import { clearTokens } from './authSlice';
-import { updateChannel, deleteChannel } from './channelSlice';
+import { updateChannel, deleteChannel, markChannelRead, sendMessage } from './channelSlice';
 import { getServers, getServer, createServer as createServerRequest, updateServer as updateServerRequest, deleteServer as deleteServerRequest, leaveServer as leaveServerRequest, getServerMembers, kickMember as kickMemberRequest, getChannels, createChannel as createChannelRequest, reorderChannels as reorderChannelsRequest, getInvites, createInvite as createInviteRequest, deleteInvite as deleteInviteRequest, joinServer as joinServerRequest } from '@/services/serverService';
 
 type FetchStatus = 'idle' | 'loading' | 'succeeded' | 'failed';
@@ -46,6 +46,28 @@ const removeServer = (state: ServerState, serverID: number) => {
     delete state.lastChannelByServer[serverID];
     delete state.membersByServer[serverID];
     delete state.invitesByServer[serverID];
+};
+
+// reading a channel or sending in it clears its dot, and the server's dot once none of its channels are unread
+const clearChannelUnread = (state: ServerState, channelID: number) => {
+    for (const [serverID, channels] of Object.entries(state.channelsByServer))
+    {
+        const channel = channels.find(listedChannel => listedChannel.channelID === channelID);
+
+        if (channel)
+        {
+            channel.hasUnread = false;
+
+            const server = state.servers.find(listedServer => listedServer.serverID === Number(serverID));
+
+            if (server)
+            {
+                server.hasUnread = channels.some(listedChannel => listedChannel.hasUnread);
+            }
+
+            return;
+        }
+    }
 };
 
 export const fetchServers = createAsyncThunk<ServerResponse[], void, { rejectValue: ApiError }>('server/fetchServers', async (_, { rejectWithValue }) => {
@@ -366,6 +388,12 @@ const serverSlice = createSlice({
                 {
                     channel.channelName = channelName;
                 }
+            })
+            .addCase(markChannelRead.fulfilled, (state, action) => {
+                clearChannelUnread(state, action.payload.channelID);
+            })
+            .addCase(sendMessage.fulfilled, (state, action) => {
+                clearChannelUnread(state, action.payload.channelID);
             })
             .addCase(deleteChannel.fulfilled, (state, action) => {
                 const { serverID, channelID } = action.payload;

@@ -5,6 +5,8 @@ import AppShell from './components/layout/AppShell';
 import { LoginPage } from '@/pages/login';
 import { RegisterPage } from '@/pages/register';
 import { ServerIndexPage } from '@/pages/server';
+import { ChannelPage } from '@/pages/channel';
+import { ConversationPage } from '@/pages/conversation';
 
 function App()
 {
@@ -18,9 +20,9 @@ function App()
                 <Route element={<ProtectedRoute />}>
                     <Route element={<AppShell />}>
                         <Route path="/channels/@me" element={<div>home</div>} />
-                        <Route path="/channels/@me/:conversationId" element={<div>conversation</div>} />
+                        <Route path="/channels/@me/:conversationId" element={<ConversationPage />} />
                         <Route path="/channels/:serverId" element={<ServerIndexPage />} />
-                        <Route path="/channels/:serverId/:channelId" element={<div>channel</div>} />
+                        <Route path="/channels/:serverId/:channelId" element={<ChannelPage />} />
                     </Route>
                 </Route>
                 <Route path="*" element={<Navigate to="/login" />} />

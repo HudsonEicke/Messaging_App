@@ -1,9 +1,10 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
+import type { RootState } from './store';
 import type { ConversationResponse, CreateConversationRequest, MessageResponse, SendMessageRequest, UpdateConversationRequest, UserResponse } from '@/types';
 import type { ApiError } from '@/lib/utils';
 import { getApiError } from '@/lib/utils';
 import { clearTokens } from './authSlice';
-import { getConversations, getConversation, createConversation as createConversationRequest, updateConversation as updateConversationRequest, leaveConversation as leaveConversationRequest, getMessages, sendMessage as sendMessageRequest, editMessage as editMessageRequest, deleteMessage as deleteMessageRequest, getConversationMembers, addMember as addMemberRequest } from '@/services/conversationService';
+import { getConversations, getConversation, createConversation as createConversationRequest, updateConversation as updateConversationRequest, leaveConversation as leaveConversationRequest, getMessages, sendMessage as sendMessageRequest, editMessage as editMessageRequest, deleteMessage as deleteMessageRequest, getConversationMembers, addMember as addMemberRequest, markConversationRead as markConversationReadRequest } from '@/services/conversationService';
 
 const MESSAGE_PAGE_SIZE = 50;
 
@@ -92,7 +93,7 @@ export const leaveConversation = createAsyncThunk<number, number, { rejectValue:
     }
 });
 
-export const fetchMessages = createAsyncThunk<{ conversationID: number; before?: number; messages: MessageResponse[]; hasMore: boolean }, { conversationID: number; before?: number }, { rejectValue: ApiError }>('conversation/fetchMessages', async ({ conversationID, before }, { rejectWithValue }) => {
+export const fetchMessages = createAsyncThunk<{ conversationID: number; before?: number; messages: MessageResponse[]; hasMore: boolean }, { conversationID: number; before?: number }, { state: RootState; rejectValue: ApiError }>('conversation/fetchMessages', async ({ conversationID, before }, { rejectWithValue }) => {
     try
     {
         const page = await getMessages(conversationID, before);
@@ -109,6 +110,9 @@ export const fetchMessages = createAsyncThunk<{ conversationID: number; before?:
     {
         return rejectWithValue(getApiError(error, 'Could not load messages'));
     }
+}, {
+    // scrolling can ask for the same older page more than once while it's loading
+    condition: ({ conversationID }, { getState }) => getState().conversation.messagesStatusByConversation[conversationID] !== 'loading'
 });
 
 export const sendMessage = createAsyncThunk<{ conversationID: number; message: MessageResponse }, { conversationID: number; request: SendMessageRequest }, { rejectValue: ApiError }>('conversation/sendMessage', async ({ conversationID, request }, { rejectWithValue }) => {
@@ -148,6 +152,18 @@ export const deleteMessage = createAsyncThunk<{ conversationID: number; messageI
     catch (error)
     {
         return rejectWithValue(getApiError(error, 'Could not delete message'));
+    }
+});
+
+export const markConversationRead = createAsyncThunk<{ conversationID: number; lastReadMessageID: number }, { conversationID: number; lastReadMessageID: number }, { rejectValue: ApiError }>('conversation/markConversationRead', async (target, { rejectWithValue }) => {
+    try
+    {
+        await markConversationReadRequest(target.conversationID, target.lastReadMessageID);
+        return target;
+    }
+    catch (error)
+    {
+        return rejectWithValue(getApiError(error, 'Could not mark conversation as read'));
     }
 });
 
@@ -267,8 +283,24 @@ const conversationSlice = createSlice({
             })
             .addCase(sendMessage.fulfilled, (state, action) => {
                 const { conversationID, message } = action.payload;
+                const messages = state.messagesByConversation[conversationID] ?? [];
 
-                state.messagesByConversation[conversationID] = [...(state.messagesByConversation[conversationID] ?? []), message];
+                // SignalR will also deliver your own message, so it may already be listed
+                if (!messages.some(listedMessage => listedMessage.id === message.id))
+                {
+                    state.messagesByConversation[conversationID] = [...messages, message];
+                }
+
+                // the backend marks your own message read, and the list is sorted by recent activity
+                const conversationIndex = state.conversations.findIndex(conversation => conversation.id === conversationID);
+
+                if (conversationIndex !== -1)
+                {
+                    const [conversation] = state.conversations.splice(conversationIndex, 1);
+                    conversation.lastMessageID = message.id;
+                    conversation.unreadCount = 0;
+                    state.conversations.unshift(conversation);
+                }
             })
             .addCase(sendMessage.rejected, (state, action) => {
                 state.error = action.payload ?? { message: 'Could not send message' };
@@ -297,6 +329,14 @@ const conversationSlice = createSlice({
             })
             .addCase(deleteMessage.rejected, (state, action) => {
                 state.error = action.payload ?? { message: 'Could not delete message' };
+            })
+            .addCase(markConversationRead.fulfilled, (state, action) => {
+                const conversation = state.conversations.find(listedConversation => listedConversation.id === action.payload.conversationID);
+
+                if (conversation)
+                {
+                    conversation.unreadCount = 0;
+                }
             })
             .addCase(fetchMembers.fulfilled, (state, action) => {
                 state.membersByConversation[action.payload.conversationID] = action.payload.members;

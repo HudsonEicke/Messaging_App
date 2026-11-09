@@ -1,24 +1,29 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import type { MessageResponse, SendMessageRequest } from '@/types';
+import type { RootState } from './store';
 import type { ApiError } from '@/lib/utils';
 import { getApiError } from '@/lib/utils';
 import { clearTokens } from './authSlice';
-import { updateChannel as updateChannelRequest, deleteChannel as deleteChannelRequest, getMessages, sendMessage as sendMessageRequest, editMessage as editMessageRequest, deleteMessage as deleteMessageRequest } from '@/services/channelService';
+import { updateChannel as updateChannelRequest, deleteChannel as deleteChannelRequest, getMessages, sendMessage as sendMessageRequest, editMessage as editMessageRequest, deleteMessage as deleteMessageRequest, markChannelRead as markChannelReadRequest } from '@/services/channelService';
 
 const MESSAGE_PAGE_SIZE = 50;
+
+type FetchStatus = 'idle' | 'loading' | 'succeeded' | 'failed';
 
 interface ChannelState
 {
     messagesByChannel: Record<number, MessageResponse[]>;
     hasMoreMessages: Record<number, boolean>;
-    status: 'idle' | 'loading' | 'succeeded' | 'failed';
+    messagesStatusByChannel: Record<number, FetchStatus>;
+    messagesErrorByChannel: Record<number, ApiError | null>;
     error: ApiError | null;
 }
 
 const initialState: ChannelState = {
     messagesByChannel: {},
     hasMoreMessages: {},
-    status: 'idle',
+    messagesStatusByChannel: {},
+    messagesErrorByChannel: {},
     error: null
 };
 
@@ -52,7 +57,7 @@ export const deleteChannel = createAsyncThunk<{ serverID: number; channelID: num
     }
 });
 
-export const fetchMessages = createAsyncThunk<{ channelID: number; before?: number; messages: MessageResponse[]; hasMore: boolean }, { channelID: number; before?: number }, { rejectValue: ApiError }>('channel/fetchMessages', async ({ channelID, before }, { rejectWithValue }) => {
+export const fetchMessages = createAsyncThunk<{ channelID: number; before?: number; messages: MessageResponse[]; hasMore: boolean }, { channelID: number; before?: number }, { state: RootState; rejectValue: ApiError }>('channel/fetchMessages', async ({ channelID, before }, { rejectWithValue }) => {
     try
     {
         const page = await getMessages(channelID, before);
@@ -69,6 +74,9 @@ export const fetchMessages = createAsyncThunk<{ channelID: number; before?: numb
     {
         return rejectWithValue(getApiError(error, 'Could not load messages'));
     }
+}, {
+    // scrolling can ask for the same older page more than once while it's loading
+    condition: ({ channelID }, { getState }) => getState().channel.messagesStatusByChannel[channelID] !== 'loading'
 });
 
 export const sendMessage = createAsyncThunk<{ channelID: number; message: MessageResponse }, { channelID: number; request: SendMessageRequest }, { rejectValue: ApiError }>('channel/sendMessage', async ({ channelID, request }, { rejectWithValue }) => {
@@ -111,6 +119,18 @@ export const deleteMessage = createAsyncThunk<{ channelID: number; messageID: nu
     }
 });
 
+export const markChannelRead = createAsyncThunk<{ channelID: number; lastReadMessageID: number }, { channelID: number; lastReadMessageID: number }, { rejectValue: ApiError }>('channel/markChannelRead', async (target, { rejectWithValue }) => {
+    try
+    {
+        await markChannelReadRequest(target.channelID, target.lastReadMessageID);
+        return target;
+    }
+    catch (error)
+    {
+        return rejectWithValue(getApiError(error, 'Could not mark channel as read'));
+    }
+});
+
 const channelSlice = createSlice({
     name: 'channel',
     initialState,
@@ -127,18 +147,21 @@ const channelSlice = createSlice({
 
                 delete state.messagesByChannel[channelID];
                 delete state.hasMoreMessages[channelID];
+                delete state.messagesStatusByChannel[channelID];
+                delete state.messagesErrorByChannel[channelID];
             })
             .addCase(deleteChannel.rejected, (state, action) => {
                 state.error = action.payload ?? { message: 'Could not delete channel' };
             })
-            .addCase(fetchMessages.pending, (state) => {
-                state.status = 'loading';
-                state.error = null;
+            // keyed by channel so a late response for one channel can't change another's status
+            .addCase(fetchMessages.pending, (state, action) => {
+                state.messagesStatusByChannel[action.meta.arg.channelID] = 'loading';
+                state.messagesErrorByChannel[action.meta.arg.channelID] = null;
             })
             .addCase(fetchMessages.fulfilled, (state, action) => {
                 const { channelID, before, messages, hasMore } = action.payload;
 
-                state.status = 'succeeded';
+                state.messagesStatusByChannel[channelID] = 'succeeded';
                 state.hasMoreMessages[channelID] = hasMore;
 
                 // no before means a fresh load, otherwise it's an older page that goes in front
@@ -152,13 +175,18 @@ const channelSlice = createSlice({
                 }
             })
             .addCase(fetchMessages.rejected, (state, action) => {
-                state.status = 'failed';
-                state.error = action.payload ?? { message: 'Could not load messages' };
+                state.messagesStatusByChannel[action.meta.arg.channelID] = 'failed';
+                state.messagesErrorByChannel[action.meta.arg.channelID] = action.payload ?? { message: 'Could not load messages' };
             })
             .addCase(sendMessage.fulfilled, (state, action) => {
                 const { channelID, message } = action.payload;
+                const messages = state.messagesByChannel[channelID] ?? [];
 
-                state.messagesByChannel[channelID] = [...(state.messagesByChannel[channelID] ?? []), message];
+                // SignalR will also deliver your own message, so it may already be listed
+                if (!messages.some(listedMessage => listedMessage.id === message.id))
+                {
+                    state.messagesByChannel[channelID] = [...messages, message];
+                }
             })
             .addCase(sendMessage.rejected, (state, action) => {
                 state.error = action.payload ?? { message: 'Could not send message' };
