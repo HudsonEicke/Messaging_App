@@ -25,14 +25,21 @@ interface GroupSettingsDialogProps
 {
     conversation: ConversationResponse;
     isActive: boolean;
+    // 'leave' skips straight to the leave confirm, for the right-click menu
+    mode?: 'settings' | 'leave';
     open: boolean;
     onOpenChange: (open: boolean) => void;
 }
 
-const GroupSettingsDialog = ({ conversation, isActive, open, onOpenChange }: GroupSettingsDialogProps) =>
+const GroupSettingsDialog = ({ conversation, isActive, mode = 'settings', open, onOpenChange }: GroupSettingsDialogProps) =>
 {
     const currentUsername = useSelector((state: RootState) => state.user.user?.username);
     const isOwner = currentUsername !== undefined && conversation.ownerUsername === currentUsername;
+
+    if (mode === 'leave')
+    {
+        return <LeaveGroupAlert conversation={conversation} isOwner={isOwner} isActive={isActive} open={open} onOpenChange={onOpenChange} />;
+    }
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
@@ -209,15 +216,41 @@ const GroupMembers = ({ conversation, isOwner }: { conversation: ConversationRes
 
 const LeaveGroup = ({ conversation, isOwner, isActive }: { conversation: ConversationResponse; isOwner: boolean; isActive: boolean }) =>
 {
+    const [isConfirmOpen, setIsConfirmOpen] = useState(false);
+
+    return (
+        <>
+            <div className="flex items-center justify-between gap-3">
+                <p className="text-sm text-muted-foreground">You'll stop getting messages from this group.</p>
+                <Button type="button" variant="destructive" size="sm" className="shrink-0" onClick={() => setIsConfirmOpen(true)}>
+                    Leave group
+                </Button>
+            </div>
+
+            <LeaveGroupAlert conversation={conversation} isOwner={isOwner} isActive={isActive} open={isConfirmOpen} onOpenChange={setIsConfirmOpen} />
+        </>
+    );
+};
+
+interface LeaveGroupAlertProps
+{
+    conversation: ConversationResponse;
+    isOwner: boolean;
+    isActive: boolean;
+    open: boolean;
+    onOpenChange: (open: boolean) => void;
+}
+
+const LeaveGroupAlert = ({ conversation, isOwner, isActive, open, onOpenChange }: LeaveGroupAlertProps) =>
+{
     const dispatch = useDispatch<AppDispatch>();
     const navigate = useNavigate();
-    const [isConfirmOpen, setIsConfirmOpen] = useState(false);
     const [isLeaving, setIsLeaving] = useState(false);
     const [leaveError, setLeaveError] = useState<string | null>(null);
 
-    const handleConfirmOpenChange = (nextOpen: boolean) =>
+    const handleOpenChange = (nextOpen: boolean) =>
     {
-        setIsConfirmOpen(nextOpen);
+        onOpenChange(nextOpen);
         setLeaveError(null);
     };
 
@@ -245,38 +278,29 @@ const LeaveGroup = ({ conversation, isOwner, isActive }: { conversation: Convers
     };
 
     return (
-        <>
-            <div className="flex items-center justify-between gap-3">
-                <p className="text-sm text-muted-foreground">You'll stop getting messages from this group.</p>
-                <Button type="button" variant="destructive" size="sm" className="shrink-0" onClick={() => handleConfirmOpenChange(true)}>
-                    Leave group
-                </Button>
-            </div>
+        <AlertDialog open={open} onOpenChange={handleOpenChange}>
+            <AlertDialogContent>
+                <AlertDialogHeader>
+                    <AlertDialogTitle>Leave {conversation.conversationName}?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                        {
+                            isOwner
+                                ? "You own this group. Ownership will pass to another member, or the group will be deleted if you're the only one left."
+                                : 'You can only come back if the owner adds you again.'
+                        }
+                    </AlertDialogDescription>
+                </AlertDialogHeader>
 
-            <AlertDialog open={isConfirmOpen} onOpenChange={handleConfirmOpenChange}>
-                <AlertDialogContent>
-                    <AlertDialogHeader>
-                        <AlertDialogTitle>Leave {conversation.conversationName}?</AlertDialogTitle>
-                        <AlertDialogDescription>
-                            {
-                                isOwner
-                                    ? "You own this group. Ownership will pass to another member, or the group will be deleted if you're the only one left."
-                                    : 'You can only come back if the owner adds you again.'
-                            }
-                        </AlertDialogDescription>
-                    </AlertDialogHeader>
+                {leaveError && <p className="text-sm text-destructive">{leaveError}</p>}
 
-                    {leaveError && <p className="text-sm text-destructive">{leaveError}</p>}
-
-                    <AlertDialogFooter>
-                        <AlertDialogCancel disabled={isLeaving}>Cancel</AlertDialogCancel>
-                        <AlertDialogAction variant="destructive" disabled={isLeaving} onClick={handleLeave}>
-                            {isLeaving ? 'Leaving...' : 'Leave group'}
-                        </AlertDialogAction>
-                    </AlertDialogFooter>
-                </AlertDialogContent>
-            </AlertDialog>
-        </>
+                <AlertDialogFooter>
+                    <AlertDialogCancel disabled={isLeaving}>Cancel</AlertDialogCancel>
+                    <AlertDialogAction variant="destructive" disabled={isLeaving} onClick={handleLeave}>
+                        {isLeaving ? 'Leaving...' : 'Leave group'}
+                    </AlertDialogAction>
+                </AlertDialogFooter>
+            </AlertDialogContent>
+        </AlertDialog>
     );
 };
 

@@ -12,11 +12,13 @@ interface LeaveServerDialogProps
 {
     server: ServerResponse;
     isOwner: boolean;
+    // leaving from the server rail can be for a server you're not looking at
+    isActive?: boolean;
     open: boolean;
     onOpenChange: (open: boolean) => void;
 }
 
-const LeaveServerDialog = ({ server, isOwner, open, onOpenChange }: LeaveServerDialogProps) =>
+const LeaveServerDialog = ({ server, isOwner, isActive = true, open, onOpenChange }: LeaveServerDialogProps) =>
 {
     const dispatch = useDispatch<AppDispatch>();
     const navigate = useNavigate();
@@ -39,7 +41,11 @@ const LeaveServerDialog = ({ server, isOwner, open, onOpenChange }: LeaveServerD
         try
         {
             await dispatch(leaveServer(server.serverID)).unwrap();
-            navigate('/channels/@me', { replace: true });
+
+            if (isActive)
+            {
+                navigate('/channels/@me', { replace: true });
+            }
         }
         catch (error)
         {

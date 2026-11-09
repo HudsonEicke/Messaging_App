@@ -1,11 +1,13 @@
-import { memo, useState } from 'react';
+import { Fragment, memo, useState } from 'react';
 import type { KeyboardEvent, MouseEvent, ReactNode } from 'react';
-import { Pencil, Reply, Trash2, User } from 'lucide-react';
+import { Copy, Pencil, Reply, Trash2, User } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import type { MessageReplyPreview, MessageResponse } from '@/types';
-import { cn, getErrorMessage } from '@/lib/utils';
+import { cn, copyToClipboard, getErrorMessage } from '@/lib/utils';
 import { formatFullTimestamp, formatMessageTime, formatMessageTimestamp } from '@/lib/messageTime';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuSeparator, ContextMenuTrigger } from '@/components/ui/context-menu';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { MESSAGE_MAX_LENGTH, getMessageElementId } from './messageSource';
 import MessageMarkdown from './MessageMarkdown';
@@ -26,80 +28,121 @@ interface MessageItemProps
     onDelete: (messageID: number) => Promise<void>;
 }
 
+interface MessageAction
+{
+    label: string;
+    Icon: LucideIcon;
+    onSelect: () => void;
+    destructive?: boolean;
+    menuOnly?: boolean;
+}
+
 const MessageItem = ({ message, isGrouped, isHighlighted, canEdit, canDelete, isEditing, onReply, onJumpToMessage, onStartEdit, onStopEdit, onEdit, onDelete }: MessageItemProps) =>
 {
     const [isDeleteOpen, setIsDeleteOpen] = useState(false);
     const sentAt = new Date(message.timeSent);
 
+    // one list for the hover toolbar and the right-click menu so they can't drift apart
+    const actions: MessageAction[] = [
+        { label: 'Reply', Icon: Reply, onSelect: () => onReply(message) },
+        ...(canEdit ? [{ label: 'Edit message', Icon: Pencil, onSelect: () => onStartEdit(message.id) }] : []),
+        { label: 'Copy text', Icon: Copy, onSelect: () => copyToClipboard(message.messageText), menuOnly: true },
+        ...(canDelete ? [{ label: 'Delete message', Icon: Trash2, onSelect: () => setIsDeleteOpen(true), destructive: true }] : [])
+    ];
+    const toolbarActions = actions.filter(action => !action.menuOnly);
+
     return (
-        <li
-            id={getMessageElementId(message.id)}
-            className={cn(
-                'group relative px-4 py-0.5 transition-colors hover:bg-muted/40 focus-within:bg-muted/40',
-                !isGrouped && 'mt-4',
-                isEditing && 'bg-muted/40',
-                isHighlighted && 'bg-primary/10'
-            )}
-        >
-            {message.replyTo && <ReplyPreview replyTo={message.replyTo} onJump={onJumpToMessage} />}
+        // non-modal so the menu closing doesn't fight the dialog it opens for focus
+        <ContextMenu modal={false}>
+            <ContextMenuTrigger asChild disabled={isEditing}>
+                <li
+                    id={getMessageElementId(message.id)}
+                    className={cn(
+                        'group relative px-4 py-0.5 transition-colors hover:bg-muted/40 focus-within:bg-muted/40',
+                        !isGrouped && 'mt-4',
+                        isEditing && 'bg-muted/40',
+                        isHighlighted && 'bg-primary/10'
+                    )}
+                >
+                    {message.replyTo && <ReplyPreview replyTo={message.replyTo} onJump={onJumpToMessage} />}
 
-            <div className="flex gap-4">
-                {
-                    isGrouped
-                        ? (
-                            <time
-                                dateTime={message.timeSent}
-                                title={formatFullTimestamp(sentAt)}
-                                className="-ml-2 w-12 shrink-0 pt-0.5 text-right text-[10px] leading-5 whitespace-nowrap text-muted-foreground opacity-0 group-hover:opacity-100"
-                            >
-                                {formatMessageTime(sentAt)}
-                            </time>
-                        )
-                        : (
-                            <Avatar className="mt-0.5 size-10 shrink-0">
-                                <AvatarImage src={message.senderProfileImageUrl || undefined} alt="" />
-                                <AvatarFallback><User className="size-5" aria-hidden="true" /></AvatarFallback>
-                            </Avatar>
-                        )
-                }
+                    <div className="flex gap-4">
+                        {
+                            isGrouped
+                                ? (
+                                    <time
+                                        dateTime={message.timeSent}
+                                        title={formatFullTimestamp(sentAt)}
+                                        className="-ml-2 w-12 shrink-0 pt-0.5 text-right text-[10px] leading-5 whitespace-nowrap text-muted-foreground opacity-0 group-hover:opacity-100"
+                                    >
+                                        {formatMessageTime(sentAt)}
+                                    </time>
+                                )
+                                : (
+                                    <Avatar className="mt-0.5 size-10 shrink-0">
+                                        <AvatarImage src={message.senderProfileImageUrl || undefined} alt="" />
+                                        <AvatarFallback><User className="size-5" aria-hidden="true" /></AvatarFallback>
+                                    </Avatar>
+                                )
+                        }
 
-                <div className="min-w-0 flex-1">
-                    {
-                        !isGrouped && (
-                            <p className="flex items-baseline gap-2">
-                                <span className="truncate text-sm font-medium" title={message.senderUsername}>{message.senderDisplayName}</span>
-                                <time dateTime={message.timeSent} title={formatFullTimestamp(sentAt)} className="shrink-0 text-xs text-muted-foreground">
-                                    {formatMessageTimestamp(sentAt)}
-                                </time>
-                            </p>
-                        )
-                    }
+                        <div className="min-w-0 flex-1">
+                            {
+                                !isGrouped && (
+                                    <p className="flex items-baseline gap-2">
+                                        <span className="truncate text-sm font-medium" title={message.senderUsername}>{message.senderDisplayName}</span>
+                                        <time dateTime={message.timeSent} title={formatFullTimestamp(sentAt)} className="shrink-0 text-xs text-muted-foreground">
+                                            {formatMessageTimestamp(sentAt)}
+                                        </time>
+                                    </p>
+                                )
+                            }
 
-                    {
-                        isEditing
-                            ? <MessageEditor message={message} onCancel={onStopEdit} onSave={onEdit} />
-                            : (
-                                <div className="text-sm leading-5 break-words">
-                                    <MessageMarkdown text={message.messageText} />
-                                    {message.edited && <span className="ml-1 text-[11px] text-muted-foreground">(edited)</span>}
-                                </div>
-                            )
-                    }
-                </div>
-            </div>
-
-            {
-                !isEditing && (
-                    <div className="absolute -top-3 right-4 flex rounded-md border bg-popover p-0.5 opacity-0 shadow-sm group-hover:opacity-100 group-focus-within:opacity-100">
-                        <ToolbarButton label="Reply" onClick={() => onReply(message)}><Reply className="size-4" aria-hidden="true" /></ToolbarButton>
-                        {canEdit && <ToolbarButton label="Edit message" onClick={() => onStartEdit(message.id)}><Pencil className="size-4" aria-hidden="true" /></ToolbarButton>}
-                        {canDelete && <ToolbarButton label="Delete message" destructive onClick={() => setIsDeleteOpen(true)}><Trash2 className="size-4" aria-hidden="true" /></ToolbarButton>}
+                            {
+                                isEditing
+                                    ? <MessageEditor message={message} onCancel={onStopEdit} onSave={onEdit} />
+                                    : (
+                                        // links keep the browser's own menu so they can be opened or copied
+                                        <div className="text-sm leading-5 break-words" onContextMenu={event => { if ((event.target as HTMLElement).closest('a')) event.stopPropagation(); }}>
+                                            <MessageMarkdown text={message.messageText} />
+                                            {message.edited && <span className="ml-1 text-[11px] text-muted-foreground">(edited)</span>}
+                                        </div>
+                                    )
+                            }
+                        </div>
                     </div>
-                )
-            }
 
+                    {
+                        !isEditing && (
+                            <div className="absolute -top-3 right-4 flex rounded-md border bg-popover p-0.5 opacity-0 shadow-sm group-hover:opacity-100 group-focus-within:opacity-100">
+                                {
+                                    toolbarActions.map(({ label, Icon, onSelect, destructive }) => (
+                                        <ToolbarButton key={label} label={label} destructive={destructive} onClick={onSelect}><Icon className="size-4" aria-hidden="true" /></ToolbarButton>
+                                    ))
+                                }
+                            </div>
+                        )
+                    }
+                </li>
+            </ContextMenuTrigger>
+
+            <ContextMenuContent className="w-48">
+                {
+                    actions.map(({ label, Icon, onSelect, destructive }) => (
+                        <Fragment key={label}>
+                            {destructive && <ContextMenuSeparator />}
+                            <ContextMenuItem variant={destructive ? 'destructive' : 'default'} onSelect={onSelect}>
+                                <Icon aria-hidden="true" />
+                                {label}
+                            </ContextMenuItem>
+                        </Fragment>
+                    ))
+                }
+            </ContextMenuContent>
+
+            {/* outside the trigger: React events from the portaled dialog would otherwise bubble into the row and reopen the menu */}
             {canDelete && <DeleteMessageDialog message={message} open={isDeleteOpen} onOpenChange={setIsDeleteOpen} onDelete={onDelete} />}
-        </li>
+        </ContextMenu>
     );
 };
 

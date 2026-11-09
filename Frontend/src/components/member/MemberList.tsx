@@ -1,7 +1,12 @@
-import { Crown, User } from 'lucide-react';
+import { useDispatch, useSelector } from 'react-redux';
+import { useNavigate } from 'react-router-dom';
+import { AtSign, Crown, MessageCircle, User } from 'lucide-react';
 import type { UserResponse } from '@/types';
 import { ActivityStatus } from '@/types';
-import { cn } from '@/lib/utils';
+import type { AppDispatch, RootState } from '@/store/store';
+import { createConversation, fetchConversations } from '@/store/conversationSlice';
+import { cn, copyToClipboard } from '@/lib/utils';
+import { ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuTrigger } from '@/components/ui/context-menu';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import StatusBadge from '@/components/user/StatusBadge';
@@ -87,27 +92,65 @@ const MemberSection = ({ title, members, ownerUsername }: MemberSectionProps) =>
 
 const MemberRow = ({ member, isOwner }: { member: UserResponse; isOwner: boolean }) =>
 {
+    const dispatch = useDispatch<AppDispatch>();
+    const navigate = useNavigate();
+    const currentUsername = useSelector((state: RootState) => state.user.user?.username);
     const isOffline = member.activityStatus === ActivityStatus.offline;
+    const isSelf = member.username === currentUsername;
+
+    // creating a DM that already exists returns the existing one
+    const openDirectMessage = async () =>
+    {
+        try
+        {
+            const conversation = await dispatch(createConversation({ memberUsernames: [member.username] })).unwrap();
+            dispatch(fetchConversations());
+            navigate(`/channels/@me/${conversation.id}`);
+        }
+        catch
+        {
+            // the menu has already closed, so there is nowhere to show the error yet
+        }
+    };
 
     return (
-        <li title={member.username} className={cn('flex items-center gap-3 rounded-md px-2 py-1.5 hover:bg-sidebar-accent/50', isOffline && 'opacity-50 hover:opacity-100')}>
-            <Avatar className="size-8 shrink-0">
-                <AvatarImage src={member.profileImageUrl || undefined} alt="" />
-                <AvatarFallback><User className="size-4" aria-hidden="true" /></AvatarFallback>
-                <StatusBadge status={member.activityStatus} />
-            </Avatar>
+        <ContextMenu>
+            <ContextMenuTrigger asChild>
+                <li title={member.username} className={cn('flex items-center gap-3 rounded-md px-2 py-1.5 hover:bg-sidebar-accent/50', isOffline && 'opacity-50 hover:opacity-100')}>
+                    <Avatar className="size-8 shrink-0">
+                        <AvatarImage src={member.profileImageUrl || undefined} alt="" />
+                        <AvatarFallback><User className="size-4" aria-hidden="true" /></AvatarFallback>
+                        <StatusBadge status={member.activityStatus} />
+                    </Avatar>
 
-            <span className="min-w-0 flex-1 truncate text-sm">{member.displayName}</span>
+                    <span className="min-w-0 flex-1 truncate text-sm">{member.displayName}</span>
 
-            {
-                isOwner && (
-                    <span title="Owner" className="shrink-0">
-                        <Crown className="size-3.5 text-amber-500" fill="currentColor" aria-hidden="true" />
-                        <span className="sr-only">Owner</span>
-                    </span>
-                )
-            }
-        </li>
+                    {
+                        isOwner && (
+                            <span title="Owner" className="shrink-0">
+                                <Crown className="size-3.5 text-amber-500" fill="currentColor" aria-hidden="true" />
+                                <span className="sr-only">Owner</span>
+                            </span>
+                        )
+                    }
+                </li>
+            </ContextMenuTrigger>
+
+            <ContextMenuContent className="w-48">
+                {
+                    !isSelf && (
+                        <ContextMenuItem onSelect={openDirectMessage}>
+                            <MessageCircle aria-hidden="true" />
+                            Message
+                        </ContextMenuItem>
+                    )
+                }
+                <ContextMenuItem onSelect={() => copyToClipboard(member.username)}>
+                    <AtSign aria-hidden="true" />
+                    Copy username
+                </ContextMenuItem>
+            </ContextMenuContent>
+        </ContextMenu>
     );
 };
 

@@ -1,9 +1,10 @@
 import { NavLink } from 'react-router-dom';
-import { Hash, Settings } from 'lucide-react';
+import { Hash, Link, Settings, Trash2 } from 'lucide-react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import type { ChannelResponse } from '@/types';
-import { cn } from '@/lib/utils';
+import { cn, copyToClipboard, getAbsoluteUrl } from '@/lib/utils';
+import { ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuSeparator, ContextMenuTrigger } from '@/components/ui/context-menu';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface ChannelItemProps
@@ -13,13 +14,15 @@ interface ChannelItemProps
     isActive: boolean;
     isOwner: boolean;
     onOpenSettings: (channelId: number) => void;
+    onDelete: (channelId: number) => void;
 }
 
 // one row in the channel list; ChannelList decides which one is active, from the URL
 // owners can drag the row to reorder it and get a settings gear; for everyone else sorting is disabled
-const ChannelItem = ({ serverId, channel, isActive, isOwner, onOpenSettings }: ChannelItemProps) =>
+const ChannelItem = ({ serverId, channel, isActive, isOwner, onOpenSettings, onDelete }: ChannelItemProps) =>
 {
     const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: channel.channelID, disabled: !isOwner });
+    const channelPath = `/channels/${serverId}/${channel.channelID}`;
 
     return (
         <div
@@ -36,26 +39,53 @@ const ChannelItem = ({ serverId, channel, isActive, isOwner, onOpenSettings }: C
                 )}
             />
 
-            <NavLink
-                to={`/channels/${serverId}/${channel.channelID}`}
-                aria-current={isActive ? 'page' : undefined}
-                // only the instructions from attributes: its role="button" and tabIndex would hide that this is a link
-                aria-describedby={isOwner ? attributes['aria-describedby'] : undefined}
-                {...listeners}
-                className={cn(
-                    'flex h-8 items-center gap-1.5 rounded-md px-2 text-sm outline-none transition-colors focus-visible:ring-3 focus-visible:ring-ring/50',
-                    isOwner && 'pr-8',
-                    isActive
-                        ? 'bg-sidebar-accent font-medium text-sidebar-accent-foreground'
-                        : cn(
-                            'hover:bg-sidebar-accent/50 hover:text-sidebar-foreground',
-                            channel.hasUnread ? 'font-semibold text-sidebar-foreground' : 'text-muted-foreground'
+            {/* non-modal so the menu closing doesn't fight the dialog it opens for focus; the trigger shares the link with the drag listeners */}
+            <ContextMenu modal={false}>
+                <ContextMenuTrigger asChild>
+                    <NavLink
+                        to={channelPath}
+                        aria-current={isActive ? 'page' : undefined}
+                        // only the instructions from attributes: its role="button" and tabIndex would hide that this is a link
+                        aria-describedby={isOwner ? attributes['aria-describedby'] : undefined}
+                        {...listeners}
+                        className={cn(
+                            'flex h-8 items-center gap-1.5 rounded-md px-2 text-sm outline-none transition-colors focus-visible:ring-3 focus-visible:ring-ring/50',
+                            isOwner && 'pr-8',
+                            isActive
+                                ? 'bg-sidebar-accent font-medium text-sidebar-accent-foreground'
+                                : cn(
+                                    'hover:bg-sidebar-accent/50 hover:text-sidebar-foreground',
+                                    channel.hasUnread ? 'font-semibold text-sidebar-foreground' : 'text-muted-foreground'
+                                )
+                        )}
+                    >
+                        <Hash className="size-4 shrink-0" aria-hidden="true" />
+                        <span className="truncate">{channel.channelName}</span>
+                    </NavLink>
+                </ContextMenuTrigger>
+
+                <ContextMenuContent className="w-48">
+                    <ContextMenuItem onSelect={() => copyToClipboard(getAbsoluteUrl(channelPath))}>
+                        <Link aria-hidden="true" />
+                        Copy link
+                    </ContextMenuItem>
+                    {
+                        isOwner && (
+                            <>
+                                <ContextMenuItem onSelect={() => onOpenSettings(channel.channelID)}>
+                                    <Settings aria-hidden="true" />
+                                    Channel settings
+                                </ContextMenuItem>
+                                <ContextMenuSeparator />
+                                <ContextMenuItem variant="destructive" onSelect={() => onDelete(channel.channelID)}>
+                                    <Trash2 aria-hidden="true" />
+                                    Delete channel
+                                </ContextMenuItem>
+                            </>
                         )
-                )}
-            >
-                <Hash className="size-4 shrink-0" aria-hidden="true" />
-                <span className="truncate">{channel.channelName}</span>
-            </NavLink>
+                    }
+                </ContextMenuContent>
+            </ContextMenu>
 
             {
                 // a sibling of the link, not inside it, since a button can't go inside an <a>

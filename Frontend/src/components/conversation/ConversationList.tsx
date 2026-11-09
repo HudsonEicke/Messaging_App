@@ -23,10 +23,13 @@ const ConversationList = () =>
     const { conversationId } = useActiveIds();
     const navigate = useNavigate();
     const [isNewOpen, setIsNewOpen] = useState(false);
-    const [settingsConversationId, setSettingsConversationId] = useState<number | null>(null);
+    const [settingsTarget, setSettingsTarget] = useState<{ conversationId: number; mode: 'settings' | 'leave' } | null>(null);
     const [closeError, setCloseError] = useState<string | null>(null);
 
-    const settingsConversation = conversations.find(conversation => conversation.id === settingsConversationId);
+    const settingsConversation = conversations.find(conversation => conversation.id === settingsTarget?.conversationId);
+
+    const openGroupSettings = (id: number) => setSettingsTarget({ conversationId: id, mode: 'settings' });
+    const openLeaveGroup = (id: number) => setSettingsTarget({ conversationId: id, mode: 'leave' });
 
     useEffect(() =>
     {
@@ -79,7 +82,8 @@ const ConversationList = () =>
                                     conversation={conversation}
                                     isActive={conversation.id === conversationId}
                                     onClose={handleCloseDm}
-                                    onOpenSettings={setSettingsConversationId}
+                                    onOpenSettings={openGroupSettings}
+                                    onLeaveGroup={openLeaveGroup}
                                 />
                             ))
                             : conversationsStatus === 'failed'
@@ -103,12 +107,14 @@ const ConversationList = () =>
 
             <NewConversationDialog open={isNewOpen} onOpenChange={setIsNewOpen} />
             {
-                settingsConversation && (
+                settingsConversation && settingsTarget && (
                     <GroupSettingsDialog
+                        key={`${settingsTarget.conversationId}-${settingsTarget.mode}`}
                         conversation={settingsConversation}
                         isActive={settingsConversation.id === conversationId}
                         open
-                        onOpenChange={open => { if (!open) setSettingsConversationId(null); }}
+                        mode={settingsTarget.mode}
+                        onOpenChange={open => { if (!open) setSettingsTarget(null); }}
                     />
                 )
             }

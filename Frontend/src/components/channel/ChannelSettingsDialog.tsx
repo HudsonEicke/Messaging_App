@@ -16,15 +16,18 @@ interface ChannelSettingsDialogProps
     serverId: number;
     channel: ChannelResponse;
     isActive: boolean;
+    // 'delete' skips straight to the confirm, for the right-click menu
+    mode?: 'settings' | 'delete';
     open: boolean;
     onOpenChange: (open: boolean) => void;
 }
 
-const ChannelSettingsDialog = ({ serverId, channel, isActive, open, onOpenChange }: ChannelSettingsDialogProps) =>
+const ChannelSettingsDialog = ({ serverId, channel, isActive, mode = 'settings', open, onOpenChange }: ChannelSettingsDialogProps) =>
 {
     const dispatch = useDispatch<AppDispatch>();
     const navigate = useNavigate();
-    const [isConfirmOpen, setIsConfirmOpen] = useState(false);
+    const isDeleteOnly = mode === 'delete';
+    const [isConfirmOpen, setIsConfirmOpen] = useState(isDeleteOnly);
     const [isDeleting, setIsDeleting] = useState(false);
     const [deleteError, setDeleteError] = useState<string | null>(null);
 
@@ -42,6 +45,11 @@ const ChannelSettingsDialog = ({ serverId, channel, isActive, open, onOpenChange
     {
         setIsConfirmOpen(nextOpen);
         setDeleteError(null);
+
+        if (!nextOpen && isDeleteOnly)
+        {
+            onOpenChange(false);
+        }
     };
 
     const handleDelete = async (event: MouseEvent<HTMLButtonElement>) =>
@@ -69,42 +77,44 @@ const ChannelSettingsDialog = ({ serverId, channel, isActive, open, onOpenChange
     };
 
     return (
-        <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent>
-                <DialogHeader>
-                    <DialogTitle>Channel settings</DialogTitle>
-                    <DialogDescription className="truncate">#{channel.channelName}</DialogDescription>
-                </DialogHeader>
+        <>
+            <Dialog open={open && !isDeleteOnly} onOpenChange={onOpenChange}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Channel settings</DialogTitle>
+                        <DialogDescription className="truncate">#{channel.channelName}</DialogDescription>
+                    </DialogHeader>
 
-                <ChannelNameForm defaultName={channel.channelName} submitLabel="Save changes" submittingLabel="Saving..." onSubmit={handleRename}>
-                    <div className="flex flex-col items-start gap-2 rounded-lg border border-destructive/30 p-3">
-                        <p className="text-sm font-medium">Delete channel</p>
-                        <p className="text-sm text-muted-foreground">This removes the channel and all of its messages for everyone. It can't be undone.</p>
-                        <Button type="button" variant="destructive" size="sm" onClick={() => handleConfirmOpenChange(true)}>
-                            Delete channel
-                        </Button>
-                    </div>
-                </ChannelNameForm>
+                    <ChannelNameForm defaultName={channel.channelName} submitLabel="Save changes" submittingLabel="Saving..." onSubmit={handleRename}>
+                        <div className="flex flex-col items-start gap-2 rounded-lg border border-destructive/30 p-3">
+                            <p className="text-sm font-medium">Delete channel</p>
+                            <p className="text-sm text-muted-foreground">This removes the channel and all of its messages for everyone. It can't be undone.</p>
+                            <Button type="button" variant="destructive" size="sm" onClick={() => handleConfirmOpenChange(true)}>
+                                Delete channel
+                            </Button>
+                        </div>
+                    </ChannelNameForm>
+                </DialogContent>
+            </Dialog>
 
-                <AlertDialog open={isConfirmOpen} onOpenChange={handleConfirmOpenChange}>
-                    <AlertDialogContent>
-                        <AlertDialogHeader>
-                            <AlertDialogTitle>Delete #{channel.channelName}?</AlertDialogTitle>
-                            <AlertDialogDescription>All of its messages will be deleted for everyone. This can't be undone.</AlertDialogDescription>
-                        </AlertDialogHeader>
+            <AlertDialog open={isConfirmOpen} onOpenChange={handleConfirmOpenChange}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Delete #{channel.channelName}?</AlertDialogTitle>
+                        <AlertDialogDescription>All of its messages will be deleted for everyone. This can't be undone.</AlertDialogDescription>
+                    </AlertDialogHeader>
 
-                        {deleteError && <p className="text-sm text-destructive">{deleteError}</p>}
+                    {deleteError && <p className="text-sm text-destructive">{deleteError}</p>}
 
-                        <AlertDialogFooter>
-                            <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
-                            <AlertDialogAction variant="destructive" disabled={isDeleting} onClick={handleDelete}>
-                                {isDeleting ? 'Deleting...' : 'Delete channel'}
-                            </AlertDialogAction>
-                        </AlertDialogFooter>
-                    </AlertDialogContent>
-                </AlertDialog>
-            </DialogContent>
-        </Dialog>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+                        <AlertDialogAction variant="destructive" disabled={isDeleting} onClick={handleDelete}>
+                            {isDeleting ? 'Deleting...' : 'Delete channel'}
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+        </>
     );
 };
 

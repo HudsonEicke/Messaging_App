@@ -43,7 +43,7 @@ const ChannelList = ({ serverId }: ChannelListProps) =>
     const currentUsername = useSelector((state: RootState) => state.user.user?.username);
     const { channelId } = useActiveIds();
     const [isCreateOpen, setIsCreateOpen] = useState(false);
-    const [settingsChannelId, setSettingsChannelId] = useState<number | null>(null);
+    const [settingsTarget, setSettingsTarget] = useState<{ channelId: number; mode: 'settings' | 'delete' } | null>(null);
     const { startSuppressing, stopSuppressing } = useSuppressClickAfterDrag();
 
     const sensors = useSensors(
@@ -52,7 +52,10 @@ const ChannelList = ({ serverId }: ChannelListProps) =>
     );
 
     const isOwner = server !== undefined && currentUsername !== undefined && server.ownerUsername === currentUsername;
-    const settingsChannel = channels?.find(channel => channel.channelID === settingsChannelId);
+    const settingsChannel = channels?.find(channel => channel.channelID === settingsTarget?.channelId);
+
+    const openChannelSettings = (channelId: number) => setSettingsTarget({ channelId, mode: 'settings' });
+    const openChannelDelete = (channelId: number) => setSettingsTarget({ channelId, mode: 'delete' });
 
     useEffect(() =>
     {
@@ -156,7 +159,8 @@ const ChannelList = ({ serverId }: ChannelListProps) =>
                                                         channel={channel}
                                                         isActive={channel.channelID === channelId}
                                                         isOwner={isOwner}
-                                                        onOpenSettings={setSettingsChannelId}
+                                                        onOpenSettings={openChannelSettings}
+                                                        onDelete={openChannelDelete}
                                                     />
                                                 ))
                                             }
@@ -173,13 +177,16 @@ const ChannelList = ({ serverId }: ChannelListProps) =>
                         <CreateChannelDialog serverId={serverId} open={isCreateOpen} onOpenChange={setIsCreateOpen} />
                         {
                             // rendered only while a channel is picked, and it disappears with the channel once deleted
-                            settingsChannel && (
+                            settingsChannel && settingsTarget && (
                                 <ChannelSettingsDialog
+                                    // remount when switching between settings and delete so the confirm starts in the right state
+                                    key={`${settingsTarget.channelId}-${settingsTarget.mode}`}
                                     serverId={serverId}
                                     channel={settingsChannel}
                                     isActive={settingsChannel.channelID === channelId}
+                                    mode={settingsTarget.mode}
                                     open
-                                    onOpenChange={open => { if (!open) setSettingsChannelId(null); }}
+                                    onOpenChange={open => { if (!open) setSettingsTarget(null); }}
                                 />
                             )
                         }

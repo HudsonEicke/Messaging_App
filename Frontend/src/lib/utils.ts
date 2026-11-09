@@ -59,3 +59,10 @@ export const getErrorMessage = (error: unknown, fallback: string): string => {
 
     return fallback;
 };
+
+// clipboard access can be refused (permissions, insecure origin); copying is best effort
+export const copyToClipboard = (text: string): void => {
+    navigator.clipboard.writeText(text).catch(() => undefined);
+};
+
+export const getAbsoluteUrl = (path: string): string => new URL(path, window.location.origin).href;
