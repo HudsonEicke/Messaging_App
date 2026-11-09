@@ -196,6 +196,72 @@ public class MessageTests : IClassFixture<TestWebApplicationFactory>
         Assert.Equal("https://example.com/mgsendmsgimage.png", result.senderProfileImageUrl);
     }
 
+    [Fact]
+    public async Task SendMessage_WithReplyTo_ReturnsReplyPreview()
+    {
+        //arrange
+        (string token, long serverId) = await CreateServerAndGetId("mgsendpreview");
+        long targetId = await CreateChannel(token, serverId, "general");
+        long originalMessageId = await SendMessage(token, targetId, "Original message");
+
+        //act
+        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Post, $"/channels/{targetId}/messages", token, new SendMessageRequest { messageText = "Reply", replyToID = originalMessageId }), TestContext.Current.CancellationToken);
+        SendMessageResult? result = await response.Content.ReadFromJsonAsync<SendMessageResult>(TestContext.Current.CancellationToken);
+
+        //assert
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.NotNull(result);
+        Assert.NotNull(result.replyTo);
+        Assert.Equal(originalMessageId, result.replyTo.id);
+        Assert.Equal("Original message", result.replyTo.messageText);
+        Assert.Equal("mgsendpreview", result.replyTo.senderUsername);
+    }
+
+    [Fact]
+    public async Task GetMessages_WithReply_ReturnsReplyPreview()
+    {
+        //arrange
+        (string token, long serverId) = await CreateServerAndGetId("mggetpreview");
+        long targetId = await CreateChannel(token, serverId, "general");
+        long originalMessageId = await SendMessage(token, targetId, "Original message");
+        await client.SendAsync(CreateRequest(HttpMethod.Post, $"/channels/{targetId}/messages", token, new SendMessageRequest { messageText = "Reply", replyToID = originalMessageId }), TestContext.Current.CancellationToken);
+
+        //act
+        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Get, $"/channels/{targetId}/messages", token), TestContext.Current.CancellationToken);
+        List<MessageResult>? result = await response.Content.ReadFromJsonAsync<List<MessageResult>>(TestContext.Current.CancellationToken);
+
+        //assert
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.NotNull(result);
+        MessageResult reply = result.Single(message => message.messageText == "Reply");
+        MessageResult original = result.Single(message => message.messageText == "Original message");
+        Assert.NotNull(reply.replyTo);
+        Assert.Equal(originalMessageId, reply.replyTo.id);
+        Assert.Equal("Original message", reply.replyTo.messageText);
+        Assert.Null(original.replyTo);
+    }
+
+    [Fact]
+    public async Task GetMessages_WithLongReplyTarget_ShortensPreview()
+    {
+        //arrange
+        (string token, long serverId) = await CreateServerAndGetId("mglongpreview");
+        long targetId = await CreateChannel(token, serverId, "general");
+        long originalMessageId = await SendMessage(token, targetId, new string('a', 150));
+        await client.SendAsync(CreateRequest(HttpMethod.Post, $"/channels/{targetId}/messages", token, new SendMessageRequest { messageText = "Reply", replyToID = originalMessageId }), TestContext.Current.CancellationToken);
+
+        //act
+        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Get, $"/channels/{targetId}/messages", token), TestContext.Current.CancellationToken);
+        List<MessageResult>? result = await response.Content.ReadFromJsonAsync<List<MessageResult>>(TestContext.Current.CancellationToken);
+
+        //assert
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.NotNull(result);
+        MessageResult reply = result.Single(message => message.messageText == "Reply");
+        Assert.NotNull(reply.replyTo);
+        Assert.Equal(new string('a', 100) + "…", reply.replyTo.messageText);
+    }
+
     //SEND MESSAGE
     [Fact]
     public async Task SendMessage_AsMember_ReturnsOkWithMessage()

@@ -175,6 +175,69 @@ public class ConversationMessageTests : IClassFixture<TestWebApplicationFactory>
         Assert.Equal("https://example.com/cmsendmsgimage.png", result.senderProfileImageUrl);
     }
 
+    [Fact]
+    public async Task SendConversationMessage_WithReplyTo_ReturnsReplyPreview()
+    {
+        //arrange
+        (string token, _, long targetId) = await CreateDmConversation("cmsendpreview", "cmsendpreviewb");
+        long originalMessageId = await SendConversationMessage(token, targetId, "Original message");
+
+        //act
+        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Post, $"/conversations/{targetId}/messages", token, new SendMessageRequest { messageText = "Reply", replyToID = originalMessageId }), TestContext.Current.CancellationToken);
+        SendMessageResult? result = await response.Content.ReadFromJsonAsync<SendMessageResult>(TestContext.Current.CancellationToken);
+
+        //assert
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.NotNull(result);
+        Assert.NotNull(result.replyTo);
+        Assert.Equal(originalMessageId, result.replyTo.id);
+        Assert.Equal("Original message", result.replyTo.messageText);
+        Assert.Equal("cmsendpreview", result.replyTo.senderUsername);
+    }
+
+    [Fact]
+    public async Task GetConversationMessages_WithReply_ReturnsReplyPreview()
+    {
+        //arrange
+        (string token, _, long targetId) = await CreateDmConversation("cmgetpreview", "cmgetpreviewb");
+        long originalMessageId = await SendConversationMessage(token, targetId, "Original message");
+        await client.SendAsync(CreateRequest(HttpMethod.Post, $"/conversations/{targetId}/messages", token, new SendMessageRequest { messageText = "Reply", replyToID = originalMessageId }), TestContext.Current.CancellationToken);
+
+        //act
+        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Get, $"/conversations/{targetId}/messages", token), TestContext.Current.CancellationToken);
+        List<MessageResult>? result = await response.Content.ReadFromJsonAsync<List<MessageResult>>(TestContext.Current.CancellationToken);
+
+        //assert
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.NotNull(result);
+        MessageResult reply = result.Single(message => message.messageText == "Reply");
+        MessageResult original = result.Single(message => message.messageText == "Original message");
+        Assert.NotNull(reply.replyTo);
+        Assert.Equal(originalMessageId, reply.replyTo.id);
+        Assert.Equal("Original message", reply.replyTo.messageText);
+        Assert.Null(original.replyTo);
+    }
+
+    [Fact]
+    public async Task GetConversationMessages_WithLongReplyTarget_ShortensPreview()
+    {
+        //arrange
+        (string token, _, long targetId) = await CreateDmConversation("cmlongpreview", "cmlongpreviewb");
+        long originalMessageId = await SendConversationMessage(token, targetId, new string('a', 150));
+        await client.SendAsync(CreateRequest(HttpMethod.Post, $"/conversations/{targetId}/messages", token, new SendMessageRequest { messageText = "Reply", replyToID = originalMessageId }), TestContext.Current.CancellationToken);
+
+        //act
+        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Get, $"/conversations/{targetId}/messages", token), TestContext.Current.CancellationToken);
+        List<MessageResult>? result = await response.Content.ReadFromJsonAsync<List<MessageResult>>(TestContext.Current.CancellationToken);
+
+        //assert
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.NotNull(result);
+        MessageResult reply = result.Single(message => message.messageText == "Reply");
+        Assert.NotNull(reply.replyTo);
+        Assert.Equal(new string('a', 100) + "…", reply.replyTo.messageText);
+    }
+
     //SEND MESSAGE
     [Fact]
     public async Task SendConversationMessage_AsMember_ReturnsOkWithMessage()

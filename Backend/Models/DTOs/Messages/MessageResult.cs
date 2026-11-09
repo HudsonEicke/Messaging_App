@@ -10,4 +10,5 @@ public class MessageResult
     public DateTimeOffset timeSent { get; set; }
     public bool edited { get; set; }
     public long? replyToID { get; set; } = null;
+    public MessageReplyPreview? replyTo { get; set; } = null;
 }

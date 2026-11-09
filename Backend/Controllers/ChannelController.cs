@@ -155,6 +155,29 @@ public class ChannelController : ModifiedControllerBase
 
         List<MessageResult> results = await messageQuery.OrderByDescending(message => message.id).Take(MESSAGEGRABAMOUNT).Join(db.Users, message => message.sender, user => user.id, (message, user) => new MessageResult{id = message.id, messageText = encryptionService.Decrypt(message.messageText), senderUsername = user.username, senderDisplayName = user.displayName, senderProfileImageUrl = user.profileImageUrl, edited = message.edited, timeSent = message.timeSent, replyToID = message.replyToID}).ToListAsync();
 
+        List<long> replyIds = results.Where(result => result.replyToID != null).Select(result => result.replyToID!.Value).Distinct().ToList();
+
+        //decrypting can't run in the database, so the originals are loaded in a second query
+        if (replyIds.Count > 0)
+        {
+            List<MessageReplyPreview> previews = await db.Messages.AsNoTracking().Where(message => replyIds.Contains(message.id)).Join(db.Users, message => message.sender, user => user.id, (message, user) => new MessageReplyPreview{id = message.id, messageText = message.messageText, senderUsername = user.username, senderDisplayName = user.displayName, senderProfileImageUrl = user.profileImageUrl}).ToListAsync();
+
+            foreach (MessageReplyPreview preview in previews)
+            {
+                preview.messageText = ShortenReplyPreview(encryptionService.Decrypt(preview.messageText));
+            }
+
+            Dictionary<long, MessageReplyPreview> previewsById = previews.ToDictionary(preview => preview.id);
+
+            foreach (MessageResult result in results)
+            {
+                if (result.replyToID != null && previewsById.TryGetValue(result.replyToID.Value, out MessageReplyPreview? preview))
+                {
+                    result.replyTo = preview;
+                }
+            }
+        }
+
         return Ok(results);
     }
 
@@ -194,17 +217,20 @@ public class ChannelController : ModifiedControllerBase
         newMessage.channelID = id;
         newMessage.sender = userId;
 
+        MessageReplyPreview? replyPreview = null;
+
         //checks if the message is replying to another message
         if(sendMessageRequest.replyToID != null)
         {
             //makes sure message is apart of the server
-            bool replyExists = await db.Messages.AnyAsync(message => message.id == sendMessageRequest.replyToID && message.channelID == id);
+            replyPreview = await db.Messages.AsNoTracking().Where(message => message.id == sendMessageRequest.replyToID && message.channelID == id).Join(db.Users, message => message.sender, user => user.id, (message, user) => new MessageReplyPreview{id = message.id, messageText = message.messageText, senderUsername = user.username, senderDisplayName = user.displayName, senderProfileImageUrl = user.profileImageUrl}).FirstOrDefaultAsync();
 
-            if(!replyExists)
+            if(replyPreview == null)
             {
                 return BadRequest("Reply target message not found");
             }
 
+            replyPreview.messageText = ShortenReplyPreview(encryptionService.Decrypt(replyPreview.messageText));
             newMessage.replyToID = sendMessageRequest.replyToID;
         }
 
@@ -228,6 +254,7 @@ public class ChannelController : ModifiedControllerBase
         result.senderProfileImageUrl = sender.profileImageUrl;
         result.timeSent = newMessage.timeSent;
         result.replyToID = newMessage.replyToID;
+        result.replyTo = replyPreview;
 
         await hubContext.Clients.Group($"server_{foundChannel.serverID}").SendAsync("ReceiveChannelMessage", foundChannel.serverID, result);
 
