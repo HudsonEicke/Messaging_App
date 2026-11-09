@@ -41,6 +41,8 @@ public class ConversationController : ModifiedControllerBase
         result.conversationID = conversationId;
         result.conversationName = otherUser.displayName;
         result.iconUrl = otherUser.profileImageUrl;
+        result.conversationType = ConversationType.direct;
+        result.otherUsername = otherUser.username;
         result.memberUsernames = new List<string> { creatingUser.username, otherUser.username };
         return result;
     }
@@ -67,6 +69,7 @@ public class ConversationController : ModifiedControllerBase
             {
                 result.conversationName = otherUser.displayName;
                 result.iconUrl = otherUser.profileImageUrl;
+                result.otherUsername = otherUser.username;
             }
         }
         else
@@ -300,7 +303,7 @@ public class ConversationController : ModifiedControllerBase
 
         long userId = nullableUserId.Value;
 
-        List<ConversationResult> directResults = await db.ConversationMembers.AsNoTracking().Where(member => member.userID == userId).Join(db.Conversations, member => member.conversationID, conversation => conversation.id, (member, conversation) => new { member, conversation }).Where(membership => membership.conversation.conversationType == ConversationType.direct).Join(db.Users, membership => membership.conversation.directUserLowID == userId ? membership.conversation.directUserHighID : membership.conversation.directUserLowID, user => (long?)user.id, (membership, user) => new ConversationResult{id = membership.conversation.id, conversationName = user.displayName, iconUrl = user.profileImageUrl, conversationType = ConversationType.direct, lastMessageID = db.ConversationMessages.Where(message => message.conversationID == membership.conversation.id).Max(message => (long?)message.id), unreadCount = db.ConversationMessages.Where(message => message.conversationID == membership.conversation.id && message.id > (membership.member.lastReadMessageID ?? 0)).Take(MAXUNREADCOUNT).Count()}).ToListAsync();
+        List<ConversationResult> directResults = await db.ConversationMembers.AsNoTracking().Where(member => member.userID == userId).Join(db.Conversations, member => member.conversationID, conversation => conversation.id, (member, conversation) => new { member, conversation }).Where(membership => membership.conversation.conversationType == ConversationType.direct).Join(db.Users, membership => membership.conversation.directUserLowID == userId ? membership.conversation.directUserHighID : membership.conversation.directUserLowID, user => (long?)user.id, (membership, user) => new ConversationResult{id = membership.conversation.id, conversationName = user.displayName, iconUrl = user.profileImageUrl, otherUsername = user.username, conversationType = ConversationType.direct, lastMessageID = db.ConversationMessages.Where(message => message.conversationID == membership.conversation.id).Max(message => (long?)message.id), unreadCount = db.ConversationMessages.Where(message => message.conversationID == membership.conversation.id && message.id > (membership.member.lastReadMessageID ?? 0)).Take(MAXUNREADCOUNT).Count()}).ToListAsync();
 
         List<ConversationResult> groupResults = await db.ConversationMembers.AsNoTracking().Where(member => member.userID == userId).Join(db.Conversations, member => member.conversationID, conversation => conversation.id, (member, conversation) => new { member, conversation }).Where(membership => membership.conversation.conversationType == ConversationType.group).Join(db.Users, membership => membership.conversation.ownerID, user => user.id, (membership, user) => new ConversationResult{id = membership.conversation.id, conversationName = membership.conversation.conversationName ?? string.Empty, iconUrl = membership.conversation.iconUrl, conversationType = ConversationType.group, ownerUsername = user.username, lastMessageID = db.ConversationMessages.Where(message => message.conversationID == membership.conversation.id).Max(message => (long?)message.id), unreadCount = db.ConversationMessages.Where(message => message.conversationID == membership.conversation.id && message.id > (membership.member.lastReadMessageID ?? 0)).Take(MAXUNREADCOUNT).Count()}).ToListAsync();
 

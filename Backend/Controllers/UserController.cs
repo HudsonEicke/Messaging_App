@@ -146,9 +146,12 @@ public class UserController : ModifiedControllerBase
 
         List<long> conversationIds = await db.ConversationMembers.AsNoTracking().Where(member => member.userID == userId).Select(member => member.conversationID).ToListAsync();
 
+        //a dm you closed still shows your name and avatar to the other person, so it's found by the pair columns instead of membership
+        List<long> directConversationIds = await db.Conversations.AsNoTracking().Where(conversation => conversation.conversationType == ConversationType.direct && (conversation.directUserLowID == userId || conversation.directUserHighID == userId)).Select(conversation => conversation.id).ToListAsync();
+
         List<string> groups = new List<string>();
         groups.AddRange(serverIds.Select(id => $"server_{id}"));
-        groups.AddRange(conversationIds.Select(id => $"conversation_{id}"));
+        groups.AddRange(conversationIds.Union(directConversationIds).Select(id => $"conversation_{id}"));
 
         await hubContext.Clients.Groups(groups).SendAsync("UserUpdated", foundUser.username, foundUser.displayName, foundUser.profileImageUrl);
 

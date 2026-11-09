@@ -157,6 +157,22 @@ public class ConversationTests : IClassFixture<TestWebApplicationFactory>
     }
 
     [Fact]
+    public async Task CreateConversation_Direct_ReturnsOtherUsername()
+    {
+        //arrange
+        string tokenA = await RegisterAndGetToken("cvotherA", "cvotherA@email.com");
+        await RegisterAndGetToken("cvotherB", "cvotherB@email.com");
+
+        //act
+        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Post, "/conversations", tokenA, new CreateConversationRequest { memberUsernames = new List<string> { "cvotherB" } }), TestContext.Current.CancellationToken);
+        CreateConversationResult? result = await response.Content.ReadFromJsonAsync<CreateConversationResult>(TestContext.Current.CancellationToken);
+
+        //assert
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Equal("cvotherB", result!.otherUsername);
+    }
+
+    [Fact]
     public async Task CreateConversation_GroupWithValidUsers_ReturnsOkWithResult()
     {
         //arrange
@@ -259,6 +275,38 @@ public class ConversationTests : IClassFixture<TestWebApplicationFactory>
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         ConversationResult dm = Assert.Single(result!, conversation => conversation.id == conversationId);
         Assert.Equal("cvdmstaysB", dm.conversationName);
+    }
+
+    [Fact]
+    public async Task GetConversations_WithDm_ReturnsOtherUsername()
+    {
+        //arrange
+        (string tokenA, _, long conversationId) = await CreateDmConversation("cvlistotherA", "cvlistotherB");
+
+        //act
+        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Get, "/conversations", tokenA), TestContext.Current.CancellationToken);
+        List<ConversationResult>? result = await response.Content.ReadFromJsonAsync<List<ConversationResult>>(TestContext.Current.CancellationToken);
+
+        //assert
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        ConversationResult dm = Assert.Single(result!, conversation => conversation.id == conversationId);
+        Assert.Equal("cvlistotherB", dm.otherUsername);
+    }
+
+    [Fact]
+    public async Task GetConversations_WithGroup_ReturnsNullOtherUsername()
+    {
+        //arrange
+        (string ownerToken, long conversationId) = await CreateGroupConversation("cvlistgrpown", new List<string> { "cvlistgrpmem1", "cvlistgrpmem2" });
+
+        //act
+        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Get, "/conversations", ownerToken), TestContext.Current.CancellationToken);
+        List<ConversationResult>? result = await response.Content.ReadFromJsonAsync<List<ConversationResult>>(TestContext.Current.CancellationToken);
+
+        //assert
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        ConversationResult group = Assert.Single(result!, conversation => conversation.id == conversationId);
+        Assert.Null(group.otherUsername);
     }
 
     [Fact]
