@@ -406,7 +406,7 @@ public class ServerController : ModifiedControllerBase
         result.channelName = newChannel.channelName;
         result.channelOrder = newChannel.channelOrder;
 
-        await hubContext.Clients.Group($"server_{id}").SendAsync("ChannelCreated", result);
+        await hubContext.Clients.Group($"server_{id}").SendAsync("ChannelCreated", id, result);
 
         return Ok(result);
     }
@@ -492,7 +492,7 @@ public class ServerController : ModifiedControllerBase
         await db.SaveChangesAsync();
         await transaction.CommitAsync();
 
-        await hubContext.Clients.Group($"server_{id}").SendAsync("ChannelsReordered", reorderChannelRequest.channelIDs);
+        await hubContext.Clients.Group($"server_{id}").SendAsync("ChannelsReordered", id, reorderChannelRequest.channelIDs);
 
         return NoContent();
     }
