@@ -3,9 +3,9 @@ import type { RootState } from './store';
 import type { ConversationResponse, CreateConversationRequest, MessageResponse, SendMessageRequest, UpdateConversationRequest, UserResponse } from '@/types';
 import type { ApiError } from '@/lib/utils';
 import { getApiError } from '@/lib/utils';
-import { editMessageText, insertMessage, removeMessage } from '@/lib/messageList';
+import { editMessageText, insertMessage, removeMessage, updateSenderProfile } from '@/lib/messageList';
 import { clearTokens } from './authSlice';
-import { conversationCreated, conversationMemberAdded, conversationMemberRemoved, conversationMessageDeleted, conversationMessageEdited, conversationMessageReceived, conversationOwnerChanged, conversationRemoved, conversationUpdated, userStatusChanged } from './hubEvents';
+import { conversationCreated, conversationMemberAdded, conversationMemberRemoved, conversationMessageDeleted, conversationMessageEdited, conversationMessageReceived, conversationOwnerChanged, conversationRemoved, conversationUpdated, userStatusChanged, userUpdated } from './hubEvents';
 import { getConversations, getConversation, createConversation as createConversationRequest, updateConversation as updateConversationRequest, leaveConversation as leaveConversationRequest, getMessages, sendMessage as sendMessageRequest, editMessage as editMessageRequest, deleteMessage as deleteMessageRequest, getConversationMembers, addMember as addMemberRequest, markConversationRead as markConversationReadRequest } from '@/services/conversationService';
 
 const MESSAGE_PAGE_SIZE = 50;
@@ -148,6 +148,7 @@ export const createConversation = createAsyncThunk<ConversationResponse, CreateC
             id: result.conversationID,
             conversationName: result.conversationName,
             ownerUsername: result.ownerUsername,
+            otherUsername: result.otherUsername,
             iconUrl: result.iconUrl,
             conversationType: result.conversationType,
             lastMessageID: null,
@@ -458,6 +459,35 @@ const conversationSlice = createSlice({
                     {
                         member.activityStatus = action.payload.status;
                     }
+                }
+            })
+            .addCase(userUpdated, (state, action) => {
+                const { username, displayName, profileImageUrl } = action.payload;
+
+                for (const members of Object.values(state.membersByConversation))
+                {
+                    const member = members.find(listedMember => listedMember.username === username);
+
+                    if (member)
+                    {
+                        member.displayName = displayName;
+                        member.profileImageUrl = profileImageUrl;
+                    }
+                }
+
+                // a dm is shown under the other person's name and avatar
+                for (const conversation of state.conversations)
+                {
+                    if (conversation.otherUsername === username)
+                    {
+                        conversation.conversationName = displayName;
+                        conversation.iconUrl = profileImageUrl;
+                    }
+                }
+
+                for (const messages of Object.values(state.messagesByConversation))
+                {
+                    updateSenderProfile(messages, username, displayName, profileImageUrl);
                 }
             });
     }

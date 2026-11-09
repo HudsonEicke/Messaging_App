@@ -4,7 +4,7 @@ import type { ActivityStatus, UserDetailedResponse } from '@/types';
 import type { ApiError } from '@/lib/utils';
 import { getApiError } from '@/lib/utils';
 import { clearTokens } from './authSlice';
-import { userStatusChanged } from './hubEvents';
+import { userStatusChanged, userUpdated } from './hubEvents';
 import { getMe, updateStatus } from '@/services/userService';
 
 interface UserState
@@ -79,6 +79,13 @@ const userSlice = createSlice({
                 if (state.user?.username === action.payload.username)
                 {
                     state.user.activityStatus = action.payload.status;
+                }
+            })
+            .addCase(userUpdated, (state, action) => {
+                if (state.user?.username === action.payload.username)
+                {
+                    state.user.displayName = action.payload.displayName;
+                    state.user.profileImageUrl = action.payload.profileImageUrl;
                 }
             });
     }

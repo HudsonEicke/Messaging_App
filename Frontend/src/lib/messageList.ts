@@ -57,3 +57,22 @@ export const removeMessage = (messages: MessageResponse[], messageID: number) =>
         }
     }
 };
+
+// old messages show the sender's current name and avatar, as a refetch would
+export const updateSenderProfile = (messages: MessageResponse[], username: string, displayName: string, profileImageUrl: string) =>
+{
+    for (const message of messages)
+    {
+        if (message.senderUsername === username)
+        {
+            message.senderDisplayName = displayName;
+            message.senderProfileImageUrl = profileImageUrl;
+        }
+
+        if (message.replyTo?.senderUsername === username)
+        {
+            message.replyTo.senderDisplayName = displayName;
+            message.replyTo.senderProfileImageUrl = profileImageUrl;
+        }
+    }
+};

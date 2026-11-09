@@ -4,6 +4,7 @@ export interface ConversationResponse
 {
     id: number;
     ownerUsername?: string;
+    otherUsername?: string;
     conversationName: string;
     iconUrl?: string;
     conversationType: ConversationType;

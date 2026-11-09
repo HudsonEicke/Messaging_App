@@ -6,7 +6,7 @@ import { getApiError } from '@/lib/utils';
 import { loadLastChannels } from '@/lib/lastChannelStorage';
 import { clearTokens } from './authSlice';
 import { updateChannel, deleteChannel, markChannelRead, sendMessage } from './channelSlice';
-import { channelCreated, channelDeleted, channelMessageReceived, channelsReordered, channelUpdated, serverMemberJoined, serverMemberRemoved, serverOwnerChanged, serverRemoved, serverUpdated, userStatusChanged } from './hubEvents';
+import { channelCreated, channelDeleted, channelMessageReceived, channelsReordered, channelUpdated, serverMemberJoined, serverMemberRemoved, serverOwnerChanged, serverRemoved, serverUpdated, userStatusChanged, userUpdated } from './hubEvents';
 import { getServers, getServer, createServer as createServerRequest, updateServer as updateServerRequest, deleteServer as deleteServerRequest, leaveServer as leaveServerRequest, getServerMembers, kickMember as kickMemberRequest, getChannels, createChannel as createChannelRequest, reorderChannels as reorderChannelsRequest, getInvites, createInvite as createInviteRequest, deleteInvite as deleteInviteRequest, joinServer as joinServerRequest } from '@/services/serverService';
 
 type FetchStatus = 'idle' | 'loading' | 'succeeded' | 'failed';
@@ -552,6 +552,20 @@ const serverSlice = createSlice({
                     if (member)
                     {
                         member.activityStatus = action.payload.status;
+                    }
+                }
+            })
+            .addCase(userUpdated, (state, action) => {
+                const { username, displayName, profileImageUrl } = action.payload;
+
+                for (const members of Object.values(state.membersByServer))
+                {
+                    const member = members.find(listedMember => listedMember.username === username);
+
+                    if (member)
+                    {
+                        member.displayName = displayName;
+                        member.profileImageUrl = profileImageUrl;
                     }
                 }
             })

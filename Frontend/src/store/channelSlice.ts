@@ -3,9 +3,9 @@ import type { MessageResponse, SendMessageRequest } from '@/types';
 import type { RootState } from './store';
 import type { ApiError } from '@/lib/utils';
 import { getApiError } from '@/lib/utils';
-import { editMessageText, insertMessage, removeMessage } from '@/lib/messageList';
+import { editMessageText, insertMessage, removeMessage, updateSenderProfile } from '@/lib/messageList';
 import { clearTokens } from './authSlice';
-import { channelDeleted, channelMessageDeleted, channelMessageEdited, channelMessageReceived } from './hubEvents';
+import { channelDeleted, channelMessageDeleted, channelMessageEdited, channelMessageReceived, userUpdated } from './hubEvents';
 import { updateChannel as updateChannelRequest, deleteChannel as deleteChannelRequest, getMessages, sendMessage as sendMessageRequest, editMessage as editMessageRequest, deleteMessage as deleteMessageRequest, markChannelRead as markChannelReadRequest } from '@/services/channelService';
 
 const MESSAGE_PAGE_SIZE = 50;
@@ -243,6 +243,14 @@ const channelSlice = createSlice({
             })
             .addCase(channelMessageDeleted, (state, action) => {
                 applyMessageDelete(state, action.payload.channelID, action.payload.messageID);
+            })
+            .addCase(userUpdated, (state, action) => {
+                const { username, displayName, profileImageUrl } = action.payload;
+
+                for (const messages of Object.values(state.messagesByChannel))
+                {
+                    updateSenderProfile(messages, username, displayName, profileImageUrl);
+                }
             });
     }
 });

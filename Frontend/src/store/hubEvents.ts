@@ -24,3 +24,4 @@ export const conversationMemberRemoved = createAction<{ conversationID: number; 
 export const conversationOwnerChanged = createAction<{ conversationID: number; ownerUsername: string }>('hub/conversationOwnerChanged');
 export const conversationRemoved = createAction<{ conversationID: number }>('hub/conversationRemoved');
 export const userStatusChanged = createAction<{ username: string; status: ActivityStatus }>('hub/userStatusChanged');
+export const userUpdated = createAction<{ username: string; displayName: string; profileImageUrl: string }>('hub/userUpdated');
