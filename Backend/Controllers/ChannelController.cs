@@ -256,7 +256,7 @@ public class ChannelController : ModifiedControllerBase
         result.replyToID = newMessage.replyToID;
         result.replyTo = replyPreview;
 
-        await hubContext.Clients.Group($"server_{foundChannel.serverID}").SendAsync("ReceiveChannelMessage", foundChannel.serverID, result);
+        await hubContext.Clients.Group($"server_{foundChannel.serverID}").SendAsync("ReceiveChannelMessage", foundChannel.serverID, foundChannel.id, result);
 
         return Ok(result);
     }
