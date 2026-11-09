@@ -3,6 +3,7 @@ import type { MessageResponse, SendMessageRequest } from '@/types';
 import type { RootState } from './store';
 import type { ApiError } from '@/lib/utils';
 import { getApiError } from '@/lib/utils';
+import { shortenReplyPreview } from '@/lib/replyPreview';
 import { clearTokens } from './authSlice';
 import { updateChannel as updateChannelRequest, deleteChannel as deleteChannelRequest, getMessages, sendMessage as sendMessageRequest, editMessage as editMessageRequest, deleteMessage as deleteMessageRequest, markChannelRead as markChannelReadRequest } from '@/services/channelService';
 
@@ -193,12 +194,18 @@ const channelSlice = createSlice({
             })
             .addCase(editMessage.fulfilled, (state, action) => {
                 const { channelID, messageID, messageText } = action.payload;
-                const message = state.messagesByChannel[channelID]?.find(message => message.id === messageID);
 
-                if (message)
+                for (const message of state.messagesByChannel[channelID] ?? [])
                 {
-                    message.messageText = messageText;
-                    message.edited = true;
+                    if (message.id === messageID)
+                    {
+                        message.messageText = messageText;
+                        message.edited = true;
+                    }
+                    else if (message.replyTo?.id === messageID)
+                    {
+                        message.replyTo.messageText = shortenReplyPreview(messageText);
+                    }
                 }
             })
             .addCase(editMessage.rejected, (state, action) => {
@@ -210,7 +217,10 @@ const channelSlice = createSlice({
 
                 if (messages)
                 {
-                    state.messagesByChannel[channelID] = messages.filter(message => message.id !== messageID);
+                    // the backend clears replyToID on replies to a deleted message
+                    state.messagesByChannel[channelID] = messages
+                        .filter(message => message.id !== messageID)
+                        .map(message => message.replyTo?.id === messageID ? { ...message, replyToID: undefined, replyTo: null } : message);
                 }
             })
             .addCase(deleteMessage.rejected, (state, action) => {

@@ -1,3 +1,4 @@
+export * from './MessageReplyPreview';
 export * from './MessageResponse';
 export * from './SendMessageRequest';
 export * from './SendMessageResponse';

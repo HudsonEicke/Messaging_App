@@ -3,6 +3,7 @@ import type { RootState } from './store';
 import type { ConversationResponse, CreateConversationRequest, MessageResponse, SendMessageRequest, UpdateConversationRequest, UserResponse } from '@/types';
 import type { ApiError } from '@/lib/utils';
 import { getApiError } from '@/lib/utils';
+import { shortenReplyPreview } from '@/lib/replyPreview';
 import { clearTokens } from './authSlice';
 import { getConversations, getConversation, createConversation as createConversationRequest, updateConversation as updateConversationRequest, leaveConversation as leaveConversationRequest, getMessages, sendMessage as sendMessageRequest, editMessage as editMessageRequest, deleteMessage as deleteMessageRequest, getConversationMembers, addMember as addMemberRequest, markConversationRead as markConversationReadRequest } from '@/services/conversationService';
 
@@ -307,12 +308,18 @@ const conversationSlice = createSlice({
             })
             .addCase(editMessage.fulfilled, (state, action) => {
                 const { conversationID, messageID, messageText } = action.payload;
-                const message = state.messagesByConversation[conversationID]?.find(message => message.id === messageID);
 
-                if (message)
+                for (const message of state.messagesByConversation[conversationID] ?? [])
                 {
-                    message.messageText = messageText;
-                    message.edited = true;
+                    if (message.id === messageID)
+                    {
+                        message.messageText = messageText;
+                        message.edited = true;
+                    }
+                    else if (message.replyTo?.id === messageID)
+                    {
+                        message.replyTo.messageText = shortenReplyPreview(messageText);
+                    }
                 }
             })
             .addCase(editMessage.rejected, (state, action) => {
@@ -324,7 +331,10 @@ const conversationSlice = createSlice({
 
                 if (messages)
                 {
-                    state.messagesByConversation[conversationID] = messages.filter(message => message.id !== messageID);
+                    // the backend clears replyToID on replies to a deleted message
+                    state.messagesByConversation[conversationID] = messages
+                        .filter(message => message.id !== messageID)
+                        .map(message => message.replyTo?.id === messageID ? { ...message, replyToID: undefined, replyTo: null } : message);
                 }
             })
             .addCase(deleteMessage.rejected, (state, action) => {

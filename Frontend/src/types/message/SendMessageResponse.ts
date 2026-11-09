@@ -1,3 +1,5 @@
+import type { MessageReplyPreview } from './MessageReplyPreview';
+
 export interface SendMessageResponse
 {
     id: number;
@@ -7,4 +9,5 @@ export interface SendMessageResponse
     senderProfileImageUrl: string;
     timeSent: string;
     replyToID?: number;
+    replyTo: MessageReplyPreview | null;
 }

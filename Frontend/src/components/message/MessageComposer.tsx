@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { KeyboardEvent, SubmitEvent } from 'react';
+import { X } from 'lucide-react';
+import type { MessageResponse } from '@/types';
 import { cn, getErrorMessage } from '@/lib/utils';
 import { MESSAGE_MAX_LENGTH } from './messageSource';
 
@@ -8,20 +10,25 @@ const COUNTER_THRESHOLD = 1800;
 interface MessageComposerProps
 {
     placeholder: string;
+    replyTarget: MessageResponse | null;
+    onCancelReply: () => void;
     onSend: (messageText: string) => Promise<void>;
 }
 
-const MessageComposer = ({ placeholder, onSend }: MessageComposerProps) =>
+const MessageComposer = ({ placeholder, replyTarget, onCancelReply, onSend }: MessageComposerProps) =>
 {
     const textareaRef = useRef<HTMLTextAreaElement>(null);
     const [draft, setDraft] = useState('');
     const [isSending, setIsSending] = useState(false);
     const [sendError, setSendError] = useState<string | null>(null);
 
+    const replyTargetId = replyTarget?.id;
+
+    // on open, and when Reply is clicked so you can type straight away
     useEffect(() =>
     {
         textareaRef.current?.focus();
-    }, []);
+    }, [replyTargetId]);
 
     const send = async () =>
     {
@@ -58,6 +65,13 @@ const MessageComposer = ({ placeholder, onSend }: MessageComposerProps) =>
 
     const handleKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>) =>
     {
+        if (event.key === 'Escape' && replyTarget)
+        {
+            event.preventDefault();
+            onCancelReply();
+            return;
+        }
+
         // isComposing: Enter that confirms an IME candidate shouldn't send
         if (event.key === 'Enter' && !event.shiftKey && !event.nativeEvent.isComposing)
         {
@@ -71,6 +85,23 @@ const MessageComposer = ({ placeholder, onSend }: MessageComposerProps) =>
     return (
         <form onSubmit={handleSubmit} className="shrink-0 px-4 pb-4">
             <div className="relative rounded-lg border border-input bg-muted/40 transition-colors focus-within:border-ring focus-within:ring-3 focus-within:ring-ring/50 dark:bg-input/30">
+                {
+                    replyTarget && (
+                        <div className="flex items-center gap-2 border-b px-4 py-1.5 text-xs text-muted-foreground">
+                            <p className="min-w-0 flex-1 truncate">
+                                Replying to <span className="font-semibold text-foreground">{replyTarget.senderDisplayName}</span>
+                            </p>
+                            <button
+                                type="button"
+                                aria-label="Cancel reply"
+                                onClick={onCancelReply}
+                                className="flex size-5 shrink-0 items-center justify-center rounded-full outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/50"
+                            >
+                                <X className="size-3.5" aria-hidden="true" />
+                            </button>
+                        </div>
+                    )
+                }
                 <textarea
                     ref={textareaRef}
                     rows={1}

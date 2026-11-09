@@ -3,6 +3,8 @@ import type { ApiError } from '@/lib/utils';
 
 export const MESSAGE_MAX_LENGTH = 2000;
 
+export const getMessageElementId = (messageID: number) => `message-${messageID}`;
+
 export type MessagesStatus = 'idle' | 'loading' | 'succeeded' | 'failed';
 
 // what MessageView needs from a channel or a conversation, so the UI is written once
@@ -16,8 +18,10 @@ export interface MessageSource
     canDeleteOthers: boolean;
     reload: () => void;
     loadOlder: () => void;
-    send: (messageText: string) => Promise<void>;
+    send: (messageText: string, replyToID?: number) => Promise<void>;
     edit: (messageID: number, messageText: string) => Promise<void>;
     remove: (messageID: number) => Promise<void>;
     markRead: (messageID: number) => void;
+    // loads older pages until the message is in the list; false if it's gone
+    ensureLoaded: (messageID: number) => Promise<boolean>;
 }

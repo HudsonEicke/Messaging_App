@@ -1,25 +1,30 @@
 import { Fragment, useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
+import type { MessageResponse } from '@/types';
 import { useWindowFocus } from '@/hooks/useWindowFocus';
 import { formatDayDivider, isSameDay, isWithinGroupWindow } from '@/lib/messageTime';
 import { Button } from '@/components/ui/button';
 import type { MessageSource } from './messageSource';
+import { getMessageElementId } from './messageSource';
 import MessageItem from './MessageItem';
 
 const BOTTOM_THRESHOLD_PX = 48;
 const LOAD_OLDER_MARGIN_PX = 300;
 const MARK_READ_DELAY_MS = 500;
+const HIGHLIGHT_MS = 2000;
+const JUMP_NOTICE_MS = 4000;
 
 interface MessageListProps
 {
     source: MessageSource;
     currentUsername: string | undefined;
     intro: ReactNode;
+    onReply: (message: MessageResponse) => void;
 }
 
-const MessageList = ({ source, currentUsername, intro }: MessageListProps) =>
+const MessageList = ({ source, currentUsername, intro, onReply }: MessageListProps) =>
 {
-    const { messages, status, error, hasMore, hasUnread, canDeleteOthers, reload, loadOlder, edit, remove, markRead } = source;
+    const { messages, status, error, hasMore, hasUnread, canDeleteOthers, reload, loadOlder, edit, remove, markRead, ensureLoaded } = source;
     const scrollRef = useRef<HTMLDivElement>(null);
     const topSentinelRef = useRef<HTMLDivElement>(null);
     const bottomSentinelRef = useRef<HTMLDivElement>(null);
@@ -27,7 +32,11 @@ const MessageList = ({ source, currentUsername, intro }: MessageListProps) =>
     const scrollSnapshotRef = useRef({ scrollTop: 0, scrollHeight: 0 });
     const edgeIdsRef = useRef<{ first?: number; last?: number } | null>(null);
     const markedMessageIdRef = useRef<number | null>(null);
+    const pendingScrollIdRef = useRef<number | null>(null);
     const [editingMessageId, setEditingMessageId] = useState<number | null>(null);
+    const [highlightedMessageId, setHighlightedMessageId] = useState<number | null>(null);
+    const [isJumping, setIsJumping] = useState(false);
+    const [jumpNotice, setJumpNotice] = useState<string | null>(null);
     const [isBottomVisible, setIsBottomVisible] = useState(false);
     const isWindowFocused = useWindowFocus();
 
@@ -72,6 +81,17 @@ const MessageList = ({ source, currentUsername, intro }: MessageListProps) =>
         }
 
         edgeIdsRef.current = { first: firstId, last: lastMessageId };
+
+        // a jump target that just loaded is only in the DOM now
+        const pendingScrollId = pendingScrollIdRef.current;
+        const pendingElement = pendingScrollId === null ? null : document.getElementById(getMessageElementId(pendingScrollId));
+
+        if (pendingElement)
+        {
+            pendingElement.scrollIntoView({ block: 'center' });
+            pendingScrollIdRef.current = null;
+        }
+
         rememberScroll();
     }, [messages, lastMessage, lastMessageId, currentUsername, rememberScroll]);
 
@@ -156,6 +176,66 @@ const MessageList = ({ source, currentUsername, intro }: MessageListProps) =>
         return () => clearTimeout(timer);
     }, [hasUnread, isBottomVisible, isWindowFocused, lastMessageId, markRead]);
 
+    useEffect(() =>
+    {
+        if (highlightedMessageId === null)
+        {
+            return;
+        }
+
+        const timer = setTimeout(() => setHighlightedMessageId(null), HIGHLIGHT_MS);
+        return () => clearTimeout(timer);
+    }, [highlightedMessageId]);
+
+    useEffect(() =>
+    {
+        if (jumpNotice === null)
+        {
+            return;
+        }
+
+        const timer = setTimeout(() => setJumpNotice(null), JUMP_NOTICE_MS);
+        return () => clearTimeout(timer);
+    }, [jumpNotice]);
+
+    const jumpToMessage = useCallback(async (messageID: number) =>
+    {
+        setJumpNotice(null);
+        setIsJumping(true);
+
+        try
+        {
+            const isFound = await ensureLoaded(messageID);
+
+            if (!isFound)
+            {
+                setJumpNotice("That message isn't available anymore");
+                return;
+            }
+
+            const element = document.getElementById(getMessageElementId(messageID));
+
+            if (element)
+            {
+                element.scrollIntoView({ block: 'center', behavior: 'smooth' });
+            }
+            else
+            {
+                pendingScrollIdRef.current = messageID;
+            }
+
+            setHighlightedMessageId(messageID);
+        }
+        catch
+        {
+            setJumpNotice('Could not load older messages');
+        }
+        finally
+        {
+            setIsJumping(false);
+        }
+    }, [ensureLoaded]);
+
     const stopEditing = useCallback(() => setEditingMessageId(null), []);
 
     const renderMessages = () =>
@@ -207,7 +287,8 @@ const MessageList = ({ source, currentUsername, intro }: MessageListProps) =>
                             const sentAt = new Date(message.timeSent);
                             const previousSentAt = previous ? new Date(previous.timeSent) : undefined;
                             const startsNewDay = previousSentAt === undefined || !isSameDay(previousSentAt, sentAt);
-                            const isGrouped = previousSentAt !== undefined && !startsNewDay && previous?.senderUsername === message.senderUsername && isWithinGroupWindow(previousSentAt, sentAt);
+                            // a reply always shows its own name so the preview line has something to attach to
+                            const isGrouped = previousSentAt !== undefined && !startsNewDay && !message.replyTo && previous?.senderUsername === message.senderUsername && isWithinGroupWindow(previousSentAt, sentAt);
                             const isOwn = message.senderUsername === currentUsername;
 
                             return (
@@ -224,9 +305,12 @@ const MessageList = ({ source, currentUsername, intro }: MessageListProps) =>
                                     <MessageItem
                                         message={message}
                                         isGrouped={isGrouped}
+                                        isHighlighted={highlightedMessageId === message.id}
                                         canEdit={isOwn}
                                         canDelete={isOwn || canDeleteOthers}
                                         isEditing={editingMessageId === message.id}
+                                        onReply={onReply}
+                                        onJumpToMessage={jumpToMessage}
                                         onStartEdit={setEditingMessageId}
                                         onStopEdit={stopEditing}
                                         onEdit={edit}
@@ -242,12 +326,22 @@ const MessageList = ({ source, currentUsername, intro }: MessageListProps) =>
     };
 
     return (
-        // overflow-anchor is off because the scroll position is restored by hand after older messages load
-        <div ref={scrollRef} onScroll={rememberScroll} className="min-h-0 flex-1 overflow-y-auto [overflow-anchor:none]">
-            <div className="flex min-h-full flex-col justify-end">
-                {renderMessages()}
-                <div ref={bottomSentinelRef} className="h-4 shrink-0" />
+        <div className="relative flex min-h-0 flex-1 flex-col">
+            {/* overflow-anchor is off because the scroll position is restored by hand after older messages load */}
+            <div ref={scrollRef} onScroll={rememberScroll} className="min-h-0 flex-1 overflow-y-auto [overflow-anchor:none]">
+                <div className="flex min-h-full flex-col justify-end">
+                    {renderMessages()}
+                    <div ref={bottomSentinelRef} className="h-4 shrink-0" />
+                </div>
             </div>
+
+            {
+                (isJumping || jumpNotice) && (
+                    <p role="status" className="absolute top-2 left-1/2 -translate-x-1/2 rounded-full border bg-popover px-3 py-1 text-xs shadow-sm">
+                        {isJumping ? 'Jumping to message...' : jumpNotice}
+                    </p>
+                )
+            }
         </div>
     );
 };

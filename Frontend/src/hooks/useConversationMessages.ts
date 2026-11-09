@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
+import { useDispatch, useSelector, useStore } from 'react-redux';
 import type { AppDispatch, RootState } from '@/store/store';
 import { deleteMessage, editMessage, fetchMessages, markConversationRead, sendMessage } from '@/store/conversationSlice';
 import type { MessageSource } from '@/components/message/messageSource';
@@ -7,6 +7,7 @@ import type { MessageSource } from '@/components/message/messageSource';
 export const useConversationMessages = (conversationID: number, hasUnread: boolean, canDeleteOthers: boolean): MessageSource =>
 {
     const dispatch = useDispatch<AppDispatch>();
+    const store = useStore<RootState>();
     const messages = useSelector((state: RootState) => state.conversation.messagesByConversation[conversationID]);
     const status = useSelector((state: RootState) => state.conversation.messagesStatusByConversation[conversationID] ?? 'idle');
     const error = useSelector((state: RootState) => state.conversation.messagesErrorByConversation[conversationID] ?? null);
@@ -32,9 +33,9 @@ export const useConversationMessages = (conversationID: number, hasUnread: boole
         }
     }, [dispatch, conversationID, oldestMessageID]);
 
-    const send = useCallback(async (messageText: string) =>
+    const send = useCallback(async (messageText: string, replyToID?: number) =>
     {
-        await dispatch(sendMessage({ conversationID, request: { messageText } })).unwrap();
+        await dispatch(sendMessage({ conversationID, request: { messageText, replyToID } })).unwrap();
     }, [dispatch, conversationID]);
 
     const edit = useCallback(async (messageID: number, messageText: string) =>
@@ -52,8 +53,44 @@ export const useConversationMessages = (conversationID: number, hasUnread: boole
         dispatch(markConversationRead({ conversationID, lastReadMessageID: messageID }));
     }, [dispatch, conversationID]);
 
+    const ensureLoaded = useCallback(async (messageID: number): Promise<boolean> =>
+    {
+        for (;;)
+        {
+            const state = store.getState().conversation;
+            const loadedMessages = state.messagesByConversation[conversationID] ?? [];
+
+            if (loadedMessages.some(message => message.id === messageID))
+            {
+                return true;
+            }
+
+            // ids only go up, so a missing id newer than the oldest loaded one was deleted
+            const oldestLoadedID = loadedMessages[0]?.id;
+
+            if (oldestLoadedID === undefined || messageID > oldestLoadedID || !state.hasMoreMessages[conversationID])
+            {
+                return false;
+            }
+
+            const result = await dispatch(fetchMessages({ conversationID, before: oldestLoadedID }));
+
+            if (fetchMessages.rejected.match(result))
+            {
+                // skipped because a page is already loading, so wait for it instead of failing
+                if (result.meta.condition)
+                {
+                    await new Promise(resolve => setTimeout(resolve, 100));
+                    continue;
+                }
+
+                throw result.payload ?? new Error('Could not load messages');
+            }
+        }
+    }, [dispatch, store, conversationID]);
+
     return useMemo(
-        () => ({ messages, status, error, hasMore, hasUnread, canDeleteOthers, reload, loadOlder, send, edit, remove, markRead }),
-        [messages, status, error, hasMore, hasUnread, canDeleteOthers, reload, loadOlder, send, edit, remove, markRead]
+        () => ({ messages, status, error, hasMore, hasUnread, canDeleteOthers, reload, loadOlder, send, edit, remove, markRead, ensureLoaded }),
+        [messages, status, error, hasMore, hasUnread, canDeleteOthers, reload, loadOlder, send, edit, remove, markRead, ensureLoaded]
     );
 };

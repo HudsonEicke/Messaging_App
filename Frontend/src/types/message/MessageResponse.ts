@@ -1,3 +1,5 @@
+import type { MessageReplyPreview } from './MessageReplyPreview';
+
 export interface MessageResponse
 {
     id: number;
@@ -8,4 +10,5 @@ export interface MessageResponse
     timeSent: string;
     edited: boolean;
     replyToID?: number;
+    replyTo: MessageReplyPreview | null;
 }
