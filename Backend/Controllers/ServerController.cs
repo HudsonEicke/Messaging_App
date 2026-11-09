@@ -296,9 +296,9 @@ public class ServerController : ModifiedControllerBase
         await db.SaveChangesAsync();
 
         if(newOwnerUsername != null)
-            await hubContext.Clients.Group($"server_{id}").SendAsync("OwnerChanged", newOwnerUsername);
+            await hubContext.Clients.Group($"server_{id}").SendAsync("OwnerChanged", id, newOwnerUsername);
 
-        await hubContext.Clients.Group($"server_{id}").SendAsync("MemberLeft", GetUsername());
+        await hubContext.Clients.Group($"server_{id}").SendAsync("MemberLeft", id, GetUsername());
         await hubGroupService.RemoveUserFromGroup(userId, $"server_{id}");
 
         return NoContent();
@@ -349,7 +349,7 @@ public class ServerController : ModifiedControllerBase
 
         await db.SaveChangesAsync();
 
-        await hubContext.Clients.Group($"server_{id}").SendAsync("MemberKicked", foundUser.username);
+        await hubContext.Clients.Group($"server_{id}").SendAsync("MemberKicked", id, foundUser.username);
         await hubGroupService.RemoveUserFromGroup(foundUser.id, $"server_{id}");
 
         return NoContent();

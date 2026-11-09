@@ -5,6 +5,7 @@ using Messaging_App.Data;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
 using Messaging_App.Hubs;
+using Messaging_App.Services;
 
 namespace Messaging_App.Controllers;
 
@@ -16,12 +17,14 @@ public class InviteController : ModifiedControllerBase
     private readonly MessagingAppContext db;
     private readonly IHubContext<ChatHub> hubContext;
     private readonly HubGroupService hubGroupService;
+    private readonly PresenceService presenceService;
 
-    public InviteController(MessagingAppContext db, IHubContext<ChatHub> hubContext, HubGroupService hubGroupService)
+    public InviteController(MessagingAppContext db, IHubContext<ChatHub> hubContext, HubGroupService hubGroupService, PresenceService presenceService)
     {
         this.db = db;
         this.hubContext = hubContext;
         this.hubGroupService = hubGroupService;
+        this.presenceService = presenceService;
     }
 
     [HttpGet("{code:guid}")]
@@ -124,8 +127,21 @@ public class InviteController : ModifiedControllerBase
         }
 
         await hubGroupService.AddUserToGroup(userId, $"server_{foundInvite.serverID}");
-        string? username = GetUsername();
-        await hubContext.Clients.Group($"server_{foundInvite.serverID}").SendAsync("MemberJoined", username);
+
+        User? joiningUser = await db.Users.AsNoTracking().FirstOrDefaultAsync(user => user.id == userId);
+
+        //sends the whole member so member lists can show them without refetching
+        if(joiningUser != null)
+        {
+            UserResult joinedMember = new UserResult();
+            joinedMember.displayName = joiningUser.displayName;
+            joinedMember.username = joiningUser.username;
+            joinedMember.profileImageUrl = joiningUser.profileImageUrl;
+            joinedMember.activityStatus = presenceService.GetDisplayedStatus(userId, joiningUser.activityStatus);
+            joinedMember.accountCreationTime = joiningUser.accountCreationTime;
+
+            await hubContext.Clients.Group($"server_{foundInvite.serverID}").SendAsync("MemberJoined", foundInvite.serverID, joinedMember);
+        }
 
         ServerResult result = new ServerResult();
         result.serverID = foundServer.id;
