@@ -1,6 +1,6 @@
 import type { HubConnection } from '@microsoft/signalr';
 import { store } from '@/store/store';
-import { channelMessageDeleted, channelMessageEdited, channelMessageReceived } from '@/store/hubEvents';
+import { channelCreated, channelDeleted, channelMessageDeleted, channelMessageEdited, channelMessageReceived, channelsReordered, channelUpdated } from '@/store/hubEvents';
 import { onHubEvent } from '@/services/hub/events';
 
 export const registerChannelEvents = (connection: HubConnection) =>
@@ -20,5 +20,26 @@ export const registerChannelEvents = (connection: HubConnection) =>
     onHubEvent(connection, 'ChannelMessageDeleted', (channelID, messageID) =>
     {
         store.dispatch(channelMessageDeleted({ channelID, messageID }));
+    });
+
+    onHubEvent(connection, 'ChannelCreated', (serverID, channel) =>
+    {
+        store.dispatch(channelCreated({ serverID, channel: { ...channel, hasUnread: false } }));
+    });
+
+    onHubEvent(connection, 'ChannelUpdated', (channelID, channelName) =>
+    {
+        store.dispatch(channelUpdated({ channelID, channelName }));
+    });
+
+    onHubEvent(connection, 'ChannelsReordered', (serverID, channelIDs) =>
+    {
+        store.dispatch(channelsReordered({ serverID, channelIDs }));
+    });
+
+    // the page redirects on its own if you were viewing the deleted channel
+    onHubEvent(connection, 'ChannelDeleted', (channelID) =>
+    {
+        store.dispatch(channelDeleted({ channelID }));
     });
 };

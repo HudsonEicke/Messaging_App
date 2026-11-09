@@ -6,7 +6,7 @@ import { getApiError } from '@/lib/utils';
 import { loadLastChannels } from '@/lib/lastChannelStorage';
 import { clearTokens } from './authSlice';
 import { updateChannel, deleteChannel, markChannelRead, sendMessage } from './channelSlice';
-import { channelMessageReceived } from './hubEvents';
+import { channelCreated, channelDeleted, channelMessageReceived, channelsReordered, channelUpdated } from './hubEvents';
 import { getServers, getServer, createServer as createServerRequest, updateServer as updateServerRequest, deleteServer as deleteServerRequest, leaveServer as leaveServerRequest, getServerMembers, kickMember as kickMemberRequest, getChannels, createChannel as createChannelRequest, reorderChannels as reorderChannelsRequest, getInvites, createInvite as createInviteRequest, deleteInvite as deleteInviteRequest, joinServer as joinServerRequest } from '@/services/serverService';
 
 type FetchStatus = 'idle' | 'loading' | 'succeeded' | 'failed';
@@ -69,6 +69,77 @@ const clearChannelUnread = (state: ServerState, channelID: number) => {
             }
 
             return;
+        }
+    }
+};
+
+// the hub also delivers your own new channel, so it may already be listed; it has the last channelOrder, so the end keeps the list sorted
+const addChannel = (state: ServerState, serverID: number, channel: ChannelResponse) => {
+    const channels = state.channelsByServer[serverID];
+
+    if (channels && !channels.some(listedChannel => listedChannel.channelID === channel.channelID))
+    {
+        channels.push(channel);
+    }
+};
+
+// matches the backend, which sets channelOrder to each channel's index in channelIDs
+const applyChannelOrder = (state: ServerState, serverID: number, channelIDs: number[]) => {
+    const channels = state.channelsByServer[serverID];
+
+    if (channels)
+    {
+        channels.forEach(channel => {
+            channel.channelOrder = channelIDs.indexOf(channel.channelID);
+        });
+
+        channels.sort((a, b) => a.channelOrder - b.channelOrder);
+    }
+};
+
+// ChannelUpdated and ChannelDeleted only carry the channel id, so these look through every loaded server
+const findChannel = (state: ServerState, channelID: number) => {
+    for (const channels of Object.values(state.channelsByServer))
+    {
+        const channel = channels.find(listedChannel => listedChannel.channelID === channelID);
+
+        if (channel)
+        {
+            return channel;
+        }
+    }
+
+    return undefined;
+};
+
+const removeChannel = (state: ServerState, channelID: number) => {
+    for (const [serverID, channels] of Object.entries(state.channelsByServer))
+    {
+        if (channels.some(channel => channel.channelID === channelID))
+        {
+            // matches the backend, which renumbers channelOrder after a delete
+            const remainingChannels = channels
+                .filter(channel => channel.channelID !== channelID)
+                .map((channel, index) => ({ ...channel, channelOrder: index }));
+
+            state.channelsByServer[Number(serverID)] = remainingChannels;
+
+            // deleting the only unread channel clears the server's dot
+            const server = state.servers.find(listedServer => listedServer.serverID === Number(serverID));
+
+            if (server)
+            {
+                server.hasUnread = remainingChannels.some(channel => channel.hasUnread);
+            }
+        }
+    }
+
+    // checked separately since the server's channels may not be loaded
+    for (const [serverID, lastChannelID] of Object.entries(state.lastChannelByServer))
+    {
+        if (lastChannelID === channelID)
+        {
+            delete state.lastChannelByServer[Number(serverID)];
         }
     }
 };
@@ -373,40 +444,25 @@ const serverSlice = createSlice({
                 state.channelsErrorByServer[action.meta.arg] = action.payload ?? { message: 'Could not load channels' };
             })
             .addCase(createChannel.fulfilled, (state, action) => {
-                const { serverID, channel } = action.payload;
-
-                // new channels get the last channelOrder, so adding to the end keeps the list sorted
-                state.channelsByServer[serverID]?.push(channel);
+                addChannel(state, action.payload.serverID, action.payload.channel);
             })
             .addCase(createChannel.rejected, (state, action) => {
                 state.error = action.payload ?? { message: 'Could not create channel' };
             })
             // reorder straight away so a dropped channel doesn't jump back while the request runs; ChannelList refetches if it fails
             .addCase(reorderChannels.pending, (state, action) => {
-                const { serverID, channelIDs } = action.meta.arg;
-                const channels = state.channelsByServer[serverID];
-
-                if (channels)
-                {
-                    // matches the backend, which sets channelOrder to each channel's index in channelIDs
-                    channels.forEach(channel => {
-                        channel.channelOrder = channelIDs.indexOf(channel.channelID);
-                    });
-
-                    channels.sort((a, b) => a.channelOrder - b.channelOrder);
-                }
+                applyChannelOrder(state, action.meta.arg.serverID, action.meta.arg.channelIDs);
             })
             .addCase(reorderChannels.rejected, (state, action) => {
                 state.error = action.payload ?? { message: 'Could not reorder channels' };
             })
             // updateChannel and deleteChannel are channelSlice thunks, but the channel list lives here
             .addCase(updateChannel.fulfilled, (state, action) => {
-                const { serverID, channelID, channelName } = action.payload;
-                const channel = state.channelsByServer[serverID]?.find(channel => channel.channelID === channelID);
+                const channel = findChannel(state, action.payload.channelID);
 
                 if (channel)
                 {
-                    channel.channelName = channelName;
+                    channel.channelName = action.payload.channelName;
                 }
             })
             .addCase(markChannelRead.fulfilled, (state, action) => {
@@ -430,16 +486,24 @@ const serverSlice = createSlice({
                 }
             })
             .addCase(deleteChannel.fulfilled, (state, action) => {
-                const { serverID, channelID } = action.payload;
-                const channels = state.channelsByServer[serverID];
+                removeChannel(state, action.payload.channelID);
+            })
+            .addCase(channelCreated, (state, action) => {
+                addChannel(state, action.payload.serverID, action.payload.channel);
+            })
+            .addCase(channelUpdated, (state, action) => {
+                const channel = findChannel(state, action.payload.channelID);
 
-                if (channels)
+                if (channel)
                 {
-                    // matches the backend, which renumbers channelOrder after a delete
-                    state.channelsByServer[serverID] = channels
-                        .filter(channel => channel.channelID !== channelID)
-                        .map((channel, index) => ({ ...channel, channelOrder: index }));
+                    channel.channelName = action.payload.channelName;
                 }
+            })
+            .addCase(channelsReordered, (state, action) => {
+                applyChannelOrder(state, action.payload.serverID, action.payload.channelIDs);
+            })
+            .addCase(channelDeleted, (state, action) => {
+                removeChannel(state, action.payload.channelID);
             })
             .addCase(fetchInvites.fulfilled, (state, action) => {
                 state.invitesByServer[action.payload.serverID] = action.payload.invites;

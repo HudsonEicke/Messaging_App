@@ -5,7 +5,7 @@ import type { ApiError } from '@/lib/utils';
 import { getApiError } from '@/lib/utils';
 import { shortenReplyPreview } from '@/lib/replyPreview';
 import { clearTokens } from './authSlice';
-import { channelMessageDeleted, channelMessageEdited, channelMessageReceived } from './hubEvents';
+import { channelDeleted, channelMessageDeleted, channelMessageEdited, channelMessageReceived } from './hubEvents';
 import { updateChannel as updateChannelRequest, deleteChannel as deleteChannelRequest, getMessages, sendMessage as sendMessageRequest, editMessage as editMessageRequest, deleteMessage as deleteMessageRequest, markChannelRead as markChannelReadRequest } from '@/services/channelService';
 
 const MESSAGE_PAGE_SIZE = 50;
@@ -63,6 +63,13 @@ const applyMessageEdit = (state: ChannelState, channelID: number, messageID: num
             message.replyTo.messageText = shortenReplyPreview(messageText);
         }
     }
+};
+
+const dropChannelCache = (state: ChannelState, channelID: number) => {
+    delete state.messagesByChannel[channelID];
+    delete state.hasMoreMessages[channelID];
+    delete state.messagesStatusByChannel[channelID];
+    delete state.messagesErrorByChannel[channelID];
 };
 
 const applyMessageDelete = (state: ChannelState, channelID: number, messageID: number) => {
@@ -193,12 +200,10 @@ const channelSlice = createSlice({
                 state.error = action.payload ?? { message: 'Could not update channel' };
             })
             .addCase(deleteChannel.fulfilled, (state, action) => {
-                const { channelID } = action.payload;
-
-                delete state.messagesByChannel[channelID];
-                delete state.hasMoreMessages[channelID];
-                delete state.messagesStatusByChannel[channelID];
-                delete state.messagesErrorByChannel[channelID];
+                dropChannelCache(state, action.payload.channelID);
+            })
+            .addCase(channelDeleted, (state, action) => {
+                dropChannelCache(state, action.payload.channelID);
             })
             .addCase(deleteChannel.rejected, (state, action) => {
                 state.error = action.payload ?? { message: 'Could not delete channel' };
