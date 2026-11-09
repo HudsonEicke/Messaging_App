@@ -35,6 +35,16 @@ public class ConversationController : ModifiedControllerBase
         this.readStateService = readStateService;
     }
 
+    private static CreateConversationResult CreateDirectResult(long conversationId, User creatingUser, User otherUser)
+    {
+        CreateConversationResult result = new CreateConversationResult();
+        result.conversationID = conversationId;
+        result.conversationName = otherUser.displayName;
+        result.iconUrl = otherUser.profileImageUrl;
+        result.memberUsernames = new List<string> { creatingUser.username, otherUser.username };
+        return result;
+    }
+
     [HttpPost]
     public async Task<ActionResult<CreateConversationResult>> CreateConversation(CreateConversationRequest createConversationRequest)
     {
@@ -89,33 +99,26 @@ public class ConversationController : ModifiedControllerBase
                 List<long> currentMemberIds = await db.ConversationMembers.AsNoTracking().Where(member => member.conversationID == existingConversation.id).Select(member => member.userID).ToListAsync();
                 List<long> missingMemberIds = new List<long> { userId, otherUser.id }.Where(memberId => !currentMemberIds.Contains(memberId)).ToList();
 
-                if(missingMemberIds.Count == 0)
+                //get-or-create: an open dm is returned as is, and whoever left it is added back
+                if(missingMemberIds.Count > 0)
                 {
-                    return Conflict("You already have a dm with this user");
+                    foreach(long missingMemberId in missingMemberIds)
+                    {
+                        ConversationMember returningMember = new ConversationMember();
+                        returningMember.conversationID = existingConversation.id;
+                        returningMember.userID = missingMemberId;
+                        db.ConversationMembers.Add(returningMember);
+                    }
+
+                    await db.SaveChangesAsync();
+
+                    foreach(long missingMemberId in missingMemberIds)
+                    {
+                        await hubGroupService.AddUserToGroup(missingMemberId, $"conversation_{existingConversation.id}");
+                    }
                 }
 
-                foreach(long missingMemberId in missingMemberIds)
-                {
-                    ConversationMember returningMember = new ConversationMember();
-                    returningMember.conversationID = existingConversation.id;
-                    returningMember.userID = missingMemberId;
-                    db.ConversationMembers.Add(returningMember);
-                }
-
-                await db.SaveChangesAsync();
-
-                foreach(long missingMemberId in missingMemberIds)
-                {
-                    await hubGroupService.AddUserToGroup(missingMemberId, $"conversation_{existingConversation.id}");
-                }
-
-                result = new CreateConversationResult();
-                result.conversationID = existingConversation.id;
-                result.conversationName = otherUser.displayName;
-                result.iconUrl = otherUser.profileImageUrl;
-                result.memberUsernames = new List<string> { creatingUser.username, otherUser.username };
-
-                return Ok(result);
+                return Ok(CreateDirectResult(existingConversation.id, creatingUser, otherUser));
             }
 
             newConversation = new Conversation();
@@ -139,7 +142,10 @@ public class ConversationController : ModifiedControllerBase
             }
             catch(DbUpdateException exception) when (exception.IsUniqueViolation("idx_conversations_direct_pair"))
             {
-                return Conflict("You already have a dm with this user");
+                //the other user created the same dm at the same moment, so return theirs
+                long createdConversationId = await db.Conversations.AsNoTracking().Where(conversation => conversation.conversationType == ConversationType.direct && conversation.directUserLowID == directUserLowID && conversation.directUserHighID == directUserHighID).Select(conversation => conversation.id).FirstAsync();
+
+                return Ok(CreateDirectResult(createdConversationId, creatingUser, otherUser));
             }
 
             //adds both users' live connections so messages in the new dm arrive without reconnecting

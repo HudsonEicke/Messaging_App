@@ -105,16 +105,19 @@ public class ConversationTests : IClassFixture<TestWebApplicationFactory>
     }
 
     [Fact]
-    public async Task CreateConversation_DirectWhenAlreadyExists_ReturnsConflict()
+    public async Task CreateConversation_DirectWhenAlreadyExists_ReturnsExistingDm()
     {
         //arrange
-        (string tokenA, _, _) = await CreateDmConversation("cvdirdupeA", "cvdirdupeB");
+        (string tokenA, _, long conversationId) = await CreateDmConversation("cvdirdupeA", "cvdirdupeB");
 
         //act
         HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Post, "/conversations", tokenA, new CreateConversationRequest { memberUsernames = new List<string> { "cvdirdupeB" } }),TestContext.Current.CancellationToken);
+        CreateConversationResult? result = await response.Content.ReadFromJsonAsync<CreateConversationResult>(TestContext.Current.CancellationToken);
 
         //assert
-        Assert.Equal(HttpStatusCode.Conflict, response.StatusCode);
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.NotNull(result);
+        Assert.Equal(conversationId, result.conversationID);
     }
 
     [Fact]
@@ -126,11 +129,14 @@ public class ConversationTests : IClassFixture<TestWebApplicationFactory>
 
         //act
         HttpResponseMessage[] responses = await Task.WhenAll(client.SendAsync(CreateRequest(HttpMethod.Post, "/conversations", tokenA, new CreateConversationRequest { memberUsernames = new List<string> { "racedmboth2" } }), TestContext.Current.CancellationToken), client.SendAsync(CreateRequest(HttpMethod.Post, "/conversations", tokenB, new CreateConversationRequest { memberUsernames = new List<string> { "racedmboth1" } }), TestContext.Current.CancellationToken));
+        CreateConversationResult? firstResult = await responses[0].Content.ReadFromJsonAsync<CreateConversationResult>(TestContext.Current.CancellationToken);
+        CreateConversationResult? secondResult = await responses[1].Content.ReadFromJsonAsync<CreateConversationResult>(TestContext.Current.CancellationToken);
         HttpResponseMessage listResponse = await client.SendAsync(CreateRequest(HttpMethod.Get, "/conversations", tokenA), TestContext.Current.CancellationToken);
         List<ConversationResult>? conversations = await listResponse.Content.ReadFromJsonAsync<List<ConversationResult>>(TestContext.Current.CancellationToken);
 
         //assert
-        Assert.Equal(new[] { HttpStatusCode.OK, HttpStatusCode.Conflict }, responses.Select(response => response.StatusCode).OrderBy(status => status).ToArray());
+        Assert.All(responses, response => Assert.Equal(HttpStatusCode.OK, response.StatusCode));
+        Assert.Equal(firstResult!.conversationID, secondResult!.conversationID);
         Assert.Single(conversations!, conversation => conversation.conversationType == ConversationType.direct);
     }
 
