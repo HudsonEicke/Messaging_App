@@ -18,6 +18,7 @@ export interface HubEventMap
     MemberLeft: [serverID: number, username: string];
     MemberKicked: [serverID: number, username: string];
     OwnerChanged: [serverID: number, ownerUsername: string];
+    ServerUpdated: [serverID: number, serverName: string, iconUrl: string];
     ServerDeleted: [serverID: number];
     UserStatusChanged: [username: string, status: ActivityStatus];
     UserUpdated: [username: string, displayName: string, profileImageUrl: string];

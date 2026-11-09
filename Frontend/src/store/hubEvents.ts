@@ -12,4 +12,5 @@ export const channelDeleted = createAction<{ channelID: number }>('hub/channelDe
 export const serverMemberJoined = createAction<{ serverID: number; member: UserResponse }>('hub/serverMemberJoined');
 export const serverMemberRemoved = createAction<{ serverID: number; username: string }>('hub/serverMemberRemoved');
 export const serverOwnerChanged = createAction<{ serverID: number; ownerUsername: string }>('hub/serverOwnerChanged');
+export const serverUpdated = createAction<{ serverID: number; serverName: string; iconUrl: string }>('hub/serverUpdated');
 export const serverRemoved = createAction<{ serverID: number }>('hub/serverRemoved');

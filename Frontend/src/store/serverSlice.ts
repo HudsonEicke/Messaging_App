@@ -6,7 +6,7 @@ import { getApiError } from '@/lib/utils';
 import { loadLastChannels } from '@/lib/lastChannelStorage';
 import { clearTokens } from './authSlice';
 import { updateChannel, deleteChannel, markChannelRead, sendMessage } from './channelSlice';
-import { channelCreated, channelDeleted, channelMessageReceived, channelsReordered, channelUpdated, serverMemberJoined, serverMemberRemoved, serverOwnerChanged, serverRemoved } from './hubEvents';
+import { channelCreated, channelDeleted, channelMessageReceived, channelsReordered, channelUpdated, serverMemberJoined, serverMemberRemoved, serverOwnerChanged, serverRemoved, serverUpdated } from './hubEvents';
 import { getServers, getServer, createServer as createServerRequest, updateServer as updateServerRequest, deleteServer as deleteServerRequest, leaveServer as leaveServerRequest, getServerMembers, kickMember as kickMemberRequest, getChannels, createChannel as createChannelRequest, reorderChannels as reorderChannelsRequest, getInvites, createInvite as createInviteRequest, deleteInvite as deleteInviteRequest, joinServer as joinServerRequest } from '@/services/serverService';
 
 type FetchStatus = 'idle' | 'loading' | 'succeeded' | 'failed';
@@ -49,6 +49,17 @@ const removeServer = (state: ServerState, serverID: number) => {
     delete state.lastChannelByServer[serverID];
     delete state.membersByServer[serverID];
     delete state.invitesByServer[serverID];
+};
+
+// only the name and icon change, so the server keeps its unread dot
+const applyServerUpdate = (state: ServerState, serverID: number, serverName: string, iconUrl: string) => {
+    const server = state.servers.find(listedServer => listedServer.serverID === serverID);
+
+    if (server)
+    {
+        server.serverName = serverName;
+        server.iconUrl = iconUrl;
+    }
 };
 
 const removeMember = (state: ServerState, serverID: number, username: string) => {
@@ -399,12 +410,9 @@ const serverSlice = createSlice({
                 state.error = action.payload ?? { message: 'Could not join server' };
             })
             .addCase(updateServer.fulfilled, (state, action) => {
-                const index = state.servers.findIndex(server => server.serverID === action.payload.serverID);
+                const { serverID, serverName, iconUrl } = action.payload;
 
-                if (index !== -1)
-                {
-                    state.servers[index] = action.payload;
-                }
+                applyServerUpdate(state, serverID, serverName, iconUrl);
             })
             .addCase(updateServer.rejected, (state, action) => {
                 state.error = action.payload ?? { message: 'Could not update server' };
@@ -527,6 +535,11 @@ const serverSlice = createSlice({
                 {
                     server.ownerUsername = action.payload.ownerUsername;
                 }
+            })
+            .addCase(serverUpdated, (state, action) => {
+                const { serverID, serverName, iconUrl } = action.payload;
+
+                applyServerUpdate(state, serverID, serverName, iconUrl);
             })
             .addCase(serverRemoved, (state, action) => {
                 removeServer(state, action.payload.serverID);

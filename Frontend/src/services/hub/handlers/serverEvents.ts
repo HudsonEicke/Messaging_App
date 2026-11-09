@@ -1,6 +1,6 @@
 import type { HubConnection } from '@microsoft/signalr';
 import { store } from '@/store/store';
-import { serverMemberJoined, serverMemberRemoved, serverOwnerChanged, serverRemoved } from '@/store/hubEvents';
+import { serverMemberJoined, serverMemberRemoved, serverOwnerChanged, serverRemoved, serverUpdated } from '@/store/hubEvents';
 import { onHubEvent } from '@/services/hub/events';
 
 const isCurrentUser = (username: string) => username === store.getState().user.user?.username;
@@ -24,5 +24,15 @@ export const registerServerEvents = (connection: HubConnection) =>
     onHubEvent(connection, 'OwnerChanged', (serverID, ownerUsername) =>
     {
         store.dispatch(serverOwnerChanged({ serverID, ownerUsername }));
+    });
+
+    onHubEvent(connection, 'ServerUpdated', (serverID, serverName, iconUrl) =>
+    {
+        store.dispatch(serverUpdated({ serverID, serverName, iconUrl }));
+    });
+
+    onHubEvent(connection, 'ServerDeleted', (serverID) =>
+    {
+        store.dispatch(serverRemoved({ serverID }));
     });
 };
