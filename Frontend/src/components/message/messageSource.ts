@@ -7,6 +7,12 @@ export const getMessageElementId = (messageID: number) => `message-${messageID}`
 
 export type MessagesStatus = 'idle' | 'loading' | 'succeeded' | 'failed';
 
+export interface TypingUser
+{
+    username: string;
+    displayName: string;
+}
+
 // what MessageView needs from a channel or a conversation, so the UI is written once
 export interface MessageSource
 {
@@ -24,4 +30,6 @@ export interface MessageSource
     markRead: (messageID: number) => void;
     // loads older pages until the message is in the list; false if it's gone
     ensureLoaded: (messageID: number) => Promise<boolean>;
+    typingUsers: TypingUser[];
+    notifyTyping: () => void;
 }

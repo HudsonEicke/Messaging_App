@@ -3,6 +3,8 @@ import type { IRetryPolicy } from '@microsoft/signalr';
 import { store } from '@/store/store';
 import { hubConnected, hubConnecting, hubDisconnected, hubReconnected, hubReconnecting } from '@/store/hubSlice';
 import { getFreshAccessToken } from '@/services/api';
+import { onHubEvent } from './events';
+import type { HubEventMap, HubMethodMap } from './events';
 import { registerChannelEvents } from './handlers/channelEvents';
 import { registerConversationEvents } from './handlers/conversationEvents';
 import { registerServerEvents } from './handlers/serverEvents';
@@ -117,4 +119,19 @@ export const stopHub = () => {
         await connection.stop();
         store.dispatch(hubDisconnected());
     });
+};
+
+// for state that only matters while a component is mounted; returns the unsubscribe
+export const subscribeHubEvent = <EventName extends keyof HubEventMap>(eventName: EventName, handler: (...args: HubEventMap[EventName]) => void) => {
+    onHubEvent(connection, eventName, handler);
+
+    return () => connection.off(eventName, handler);
+};
+
+// fire and forget, so anything sent while disconnected is dropped
+export const sendHubMessage = <MethodName extends keyof HubMethodMap>(methodName: MethodName, ...args: HubMethodMap[MethodName]) => {
+    if (connection.state === HubConnectionState.Connected)
+    {
+        connection.send(methodName, ...args).catch(() => undefined);
+    }
 };

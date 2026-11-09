@@ -4,6 +4,8 @@ import { X } from 'lucide-react';
 import type { MessageResponse } from '@/types';
 import { cn, getErrorMessage } from '@/lib/utils';
 import { MESSAGE_MAX_LENGTH } from './messageSource';
+import type { TypingUser } from './messageSource';
+import TypingIndicator from './TypingIndicator';
 
 const COUNTER_THRESHOLD = 1800;
 
@@ -13,9 +15,11 @@ interface MessageComposerProps
     replyTarget: MessageResponse | null;
     onCancelReply: () => void;
     onSend: (messageText: string) => Promise<void>;
+    typingUsers: TypingUser[];
+    onTyping: () => void;
 }
 
-const MessageComposer = ({ placeholder, replyTarget, onCancelReply, onSend }: MessageComposerProps) =>
+const MessageComposer = ({ placeholder, replyTarget, onCancelReply, onSend, typingUsers, onTyping }: MessageComposerProps) =>
 {
     const textareaRef = useRef<HTMLTextAreaElement>(null);
     const [draft, setDraft] = useState('');
@@ -63,6 +67,16 @@ const MessageComposer = ({ placeholder, replyTarget, onCancelReply, onSend }: Me
         send();
     };
 
+    const handleChange = (text: string) =>
+    {
+        setDraft(text);
+
+        if (text.trim() !== '')
+        {
+            onTyping();
+        }
+    };
+
     const handleKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>) =>
     {
         if (event.key === 'Escape' && replyTarget)
@@ -83,7 +97,7 @@ const MessageComposer = ({ placeholder, replyTarget, onCancelReply, onSend }: Me
     const remaining = MESSAGE_MAX_LENGTH - draft.length;
 
     return (
-        <form onSubmit={handleSubmit} className="shrink-0 px-4 pb-4">
+        <form onSubmit={handleSubmit} className="relative shrink-0 px-4 pb-4">
             <div className="relative rounded-lg border border-input bg-muted/40 transition-colors focus-within:border-ring focus-within:ring-3 focus-within:ring-ring/50 dark:bg-input/30">
                 {
                     replyTarget && (
@@ -110,7 +124,7 @@ const MessageComposer = ({ placeholder, replyTarget, onCancelReply, onSend }: Me
                     placeholder={placeholder}
                     aria-label={placeholder}
                     aria-invalid={sendError !== null}
-                    onChange={event => setDraft(event.target.value)}
+                    onChange={event => handleChange(event.target.value)}
                     onKeyDown={handleKeyDown}
                     className="block field-sizing-content max-h-[50vh] min-h-11 w-full resize-none bg-transparent py-3 pr-14 pl-4 text-sm outline-none placeholder:text-muted-foreground"
                 />
@@ -127,6 +141,11 @@ const MessageComposer = ({ placeholder, replyTarget, onCancelReply, onSend }: Me
                 }
             </div>
             {sendError && <p role="alert" className="mt-1 text-sm text-destructive">{sendError}</p>}
+
+            {/* sits in the bottom padding so the composer doesn't move when someone starts typing */}
+            <div className="absolute inset-x-4 bottom-0 h-4 leading-4">
+                <TypingIndicator typingUsers={typingUsers} />
+            </div>
         </form>
     );
 };

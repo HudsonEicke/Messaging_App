@@ -12,6 +12,8 @@ export interface HubEventMap
     ReceiveChannelMessage: [serverID: number, channelID: number, message: SendMessageResponse];
     ChannelMessageEdited: [channelID: number, messageID: number, messageText: string];
     ChannelMessageDeleted: [channelID: number, messageID: number];
+    ChannelTyping: [channelID: number, username: string, displayName: string];
+    ConversationTyping: [conversationID: number, username: string, displayName: string];
     ConversationCreated: [conversation: ConversationResponse];
     ReceiveConversationMessage: [conversationID: number, message: SendMessageResponse];
     ConversationMessageEdited: [conversationID: number, messageID: number, messageText: string];
@@ -28,6 +30,13 @@ export interface HubEventMap
     ServerDeleted: [serverID: number];
     UserStatusChanged: [username: string, status: ActivityStatus];
     UserUpdated: [username: string, displayName: string, profileImageUrl: string];
+}
+
+// hub methods the client calls, with their arguments
+export interface HubMethodMap
+{
+    StartChannelTyping: [channelId: number];
+    StartConversationTyping: [conversationId: number];
 }
 
 export const onHubEvent = <EventName extends keyof HubEventMap>(

@@ -32,7 +32,7 @@ const MessageView = ({ source, placeholder, intro }: MessageViewProps) =>
     return (
         <div className="flex min-h-0 min-w-0 flex-1 flex-col">
             <MessageList source={source} currentUsername={currentUsername} intro={intro} onReply={setReplyTarget} />
-            <MessageComposer placeholder={placeholder} replyTarget={replyTarget} onCancelReply={cancelReply} onSend={handleSend} />
+            <MessageComposer placeholder={placeholder} replyTarget={replyTarget} onCancelReply={cancelReply} onSend={handleSend} typingUsers={source.typingUsers} onTyping={source.notifyTyping} />
         </div>
     );
 };

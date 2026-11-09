@@ -4,6 +4,7 @@ import type { AppDispatch, RootState } from '@/store/store';
 import { deleteMessage, editMessage, fetchMessages, markConversationRead, sendMessage } from '@/store/conversationSlice';
 import type { MessageSource } from '@/components/message/messageSource';
 import { useOnReconnect } from './useOnReconnect';
+import { useTyping } from './useTyping';
 
 export const useConversationMessages = (conversationID: number, hasUnread: boolean, canDeleteOthers: boolean): MessageSource =>
 {
@@ -14,6 +15,7 @@ export const useConversationMessages = (conversationID: number, hasUnread: boole
     const error = useSelector((state: RootState) => state.conversation.messagesErrorByConversation[conversationID] ?? null);
     const hasMore = useSelector((state: RootState) => state.conversation.hasMoreMessages[conversationID] ?? false);
     const oldestMessageID = messages?.[0]?.id;
+    const { typingUsers, notifyTyping, resetPing } = useTyping('conversation', conversationID);
 
     const reload = useCallback(() =>
     {
@@ -40,7 +42,8 @@ export const useConversationMessages = (conversationID: number, hasUnread: boole
     const send = useCallback(async (messageText: string, replyToID?: number) =>
     {
         await dispatch(sendMessage({ conversationID, request: { messageText, replyToID } })).unwrap();
-    }, [dispatch, conversationID]);
+        resetPing();
+    }, [dispatch, conversationID, resetPing]);
 
     const edit = useCallback(async (messageID: number, messageText: string) =>
     {
@@ -94,7 +97,7 @@ export const useConversationMessages = (conversationID: number, hasUnread: boole
     }, [dispatch, store, conversationID]);
 
     return useMemo(
-        () => ({ messages, status, error, hasMore, hasUnread, canDeleteOthers, reload, loadOlder, send, edit, remove, markRead, ensureLoaded }),
-        [messages, status, error, hasMore, hasUnread, canDeleteOthers, reload, loadOlder, send, edit, remove, markRead, ensureLoaded]
+        () => ({ messages, status, error, hasMore, hasUnread, canDeleteOthers, reload, loadOlder, send, edit, remove, markRead, ensureLoaded, typingUsers, notifyTyping }),
+        [messages, status, error, hasMore, hasUnread, canDeleteOthers, reload, loadOlder, send, edit, remove, markRead, ensureLoaded, typingUsers, notifyTyping]
     );
 };
