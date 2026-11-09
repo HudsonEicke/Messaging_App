@@ -3,8 +3,9 @@ import type { RootState } from './store';
 import type { ConversationResponse, CreateConversationRequest, MessageResponse, SendMessageRequest, UpdateConversationRequest, UserResponse } from '@/types';
 import type { ApiError } from '@/lib/utils';
 import { getApiError } from '@/lib/utils';
-import { shortenReplyPreview } from '@/lib/replyPreview';
+import { editMessageText, insertMessage, removeMessage } from '@/lib/messageList';
 import { clearTokens } from './authSlice';
+import { conversationMemberAdded, conversationMemberRemoved, conversationMessageDeleted, conversationMessageEdited, conversationMessageReceived, conversationOwnerChanged, conversationRemoved, conversationUpdated } from './hubEvents';
 import { getConversations, getConversation, createConversation as createConversationRequest, updateConversation as updateConversationRequest, leaveConversation as leaveConversationRequest, getMessages, sendMessage as sendMessageRequest, editMessage as editMessageRequest, deleteMessage as deleteMessageRequest, getConversationMembers, addMember as addMemberRequest, markConversationRead as markConversationReadRequest } from '@/services/conversationService';
 
 const MESSAGE_PAGE_SIZE = 50;
@@ -36,6 +37,78 @@ const initialState: ConversationState = {
     messagesStatusByConversation: {},
     messagesErrorByConversation: {},
     error: null
+};
+
+// shared by the thunks and the hub events; a conversation that hasn't been opened has no cache to change
+const addMessage = (state: ConversationState, conversationID: number, message: MessageResponse) => {
+    const messages = state.messagesByConversation[conversationID];
+
+    if (messages)
+    {
+        insertMessage(messages, message);
+    }
+};
+
+const applyMessageEdit = (state: ConversationState, conversationID: number, messageID: number, messageText: string) => {
+    const messages = state.messagesByConversation[conversationID];
+
+    if (messages)
+    {
+        editMessageText(messages, messageID, messageText);
+    }
+};
+
+const applyMessageDelete = (state: ConversationState, conversationID: number, messageID: number) => {
+    const messages = state.messagesByConversation[conversationID];
+
+    if (messages)
+    {
+        removeMessage(messages, messageID);
+    }
+};
+
+// the list is sorted by recent activity, and the backend marks your own messages read
+const bumpConversation = (state: ConversationState, conversationID: number, messageID: number, isOwnMessage: boolean) => {
+    const index = state.conversations.findIndex(conversation => conversation.id === conversationID);
+
+    // your own message comes from both the response and the hub, so only count it once
+    if (index === -1 || (state.conversations[index].lastMessageID ?? 0) >= messageID)
+    {
+        return;
+    }
+
+    const [conversation] = state.conversations.splice(index, 1);
+    conversation.lastMessageID = messageID;
+    conversation.unreadCount = isOwnMessage ? 0 : conversation.unreadCount + 1;
+    state.conversations.unshift(conversation);
+};
+
+const removeConversation = (state: ConversationState, conversationID: number) => {
+    state.conversations = state.conversations.filter(conversation => conversation.id !== conversationID);
+    delete state.messagesByConversation[conversationID];
+    delete state.hasMoreMessages[conversationID];
+    delete state.membersByConversation[conversationID];
+    delete state.messagesStatusByConversation[conversationID];
+    delete state.messagesErrorByConversation[conversationID];
+};
+
+// only add to a list that was already loaded, otherwise it would look like a one member group
+const addListedMember = (state: ConversationState, conversationID: number, member: UserResponse) => {
+    const members = state.membersByConversation[conversationID];
+
+    if (members && !members.some(listedMember => listedMember.username === member.username))
+    {
+        members.push(member);
+    }
+};
+
+const removeListedMember = (state: ConversationState, conversationID: number, username: string) => {
+    const members = state.membersByConversation[conversationID];
+
+    if (members)
+    {
+        state.membersByConversation[conversationID] = members.filter(member => member.username !== username);
+    }
 };
 
 export const fetchConversations = createAsyncThunk<ConversationResponse[], void, { rejectValue: ApiError }>('conversation/fetchConversations', async (_, { rejectWithValue }) => {
@@ -248,14 +321,7 @@ const conversationSlice = createSlice({
                 state.error = action.payload ?? { message: 'Could not update conversation' };
             })
             .addCase(leaveConversation.fulfilled, (state, action) => {
-                const id = action.payload;
-
-                state.conversations = state.conversations.filter(conversation => conversation.id !== id);
-                delete state.messagesByConversation[id];
-                delete state.hasMoreMessages[id];
-                delete state.membersByConversation[id];
-                delete state.messagesStatusByConversation[id];
-                delete state.messagesErrorByConversation[id];
+                removeConversation(state, action.payload);
             })
             .addCase(leaveConversation.rejected, (state, action) => {
                 state.error = action.payload ?? { message: 'Could not leave conversation' };
@@ -287,24 +353,9 @@ const conversationSlice = createSlice({
             })
             .addCase(sendMessage.fulfilled, (state, action) => {
                 const { conversationID, message } = action.payload;
-                const messages = state.messagesByConversation[conversationID] ?? [];
 
-                // SignalR will also deliver your own message, so it may already be listed
-                if (!messages.some(listedMessage => listedMessage.id === message.id))
-                {
-                    state.messagesByConversation[conversationID] = [...messages, message];
-                }
-
-                // the backend marks your own message read, and the list is sorted by recent activity
-                const conversationIndex = state.conversations.findIndex(conversation => conversation.id === conversationID);
-
-                if (conversationIndex !== -1)
-                {
-                    const [conversation] = state.conversations.splice(conversationIndex, 1);
-                    conversation.lastMessageID = message.id;
-                    conversation.unreadCount = 0;
-                    state.conversations.unshift(conversation);
-                }
+                addMessage(state, conversationID, message);
+                bumpConversation(state, conversationID, message.id, true);
             })
             .addCase(sendMessage.rejected, (state, action) => {
                 state.error = action.payload ?? { message: 'Could not send message' };
@@ -312,33 +363,13 @@ const conversationSlice = createSlice({
             .addCase(editMessage.fulfilled, (state, action) => {
                 const { conversationID, messageID, messageText } = action.payload;
 
-                for (const message of state.messagesByConversation[conversationID] ?? [])
-                {
-                    if (message.id === messageID)
-                    {
-                        message.messageText = messageText;
-                        message.edited = true;
-                    }
-                    else if (message.replyTo?.id === messageID)
-                    {
-                        message.replyTo.messageText = shortenReplyPreview(messageText);
-                    }
-                }
+                applyMessageEdit(state, conversationID, messageID, messageText);
             })
             .addCase(editMessage.rejected, (state, action) => {
                 state.error = action.payload ?? { message: 'Could not edit message' };
             })
             .addCase(deleteMessage.fulfilled, (state, action) => {
-                const { conversationID, messageID } = action.payload;
-                const messages = state.messagesByConversation[conversationID];
-
-                if (messages)
-                {
-                    // the backend clears replyToID on replies to a deleted message
-                    state.messagesByConversation[conversationID] = messages
-                        .filter(message => message.id !== messageID)
-                        .map(message => message.replyTo?.id === messageID ? { ...message, replyToID: undefined, replyTo: null } : message);
-                }
+                applyMessageDelete(state, action.payload.conversationID, action.payload.messageID);
             })
             .addCase(deleteMessage.rejected, (state, action) => {
                 state.error = action.payload ?? { message: 'Could not delete message' };
@@ -358,13 +389,50 @@ const conversationSlice = createSlice({
                 state.error = action.payload ?? { message: 'Could not load members' };
             })
             .addCase(addMember.fulfilled, (state, action) => {
-                const { conversationID, member } = action.payload;
-
-                // only add to a list that was already loaded, otherwise it would look like a one member group
-                state.membersByConversation[conversationID]?.push(member);
+                addListedMember(state, action.payload.conversationID, action.payload.member);
             })
             .addCase(addMember.rejected, (state, action) => {
                 state.error = action.payload ?? { message: 'Could not add member' };
+            })
+            .addCase(conversationMessageReceived, (state, action) => {
+                const { conversationID, message, isOwnMessage } = action.payload;
+
+                addMessage(state, conversationID, message);
+                bumpConversation(state, conversationID, message.id, isOwnMessage);
+            })
+            .addCase(conversationMessageEdited, (state, action) => {
+                const { conversationID, messageID, messageText } = action.payload;
+
+                applyMessageEdit(state, conversationID, messageID, messageText);
+            })
+            .addCase(conversationMessageDeleted, (state, action) => {
+                applyMessageDelete(state, action.payload.conversationID, action.payload.messageID);
+            })
+            .addCase(conversationUpdated, (state, action) => {
+                const conversation = state.conversations.find(listedConversation => listedConversation.id === action.payload.conversationID);
+
+                if (conversation)
+                {
+                    conversation.conversationName = action.payload.conversationName;
+                    conversation.iconUrl = action.payload.iconUrl;
+                }
+            })
+            .addCase(conversationMemberAdded, (state, action) => {
+                addListedMember(state, action.payload.conversationID, action.payload.member);
+            })
+            .addCase(conversationMemberRemoved, (state, action) => {
+                removeListedMember(state, action.payload.conversationID, action.payload.username);
+            })
+            .addCase(conversationOwnerChanged, (state, action) => {
+                const conversation = state.conversations.find(listedConversation => listedConversation.id === action.payload.conversationID);
+
+                if (conversation)
+                {
+                    conversation.ownerUsername = action.payload.ownerUsername;
+                }
+            })
+            .addCase(conversationRemoved, (state, action) => {
+                removeConversation(state, action.payload.conversationID);
             });
     }
 });

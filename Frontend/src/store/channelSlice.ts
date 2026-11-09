@@ -3,7 +3,7 @@ import type { MessageResponse, SendMessageRequest } from '@/types';
 import type { RootState } from './store';
 import type { ApiError } from '@/lib/utils';
 import { getApiError } from '@/lib/utils';
-import { shortenReplyPreview } from '@/lib/replyPreview';
+import { editMessageText, insertMessage, removeMessage } from '@/lib/messageList';
 import { clearTokens } from './authSlice';
 import { channelDeleted, channelMessageDeleted, channelMessageEdited, channelMessageReceived } from './hubEvents';
 import { updateChannel as updateChannelRequest, deleteChannel as deleteChannelRequest, getMessages, sendMessage as sendMessageRequest, editMessage as editMessageRequest, deleteMessage as deleteMessageRequest, markChannelRead as markChannelReadRequest } from '@/services/channelService';
@@ -29,39 +29,31 @@ const initialState: ChannelState = {
     error: null
 };
 
-// shared by sendMessage and the hub event; a channel that hasn't been opened has no cache to add to
+// shared by the thunks and the hub events; a channel that hasn't been opened has no cache to change
 const addMessage = (state: ChannelState, channelID: number, message: MessageResponse) => {
     const messages = state.messagesByChannel[channelID];
 
-    // the hub also delivers your own message, so it may already be listed
-    if (!messages || messages.some(listedMessage => listedMessage.id === message.id))
+    if (messages)
     {
-        return;
+        insertMessage(messages, message);
     }
-
-    // ids only go up, so two messages that arrive out of order still end up oldest first
-    let index = messages.length;
-
-    while (index > 0 && messages[index - 1].id > message.id)
-    {
-        index--;
-    }
-
-    messages.splice(index, 0, message);
 };
 
 const applyMessageEdit = (state: ChannelState, channelID: number, messageID: number, messageText: string) => {
-    for (const message of state.messagesByChannel[channelID] ?? [])
+    const messages = state.messagesByChannel[channelID];
+
+    if (messages)
     {
-        if (message.id === messageID)
-        {
-            message.messageText = messageText;
-            message.edited = true;
-        }
-        else if (message.replyTo?.id === messageID)
-        {
-            message.replyTo.messageText = shortenReplyPreview(messageText);
-        }
+        editMessageText(messages, messageID, messageText);
+    }
+};
+
+const applyMessageDelete = (state: ChannelState, channelID: number, messageID: number) => {
+    const messages = state.messagesByChannel[channelID];
+
+    if (messages)
+    {
+        removeMessage(messages, messageID);
     }
 };
 
@@ -70,18 +62,6 @@ const dropChannelCache = (state: ChannelState, channelID: number) => {
     delete state.hasMoreMessages[channelID];
     delete state.messagesStatusByChannel[channelID];
     delete state.messagesErrorByChannel[channelID];
-};
-
-const applyMessageDelete = (state: ChannelState, channelID: number, messageID: number) => {
-    const messages = state.messagesByChannel[channelID];
-
-    if (messages)
-    {
-        // the backend clears replyToID on replies to a deleted message
-        state.messagesByChannel[channelID] = messages
-            .filter(message => message.id !== messageID)
-            .map(message => message.replyTo?.id === messageID ? { ...message, replyToID: undefined, replyTo: null } : message);
-    }
 };
 
 export const updateChannel = createAsyncThunk<{ serverID: number; channelID: number; channelName: string }, { serverID: number; channelID: number; channelName: string }, { rejectValue: ApiError }>('channel/updateChannel', async ({ serverID, channelID, channelName }, { rejectWithValue }) => {

@@ -4,6 +4,7 @@ import { store } from '@/store/store';
 import { hubConnected, hubConnecting, hubDisconnected, hubReconnected, hubReconnecting } from '@/store/hubSlice';
 import { getFreshAccessToken } from '@/services/api';
 import { registerChannelEvents } from './handlers/channelEvents';
+import { registerConversationEvents } from './handlers/conversationEvents';
 import { registerServerEvents } from './handlers/serverEvents';
 
 const RETRY_DELAYS_MS = [0, 2_000, 5_000, 10_000];
@@ -25,6 +26,7 @@ const connection = new HubConnectionBuilder()
 // registered before the first start so no early event is missed
 registerChannelEvents(connection);
 registerServerEvents(connection);
+registerConversationEvents(connection);
 
 // what the app currently wants; queued tasks check it when they run, so a stop followed by a start cancels out
 let isWanted = false;

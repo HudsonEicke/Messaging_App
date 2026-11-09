@@ -20,7 +20,7 @@ export const useConversationMessages = (conversationID: number, hasUnread: boole
         dispatch(fetchMessages({ conversationID }));
     }, [dispatch, conversationID]);
 
-    // nothing pushes new messages until SignalR, so get the newest page every time the conversation opens
+    // the hub keeps a cached conversation current, but not across a reconnect, so get the newest page every time it opens
     useEffect(() =>
     {
         reload();

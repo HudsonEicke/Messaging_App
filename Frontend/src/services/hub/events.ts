@@ -12,8 +12,13 @@ export interface HubEventMap
     ReceiveChannelMessage: [serverID: number, channelID: number, message: SendMessageResponse];
     ChannelMessageEdited: [channelID: number, messageID: number, messageText: string];
     ChannelMessageDeleted: [channelID: number, messageID: number];
+    ReceiveConversationMessage: [conversationID: number, message: SendMessageResponse];
     ConversationMessageEdited: [conversationID: number, messageID: number, messageText: string];
     ConversationMessageDeleted: [conversationID: number, messageID: number];
+    ConversationUpdated: [conversationID: number, conversationName: string, iconUrl: string];
+    ConversationMemberAdded: [conversationID: number, member: UserResponse];
+    ConversationOwnerChanged: [conversationID: number, ownerUsername: string];
+    ConversationMemberLeft: [conversationID: number, username: string];
     MemberJoined: [serverID: number, member: UserResponse];
     MemberLeft: [serverID: number, username: string];
     MemberKicked: [serverID: number, username: string];

@@ -16,13 +16,13 @@ import MessageView from '@/components/message/MessageView';
 export const ConversationPage = () =>
 {
     const { conversationId } = useActiveIds();
-    const conversationsStatus = useSelector((state: RootState) => state.conversation.conversationsStatus);
+    const hasLoadedConversations = useSelector((state: RootState) => state.conversation.hasLoadedConversations);
     const conversation = useSelector((state: RootState) => state.conversation.conversations.find(listedConversation => listedConversation.id === conversationId));
 
     if (conversation === undefined)
     {
         // left, or a bad link
-        return conversationsStatus === 'succeeded' || conversationId === null ? <Navigate to="/channels/@me" replace /> : null;
+        return hasLoadedConversations || conversationId === null ? <Navigate to="/channels/@me" replace /> : null;
     }
 
     return <ConversationChat key={conversation.id} conversation={conversation} />;
