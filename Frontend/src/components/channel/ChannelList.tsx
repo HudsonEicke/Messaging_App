@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { ChevronDown, Plus } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import { DndContext, KeyboardSensor, PointerSensor, closestCenter, useSensor, useSensors } from '@dnd-kit/core';
 import type { Announcements, DragEndEvent, Modifier, UniqueIdentifier } from '@dnd-kit/core';
 import { SortableContext, arrayMove, sortableKeyboardCoordinates, verticalListSortingStrategy } from '@dnd-kit/sortable';
@@ -9,8 +9,8 @@ import { useActiveIds } from '@/hooks/useActiveIds';
 import { useSuppressClickAfterDrag } from '@/hooks/useSuppressClickAfterDrag';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { fetchChannels, reorderChannels, setLastChannel } from '@/store/serverSlice';
+import ServerHeader from '@/components/server/ServerHeader';
 import ChannelItem from './ChannelItem';
 import ChannelSettingsDialog from './ChannelSettingsDialog';
 import CreateChannelDialog from './CreateChannelDialog';
@@ -51,7 +51,6 @@ const ChannelList = ({ serverId }: ChannelListProps) =>
         useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates, keyboardCodes: KEYBOARD_CODES })
     );
 
-    // the backend makes every channel change owner-only, so non-owners never see the controls
     const isOwner = server !== undefined && currentUsername !== undefined && server.ownerUsername === currentUsername;
     const settingsChannel = channels?.find(channel => channel.channelID === settingsChannelId);
 
@@ -103,34 +102,7 @@ const ChannelList = ({ serverId }: ChannelListProps) =>
 
     return (
         <div className="flex min-h-0 flex-1 flex-col">
-            <header className="flex h-12 shrink-0 border-b">
-                <h2 className="flex min-w-0 flex-1 text-sm font-semibold">
-                    {
-                        isOwner
-                            ? (
-                                // non-modal so the menu closing doesn't fight the dialog it opens for focus and pointer events
-                                <DropdownMenu modal={false}>
-                                    <DropdownMenuTrigger asChild>
-                                        <button
-                                            type="button"
-                                            className="group flex min-w-0 flex-1 items-center justify-between gap-2 px-4 text-left outline-none transition-colors hover:bg-sidebar-accent/50 focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:ring-inset data-[state=open]:bg-sidebar-accent/50"
-                                        >
-                                            <span className="truncate">{server.serverName}</span>
-                                            <ChevronDown className="size-4 shrink-0 transition-transform group-data-[state=open]:rotate-180" aria-hidden="true" />
-                                        </button>
-                                    </DropdownMenuTrigger>
-                                    <DropdownMenuContent>
-                                        <DropdownMenuItem onSelect={() => setIsCreateOpen(true)}>
-                                            <Plus aria-hidden="true" />
-                                            Create channel
-                                        </DropdownMenuItem>
-                                    </DropdownMenuContent>
-                                </DropdownMenu>
-                            )
-                            : <span className="flex min-w-0 flex-1 items-center truncate px-4">{server?.serverName}</span>
-                    }
-                </h2>
-            </header>
+            <ServerHeader server={server} isOwner={isOwner} onCreateChannel={() => setIsCreateOpen(true)} />
 
             <ScrollArea className="min-h-0 flex-1">
                 <nav aria-label="Channels" className="flex flex-col gap-0.5 py-3">

@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { fetchServers } from '@/store/serverSlice';
+import AddServerButton from './AddServerButton';
 import HomeButton from './HomeButton';
 import ServerIcon from './ServerIcon';
 
@@ -56,6 +57,8 @@ const ServerList = () =>
                             <ServerIcon key={server.serverID} server={server} isActive={server.serverID === serverId} />
                         ))
             }
+
+            <AddServerButton />
         </div>
     );
 };

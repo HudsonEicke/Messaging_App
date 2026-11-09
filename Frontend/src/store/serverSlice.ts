@@ -211,18 +211,14 @@ export const fetchInvites = createAsyncThunk<{ serverID: number; invites: Invite
     }
 });
 
-export const createInvite = createAsyncThunk<{ serverID: number; invite: CreateInviteResponse; invites: InviteResponse[] }, { serverID: number; request: CreateInviteRequest }, { rejectValue: ApiError }>('server/createInvite', async ({ serverID, request }, { rejectWithValue }) => {
+export const createInvite = createAsyncThunk<{ serverID: number; invite: CreateInviteResponse }, { serverID: number; request: CreateInviteRequest }, { rejectValue: ApiError }>('server/createInvite', async ({ serverID, request }, { rejectWithValue }) => {
     try
     {
         const invite = await createInviteRequest(serverID, request);
 
-        // create is missing createdByUsername, createdDate and uses, so refetch the full list
-        const invites = await getInvites(serverID);
-
         return {
             serverID,
-            invite,
-            invites
+            invite
         };
     }
     catch (error)
@@ -389,8 +385,9 @@ const serverSlice = createSlice({
             .addCase(fetchInvites.rejected, (state, action) => {
                 state.error = action.payload ?? { message: 'Could not load invites' };
             })
+            // any member can create an invite but only the owner can list them, so drop the cached list instead of refetching it
             .addCase(createInvite.fulfilled, (state, action) => {
-                state.invitesByServer[action.payload.serverID] = action.payload.invites;
+                delete state.invitesByServer[action.payload.serverID];
             })
             .addCase(createInvite.rejected, (state, action) => {
                 state.error = action.payload ?? { message: 'Could not create invite' };

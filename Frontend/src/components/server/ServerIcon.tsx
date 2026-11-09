@@ -1,6 +1,6 @@
 import { NavLink } from 'react-router-dom';
 import type { ServerResponse } from '@/types';
-import { cn } from '@/lib/utils';
+import { cn, getInitials } from '@/lib/utils';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 
@@ -9,17 +9,6 @@ interface ServerIconProps
     server: ServerResponse;
     isActive: boolean;
 }
-
-const getInitials = (serverName: string): string =>
-{
-    return serverName
-        .trim()
-        .split(/\s+/)
-        .slice(0, 2)
-        .map(word => [...word][0] ?? '')
-        .join('')
-        .toUpperCase();
-};
 
 const ServerIcon = ({ server, isActive }: ServerIconProps) =>
 {
