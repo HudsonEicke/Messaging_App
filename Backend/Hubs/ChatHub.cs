@@ -76,16 +76,47 @@ public class ChatHub : Hub
         await base.OnDisconnectedAsync(exception);
     }
 
-    public async Task SendTypingIndicator(string groupName, bool isTyping)
+    public async Task StartChannelTyping(long channelId)
     {
+        long? serverId = await db.Channels.AsNoTracking().Where(channel => channel.id == channelId).Select(channel => (long?)channel.serverID).FirstOrDefaultAsync();
+
+        if(serverId == null)
+            return;
+
+        string groupName = $"server_{serverId}";
+
+        //the tracker follows joins, leaves and kicks, so this is the membership check
         if(!connectionTracker.IsInGroup(Context.ConnectionId, groupName))
             return;
-        
-        string? username = Context.User!.FindFirst(ClaimTypes.Name)?.Value;
 
-        if(username == null)
+        User? typingUser = await GetCurrentUser();
+
+        if(typingUser == null)
             return;
 
-        await Clients.OthersInGroup(groupName).SendAsync("UserTyping", username, isTyping);
+        await Clients.OthersInGroup(groupName).SendAsync("ChannelTyping", channelId, typingUser.username, typingUser.displayName);
+    }
+
+    public async Task StartConversationTyping(long conversationId)
+    {
+        string groupName = $"conversation_{conversationId}";
+
+        if(!connectionTracker.IsInGroup(Context.ConnectionId, groupName))
+            return;
+
+        User? typingUser = await GetCurrentUser();
+
+        if(typingUser == null)
+            return;
+
+        await Clients.OthersInGroup(groupName).SendAsync("ConversationTyping", conversationId, typingUser.username, typingUser.displayName);
+    }
+
+    //the display name goes in the typing events so clients can show it without having the typer in a loaded member list
+    private async Task<User?> GetCurrentUser()
+    {
+        long userId = long.Parse(Context.User!.FindFirst(ClaimTypes.NameIdentifier)!.Value);
+
+        return await db.Users.AsNoTracking().FirstOrDefaultAsync(user => user.id == userId);
     }
 }
