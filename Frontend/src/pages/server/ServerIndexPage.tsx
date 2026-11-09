@@ -6,12 +6,12 @@ import { useActiveIds } from '@/hooks/useActiveIds';
 export const ServerIndexPage = () =>
 {
     const { serverId } = useActiveIds();
-    const serversStatus = useSelector((state: RootState) => state.server.serversStatus);
+    const hasLoadedServers = useSelector((state: RootState) => state.server.hasLoadedServers);
     const isMember = useSelector((state: RootState) => state.server.servers.some(listedServer => listedServer.serverID === serverId));
     const channels = useSelector((state: RootState) => serverId === null ? undefined : state.server.channelsByServer[serverId]);
     const lastChannelId = useSelector((state: RootState) => serverId === null ? undefined : state.server.lastChannelByServer[serverId]);
 
-    if (serverId === null || (serversStatus === 'succeeded' && !isMember))
+    if (serverId === null || (hasLoadedServers && !isMember))
     {
         return <Navigate to="/channels/@me" replace />;
     }

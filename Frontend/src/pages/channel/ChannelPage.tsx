@@ -15,10 +15,13 @@ import MessageView from '@/components/message/MessageView';
 export const ChannelPage = () =>
 {
     const { serverId, channelId } = useActiveIds();
+    const hasLoadedServers = useSelector((state: RootState) => state.server.hasLoadedServers);
+    const isMember = useSelector((state: RootState) => state.server.servers.some(listedServer => listedServer.serverID === serverId));
     const channels = useSelector((state: RootState) => serverId === null ? undefined : state.server.channelsByServer[serverId]);
     const channel = channels?.find(listedChannel => listedChannel.channelID === channelId);
 
-    if (serverId === null)
+    // also covers being kicked, or leaving in another tab, while in one of the server's channels
+    if (serverId === null || (hasLoadedServers && !isMember))
     {
         return <Navigate to="/channels/@me" replace />;
     }

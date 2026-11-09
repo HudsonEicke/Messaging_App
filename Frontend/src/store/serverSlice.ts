@@ -6,7 +6,7 @@ import { getApiError } from '@/lib/utils';
 import { loadLastChannels } from '@/lib/lastChannelStorage';
 import { clearTokens } from './authSlice';
 import { updateChannel, deleteChannel, markChannelRead, sendMessage } from './channelSlice';
-import { channelCreated, channelDeleted, channelMessageReceived, channelsReordered, channelUpdated } from './hubEvents';
+import { channelCreated, channelDeleted, channelMessageReceived, channelsReordered, channelUpdated, serverMemberJoined, serverMemberRemoved, serverOwnerChanged, serverRemoved } from './hubEvents';
 import { getServers, getServer, createServer as createServerRequest, updateServer as updateServerRequest, deleteServer as deleteServerRequest, leaveServer as leaveServerRequest, getServerMembers, kickMember as kickMemberRequest, getChannels, createChannel as createChannelRequest, reorderChannels as reorderChannelsRequest, getInvites, createInvite as createInviteRequest, deleteInvite as deleteInviteRequest, joinServer as joinServerRequest } from '@/services/serverService';
 
 type FetchStatus = 'idle' | 'loading' | 'succeeded' | 'failed';
@@ -49,6 +49,15 @@ const removeServer = (state: ServerState, serverID: number) => {
     delete state.lastChannelByServer[serverID];
     delete state.membersByServer[serverID];
     delete state.invitesByServer[serverID];
+};
+
+const removeMember = (state: ServerState, serverID: number, username: string) => {
+    const members = state.membersByServer[serverID];
+
+    if (members)
+    {
+        state.membersByServer[serverID] = members.filter(member => member.username !== username);
+    }
 };
 
 // reading a channel or sending in it clears its dot, and the server's dot once none of its channels are unread
@@ -419,13 +428,7 @@ const serverSlice = createSlice({
                 state.error = action.payload ?? { message: 'Could not load members' };
             })
             .addCase(kickMember.fulfilled, (state, action) => {
-                const { serverID, username } = action.payload;
-                const members = state.membersByServer[serverID];
-
-                if (members)
-                {
-                    state.membersByServer[serverID] = members.filter(member => member.username !== username);
-                }
+                removeMember(state, action.payload.serverID, action.payload.username);
             })
             .addCase(kickMember.rejected, (state, action) => {
                 state.error = action.payload ?? { message: 'Could not kick member' };
@@ -504,6 +507,29 @@ const serverSlice = createSlice({
             })
             .addCase(channelDeleted, (state, action) => {
                 removeChannel(state, action.payload.channelID);
+            })
+            .addCase(serverMemberJoined, (state, action) => {
+                const { serverID, member } = action.payload;
+                const members = state.membersByServer[serverID];
+
+                if (members && !members.some(listedMember => listedMember.username === member.username))
+                {
+                    members.push(member);
+                }
+            })
+            .addCase(serverMemberRemoved, (state, action) => {
+                removeMember(state, action.payload.serverID, action.payload.username);
+            })
+            .addCase(serverOwnerChanged, (state, action) => {
+                const server = state.servers.find(listedServer => listedServer.serverID === action.payload.serverID);
+
+                if (server)
+                {
+                    server.ownerUsername = action.payload.ownerUsername;
+                }
+            })
+            .addCase(serverRemoved, (state, action) => {
+                removeServer(state, action.payload.serverID);
             })
             .addCase(fetchInvites.fulfilled, (state, action) => {
                 state.invitesByServer[action.payload.serverID] = action.payload.invites;
