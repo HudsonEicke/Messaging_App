@@ -1,13 +1,31 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
+import { ChevronDown, Plus } from 'lucide-react';
+import { DndContext, KeyboardSensor, PointerSensor, closestCenter, useSensor, useSensors } from '@dnd-kit/core';
+import type { Announcements, DragEndEvent, Modifier, UniqueIdentifier } from '@dnd-kit/core';
+import { SortableContext, arrayMove, sortableKeyboardCoordinates, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import type { AppDispatch, RootState } from '@/store/store';
 import { useActiveIds } from '@/hooks/useActiveIds';
+import { useSuppressClickAfterDrag } from '@/hooks/useSuppressClickAfterDrag';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { fetchChannels, setLastChannel } from '@/store/serverSlice';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { fetchChannels, reorderChannels, setLastChannel } from '@/store/serverSlice';
 import ChannelItem from './ChannelItem';
+import ChannelSettingsDialog from './ChannelSettingsDialog';
+import CreateChannelDialog from './CreateChannelDialog';
 
 const PLACEHOLDER_COUNT = 5;
+
+// starting a drag needs 5px of movement, so a plain click still opens the channel
+const POINTER_ACTIVATION = { distance: 5 };
+
+// Enter is left out of start so it still follows the link; Space picks a channel up instead
+const KEYBOARD_CODES = { start: ['Space'], cancel: ['Escape'], end: ['Space', 'Enter'] };
+
+const SCREEN_READER_INSTRUCTIONS = { draggable: 'To reorder this channel, press Space to pick it up, use the arrow keys to move it, then press Space to drop it or Escape to cancel.' };
+
+const restrictToVerticalAxis: Modifier = ({ transform }) => ({ ...transform, x: 0 });
 
 interface ChannelListProps
 {
@@ -22,7 +40,20 @@ const ChannelList = ({ serverId }: ChannelListProps) =>
     const channels = useSelector((state: RootState) => state.server.channelsByServer[serverId]);
     const channelsStatus = useSelector((state: RootState) => state.server.channelsStatusByServer[serverId] ?? 'idle');
     const channelsError = useSelector((state: RootState) => state.server.channelsErrorByServer[serverId] ?? null);
+    const currentUsername = useSelector((state: RootState) => state.user.user?.username);
     const { channelId } = useActiveIds();
+    const [isCreateOpen, setIsCreateOpen] = useState(false);
+    const [settingsChannelId, setSettingsChannelId] = useState<number | null>(null);
+    const { startSuppressing, stopSuppressing } = useSuppressClickAfterDrag();
+
+    const sensors = useSensors(
+        useSensor(PointerSensor, { activationConstraint: POINTER_ACTIVATION }),
+        useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates, keyboardCodes: KEYBOARD_CODES })
+    );
+
+    // the backend makes every channel change owner-only, so non-owners never see the controls
+    const isOwner = server !== undefined && currentUsername !== undefined && server.ownerUsername === currentUsername;
+    const settingsChannel = channels?.find(channel => channel.channelID === settingsChannelId);
 
     useEffect(() =>
     {
@@ -38,10 +69,67 @@ const ChannelList = ({ serverId }: ChannelListProps) =>
         }
     }, [dispatch, serverId, channelId]);
 
+    const getChannelName = (id: UniqueIdentifier): string =>
+    {
+        return channels?.find(channel => channel.channelID === id)?.channelName ?? 'channel';
+    };
+
+    // the defaults announce raw ids, so read out channel names instead
+    const announcements: Announcements = {
+        onDragStart: ({ active }) => `Picked up ${getChannelName(active.id)}.`,
+        onDragOver: ({ active, over }) => over ? `${getChannelName(active.id)} is over ${getChannelName(over.id)}.` : `${getChannelName(active.id)} is no longer over a channel.`,
+        onDragEnd: ({ active, over }) => over ? `${getChannelName(active.id)} was dropped over ${getChannelName(over.id)}.` : `${getChannelName(active.id)} was dropped.`,
+        onDragCancel: ({ active }) => `Moving ${getChannelName(active.id)} was cancelled.`
+    };
+
+    const handleDragEnd = ({ active, over }: DragEndEvent) =>
+    {
+        stopSuppressing();
+
+        if (channels === undefined || over === null || active.id === over.id)
+        {
+            return;
+        }
+
+        const oldIndex = channels.findIndex(channel => channel.channelID === active.id);
+        const newIndex = channels.findIndex(channel => channel.channelID === over.id);
+        const channelIDs = arrayMove(channels, oldIndex, newIndex).map(channel => channel.channelID);
+
+        // the slice reorders straight away, so on failure refetch to get the real order back
+        dispatch(reorderChannels({ serverID: serverId, channelIDs }))
+            .unwrap()
+            .catch(() => dispatch(fetchChannels(serverId)));
+    };
+
     return (
         <div className="flex min-h-0 flex-1 flex-col">
-            <header className="flex h-12 shrink-0 items-center border-b px-4">
-                <h2 className="truncate text-sm font-semibold">{server?.serverName}</h2>
+            <header className="flex h-12 shrink-0 border-b">
+                <h2 className="flex min-w-0 flex-1 text-sm font-semibold">
+                    {
+                        isOwner
+                            ? (
+                                // non-modal so the menu closing doesn't fight the dialog it opens for focus and pointer events
+                                <DropdownMenu modal={false}>
+                                    <DropdownMenuTrigger asChild>
+                                        <button
+                                            type="button"
+                                            className="group flex min-w-0 flex-1 items-center justify-between gap-2 px-4 text-left outline-none transition-colors hover:bg-sidebar-accent/50 focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:ring-inset data-[state=open]:bg-sidebar-accent/50"
+                                        >
+                                            <span className="truncate">{server.serverName}</span>
+                                            <ChevronDown className="size-4 shrink-0 transition-transform group-data-[state=open]:rotate-180" aria-hidden="true" />
+                                        </button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent>
+                                        <DropdownMenuItem onSelect={() => setIsCreateOpen(true)}>
+                                            <Plus aria-hidden="true" />
+                                            Create channel
+                                        </DropdownMenuItem>
+                                    </DropdownMenuContent>
+                                </DropdownMenu>
+                            )
+                            : <span className="flex min-w-0 flex-1 items-center truncate px-4">{server?.serverName}</span>
+                    }
+                </h2>
             </header>
 
             <ScrollArea className="min-h-0 flex-1">
@@ -64,13 +152,68 @@ const ChannelList = ({ serverId }: ChannelListProps) =>
                                     <div key={index} aria-hidden="true" className="mx-2 h-8 animate-pulse rounded-md bg-muted" />
                                 ))
                             : channels.length === 0
-                                ? <p className="px-4 text-sm text-muted-foreground">No channels yet</p>
-                                : channels.map(channel => (
-                                    <ChannelItem key={channel.channelID} serverId={serverId} channel={channel} isActive={channel.channelID === channelId} />
-                                ))
+                                ? (
+                                    <div className="flex flex-col items-start gap-2 px-4">
+                                        <p className="text-sm text-muted-foreground">No channels yet</p>
+                                        {
+                                            isOwner && (
+                                                <Button variant="outline" size="sm" onClick={() => setIsCreateOpen(true)}>
+                                                    <Plus aria-hidden="true" />
+                                                    Create channel
+                                                </Button>
+                                            )
+                                        }
+                                    </div>
+                                )
+                                : (
+                                    <DndContext
+                                        sensors={sensors}
+                                        collisionDetection={closestCenter}
+                                        modifiers={[restrictToVerticalAxis]}
+                                        accessibility={{ announcements, screenReaderInstructions: SCREEN_READER_INSTRUCTIONS }}
+                                        onDragStart={startSuppressing}
+                                        onDragEnd={handleDragEnd}
+                                        onDragCancel={stopSuppressing}
+                                    >
+                                        <SortableContext items={channels.map(channel => channel.channelID)} strategy={verticalListSortingStrategy}>
+                                            {
+                                                channels.map(channel => (
+                                                    <ChannelItem
+                                                        key={channel.channelID}
+                                                        serverId={serverId}
+                                                        channel={channel}
+                                                        isActive={channel.channelID === channelId}
+                                                        isOwner={isOwner}
+                                                        onOpenSettings={setSettingsChannelId}
+                                                    />
+                                                ))
+                                            }
+                                        </SortableContext>
+                                    </DndContext>
+                                )
                     }
                 </nav>
             </ScrollArea>
+
+            {
+                isOwner && (
+                    <>
+                        <CreateChannelDialog serverId={serverId} open={isCreateOpen} onOpenChange={setIsCreateOpen} />
+                        {
+                            // rendered only while a channel is picked, and it disappears with the channel once deleted
+                            settingsChannel && (
+                                <ChannelSettingsDialog
+                                    serverId={serverId}
+                                    channel={settingsChannel}
+                                    isActive={settingsChannel.channelID === channelId}
+                                    open
+                                    onOpenChange={open => { if (!open) setSettingsChannelId(null); }}
+                                />
+                            )
+                        }
+                    </>
+                )
+            }
         </div>
     );
 };

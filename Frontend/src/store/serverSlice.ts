@@ -343,8 +343,9 @@ const serverSlice = createSlice({
             .addCase(createChannel.rejected, (state, action) => {
                 state.error = action.payload ?? { message: 'Could not create channel' };
             })
-            .addCase(reorderChannels.fulfilled, (state, action) => {
-                const { serverID, channelIDs } = action.payload;
+            // reorder straight away so a dropped channel doesn't jump back while the request runs; ChannelList refetches if it fails
+            .addCase(reorderChannels.pending, (state, action) => {
+                const { serverID, channelIDs } = action.meta.arg;
                 const channels = state.channelsByServer[serverID];
 
                 if (channels)
