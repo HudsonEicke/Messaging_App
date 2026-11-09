@@ -362,7 +362,7 @@ public class ConversationController : ModifiedControllerBase
 
         await db.SaveChangesAsync();
 
-        await hubContext.Clients.Group($"conversation_{id}").SendAsync("ConversationUpdated", foundConversation.conversationName, foundConversation.iconUrl);
+        await hubContext.Clients.Group($"conversation_{id}").SendAsync("ConversationUpdated", id, foundConversation.conversationName, foundConversation.iconUrl);
 
         return NoContent();
     }
@@ -469,7 +469,7 @@ public class ConversationController : ModifiedControllerBase
         result.accountCreationTime = foundUser.accountCreationTime;
 
         await hubGroupService.AddUserToGroup(foundUser.id, $"conversation_{id}");
-        await hubContext.Clients.Group($"conversation_{id}").SendAsync("ConversationMemberAdded", foundUser.username);
+        await hubContext.Clients.Group($"conversation_{id}").SendAsync("ConversationMemberAdded", id, result);
 
         return Ok(result);
     }
@@ -541,9 +541,9 @@ public class ConversationController : ModifiedControllerBase
         }
 
         if(newOwnerUsername != null)
-            await hubContext.Clients.Group($"conversation_{id}").SendAsync("ConversationOwnerChanged", newOwnerUsername);
+            await hubContext.Clients.Group($"conversation_{id}").SendAsync("ConversationOwnerChanged", id, newOwnerUsername);
 
-        await hubContext.Clients.Group($"conversation_{id}").SendAsync("ConversationMemberLeft", GetUsername());
+        await hubContext.Clients.Group($"conversation_{id}").SendAsync("ConversationMemberLeft", id, GetUsername());
         await hubGroupService.RemoveUserFromGroup(userId, $"conversation_{id}");
 
         return NoContent();
@@ -678,7 +678,7 @@ public class ConversationController : ModifiedControllerBase
         result.replyToID = newMessage.replyToID;
         result.replyTo = replyPreview;
 
-        await hubContext.Clients.Group($"conversation_{id}").SendAsync("ReceiveConversationMessage", result);
+        await hubContext.Clients.Group($"conversation_{id}").SendAsync("ReceiveConversationMessage", id, result);
 
         return Ok(result);
     }
