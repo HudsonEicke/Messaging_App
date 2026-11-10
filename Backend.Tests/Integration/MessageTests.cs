@@ -262,6 +262,29 @@ public class MessageTests : IClassFixture<TestWebApplicationFactory>
         Assert.Equal(new string('a', 100) + "…", reply.replyTo.messageText);
     }
 
+    [Fact]
+    public async Task GetMessages_AfterReplyTargetDeleted_KeepsIsReply()
+    {
+        //arrange
+        (string token, long serverId) = await CreateServerAndGetId("mgdeletedreply");
+        long targetId = await CreateChannel(token, serverId, "general");
+        long originalMessageId = await SendMessage(token, targetId, "Original message");
+        await client.SendAsync(CreateRequest(HttpMethod.Post, $"/channels/{targetId}/messages", token, new SendMessageRequest { messageText = "Reply", replyToID = originalMessageId }), TestContext.Current.CancellationToken);
+        await client.SendAsync(CreateRequest(HttpMethod.Delete, $"/messages/{originalMessageId}", token), TestContext.Current.CancellationToken);
+
+        //act
+        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Get, $"/channels/{targetId}/messages", token), TestContext.Current.CancellationToken);
+        List<MessageResult>? result = await response.Content.ReadFromJsonAsync<List<MessageResult>>(TestContext.Current.CancellationToken);
+
+        //assert
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.NotNull(result);
+        MessageResult reply = result.Single(message => message.messageText == "Reply");
+        Assert.True(reply.isReply);
+        Assert.Null(reply.replyToID);
+        Assert.Null(reply.replyTo);
+    }
+
     //SEND MESSAGE
     [Fact]
     public async Task SendMessage_AsMember_ReturnsOkWithMessage()

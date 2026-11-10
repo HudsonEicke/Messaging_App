@@ -153,7 +153,7 @@ public class ChannelController : ModifiedControllerBase
             messageQuery = messageQuery.Where(message => message.id < before);
         }
 
-        List<MessageResult> results = await messageQuery.OrderByDescending(message => message.id).Take(MESSAGEGRABAMOUNT).Join(db.Users, message => message.sender, user => user.id, (message, user) => new MessageResult{id = message.id, messageText = encryptionService.Decrypt(message.messageText), senderUsername = user.username, senderDisplayName = user.displayName, senderProfileImageUrl = user.profileImageUrl, edited = message.edited, timeSent = message.timeSent, replyToID = message.replyToID}).ToListAsync();
+        List<MessageResult> results = await messageQuery.OrderByDescending(message => message.id).Take(MESSAGEGRABAMOUNT).Join(db.Users, message => message.sender, user => user.id, (message, user) => new MessageResult{id = message.id, messageText = encryptionService.Decrypt(message.messageText), senderUsername = user.username, senderDisplayName = user.displayName, senderProfileImageUrl = user.profileImageUrl, edited = message.edited, timeSent = message.timeSent, isReply = message.isReply, replyToID = message.replyToID}).ToListAsync();
 
         List<long> replyIds = results.Where(result => result.replyToID != null).Select(result => result.replyToID!.Value).Distinct().ToList();
 
@@ -232,6 +232,7 @@ public class ChannelController : ModifiedControllerBase
 
             replyPreview.messageText = ShortenReplyPreview(encryptionService.Decrypt(replyPreview.messageText));
             newMessage.replyToID = sendMessageRequest.replyToID;
+            newMessage.isReply = true;
         }
 
         db.Messages.Add(newMessage);
@@ -253,6 +254,7 @@ public class ChannelController : ModifiedControllerBase
         result.senderDisplayName = sender.displayName;
         result.senderProfileImageUrl = sender.profileImageUrl;
         result.timeSent = newMessage.timeSent;
+        result.isReply = newMessage.isReply;
         result.replyToID = newMessage.replyToID;
         result.replyTo = replyPreview;
 

@@ -8,6 +8,7 @@ public class SendMessageResult
     public string senderDisplayName { get; set; } = string.Empty;
     public string senderProfileImageUrl { get; set; } = string.Empty;
     public DateTimeOffset timeSent { get; set; }
+    public bool isReply { get; set; }
     public long? replyToID { get; set; } = null;
     public MessageReplyPreview? replyTo { get; set; } = null;
 }
