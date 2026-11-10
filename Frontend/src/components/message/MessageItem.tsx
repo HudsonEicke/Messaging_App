@@ -7,6 +7,7 @@ import type { MessageReplyPreview, MessageResponse } from '@/types';
 import type { RootState } from '@/store/store';
 import { cn, copyToClipboard, getErrorMessage } from '@/lib/utils';
 import { formatFullTimestamp, formatMessageTime, formatMessageTimestamp } from '@/lib/messageTime';
+import { hideSpoilers } from '@/lib/spoilers';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuSeparator, ContextMenuTrigger } from '@/components/ui/context-menu';
@@ -168,7 +169,7 @@ const ReplyPreview = ({ replyTo, onJump }: { replyTo: MessageReplyPreview; onJum
                     <AvatarFallback><User className="size-2.5" aria-hidden="true" /></AvatarFallback>
                 </Avatar>
                 <span className="shrink-0 font-medium">@{replyTo.senderDisplayName}</span>
-                <span className={cn('truncate', isSenderBlocked && 'italic')}>{isSenderBlocked ? 'Blocked message' : replyTo.messageText}</span>
+                <span className={cn('truncate', isSenderBlocked && 'italic')}>{isSenderBlocked ? 'Blocked message' : hideSpoilers(replyTo.messageText)}</span>
             </button>
         </div>
     );

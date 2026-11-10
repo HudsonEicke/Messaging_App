@@ -3,6 +3,8 @@ import Markdown from 'react-markdown';
 import type { Components } from 'react-markdown';
 import remarkBreaks from 'remark-breaks';
 import remarkGfm from 'remark-gfm';
+import { remarkSpoilers } from '@/lib/spoilers';
+import Spoiler from './Spoiler';
 
 interface MarkdownNode
 {
@@ -42,7 +44,8 @@ const remarkPlainUnsupported = () => (tree: MarkdownNode, file: { value: unknown
     replaceUnsupported(tree);
 };
 
-const remarkPlugins = [remarkGfm, remarkPlainUnsupported, remarkBreaks];
+// spoilers run before remark-breaks, so a spoiler can't continue onto the next line
+const remarkPlugins = [remarkGfm, remarkPlainUnsupported, remarkSpoilers, remarkBreaks];
 
 const linkClassName = 'text-sky-600 underline-offset-2 hover:underline dark:text-sky-400';
 
@@ -56,6 +59,8 @@ const components: Components = {
     h5: ({ children }) => <p className="font-semibold">{children}</p>,
     h6: ({ children }) => <p className="font-semibold">{children}</p>,
     strong: ({ children }) => <strong className="font-semibold">{children}</strong>,
+    // remarkSpoilers marks its spans with data-spoiler
+    span: ({ node, children }) => node?.properties?.dataSpoiler ? <Spoiler>{children}</Spoiler> : <span>{children}</span>,
     // react-markdown blanks unsafe hrefs like javascript:, so those become plain text
     a: ({ href, children }) => href
         ? <a href={href} target="_blank" rel="noreferrer noopener" className={linkClassName}>{children}</a>
