@@ -173,7 +173,7 @@ public class UserController : ModifiedControllerBase
     }
 
     [HttpPut("me/password")]
-    public async Task<IActionResult> UpdatePassword(UpdatePasswordRequest updatePasswordRequest)
+    public async Task<ActionResult<AuthResult>> UpdatePassword(UpdatePasswordRequest updatePasswordRequest)
     {
         if(string.IsNullOrWhiteSpace(updatePasswordRequest.currentPassword) || string.IsNullOrWhiteSpace(updatePasswordRequest.newPassword))
         {
@@ -205,7 +205,7 @@ public class UserController : ModifiedControllerBase
 
         if(hashResult == PasswordVerificationResult.Failed)
         {
-            return Unauthorized("Invalid credentials");
+            return BadRequest("Current password is incorrect");
         }
 
         if(hashResult == PasswordVerificationResult.SuccessRehashNeeded)
@@ -227,7 +227,11 @@ public class UserController : ModifiedControllerBase
 
         await db.SaveChangesAsync();
 
-        return Ok();
+        //every other session is signed out, but this one gets new tokens so it stays signed in
+        AuthResult result = await authService.IssueTokens(foundUser);
+        result.message = "Password updated";
+
+        return Ok(result);
     }
 
     [HttpPut("me/status")]
