@@ -9,6 +9,7 @@ export interface MessageResponse
     senderProfileImageUrl: string;
     timeSent: string;
     edited: boolean;
+    isReply: boolean;
     replyToID?: number;
     replyTo: MessageReplyPreview | null;
 }

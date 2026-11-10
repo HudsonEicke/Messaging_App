@@ -336,7 +336,7 @@ const MessageList = ({ source, currentUsername, intro, onReply }: MessageListPro
                             const previousSentAt = previous ? new Date(previous.timeSent) : undefined;
                             const startsNewDay = previousSentAt === undefined || !isSameDay(previousSentAt, sentAt);
                             // a reply always shows its own name so the preview line has something to attach to
-                            const isGrouped = previousSentAt !== undefined && !startsNewDay && !message.replyTo && previous?.senderUsername === message.senderUsername && isWithinGroupWindow(previousSentAt, sentAt);
+                            const isGrouped = previousSentAt !== undefined && !startsNewDay && !message.isReply && previous?.senderUsername === message.senderUsername && isWithinGroupWindow(previousSentAt, sentAt);
                             const isOwn = message.senderUsername === currentUsername;
                             const runStartId = blockedRuns.runStartById.get(message.id);
                             const runIds = runStartId === undefined ? undefined : blockedRuns.runIdsByStart.get(runStartId);

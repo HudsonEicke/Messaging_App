@@ -68,6 +68,7 @@ const MessageItem = ({ message, isGrouped, isHighlighted, canEdit, canDelete, is
                     )}
                 >
                     {message.replyTo && <ReplyPreview replyTo={message.replyTo} onJump={onJumpToMessage} />}
+                    {message.isReply && !message.replyTo && <DeletedReplyPreview />}
 
                     <div className="flex gap-4">
                         {
@@ -171,6 +172,17 @@ const ReplyPreview = ({ replyTo, onJump }: { replyTo: MessageReplyPreview; onJum
                 <span className="shrink-0 font-medium">@{replyTo.senderDisplayName}</span>
                 <span className={cn('truncate', isSenderBlocked && 'italic')}>{isSenderBlocked ? 'Blocked message' : hideSpoilers(replyTo.messageText)}</span>
             </button>
+        </div>
+    );
+};
+
+// a reply whose original was deleted; the backend keeps isReply after clearing replyToID
+const DeletedReplyPreview = () =>
+{
+    return (
+        <div className="relative flex h-5 items-center pl-14 text-xs">
+            <span aria-hidden="true" className="absolute top-2.5 left-5 h-2.5 w-8 rounded-tl-md border-t-2 border-l-2 border-muted-foreground/40" />
+            <span className="text-muted-foreground italic">Original message was deleted</span>
         </div>
     );
 };

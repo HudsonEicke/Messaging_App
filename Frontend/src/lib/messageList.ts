@@ -47,7 +47,7 @@ export const removeMessage = (messages: MessageResponse[], messageID: number) =>
         messages.splice(index, 1);
     }
 
-    // the backend clears replyToID on replies to a deleted message
+    // the backend clears replyToID on replies to a deleted message; isReply stays, so they show the deleted line
     for (const message of messages)
     {
         if (message.replyTo?.id === messageID)
