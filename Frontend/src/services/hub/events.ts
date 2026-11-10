@@ -1,0 +1,57 @@
+import type { HubConnection } from '@microsoft/signalr';
+import type { ActivityStatus, ConversationResponse, CreateChannelResponse, SendMessageResponse, ServerResponse, UserResponse } from '@/types';
+
+// every server-to-client event the client handles, with the arguments the backend sends it
+// events whose payloads are still missing an id are added as each one is fixed and wired up
+export interface HubEventMap
+{
+    ChannelCreated: [serverID: number, channel: CreateChannelResponse];
+    ChannelUpdated: [channelID: number, channelName: string];
+    ChannelsReordered: [serverID: number, channelIDs: number[]];
+    ChannelDeleted: [channelID: number];
+    ReceiveChannelMessage: [serverID: number, channelID: number, message: SendMessageResponse];
+    ChannelMessageEdited: [channelID: number, messageID: number, messageText: string];
+    ChannelMessageDeleted: [channelID: number, messageID: number];
+    ChannelReadStateUpdated: [serverID: number, channelID: number, channelHasUnread: boolean, serverHasUnread: boolean];
+    ChannelTyping: [channelID: number, username: string, displayName: string];
+    ConversationTyping: [conversationID: number, username: string, displayName: string];
+    ConversationCreated: [conversation: ConversationResponse];
+    ReceiveConversationMessage: [conversationID: number, message: SendMessageResponse];
+    ConversationMessageEdited: [conversationID: number, messageID: number, messageText: string];
+    ConversationMessageDeleted: [conversationID: number, messageID: number];
+    ConversationUpdated: [conversationID: number, conversationName: string, iconUrl: string];
+    ConversationMemberAdded: [conversationID: number, member: UserResponse];
+    ConversationOwnerChanged: [conversationID: number, ownerUsername: string];
+    ConversationMemberLeft: [conversationID: number, username: string];
+    ConversationReadStateUpdated: [conversationID: number, unreadCount: number];
+    MemberJoined: [serverID: number, member: UserResponse];
+    MemberLeft: [serverID: number, username: string];
+    MemberKicked: [serverID: number, username: string];
+    OwnerChanged: [serverID: number, ownerUsername: string];
+    ServerUpdated: [serverID: number, serverName: string, iconUrl: string];
+    ServerDeleted: [serverID: number];
+    ServerJoined: [server: ServerResponse];
+    UserStatusChanged: [username: string, status: ActivityStatus];
+    UserUpdated: [username: string, displayName: string, profileImageUrl: string];
+    FriendRequestReceived: [user: UserResponse];
+    FriendRequestSent: [user: UserResponse];
+    FriendAdded: [user: UserResponse];
+    FriendRemoved: [username: string];
+    UserBlocked: [user: UserResponse];
+    UserUnblocked: [username: string];
+}
+
+// hub methods the client calls, with their arguments
+export interface HubMethodMap
+{
+    StartChannelTyping: [channelId: number];
+    StartConversationTyping: [conversationId: number];
+}
+
+export const onHubEvent = <EventName extends keyof HubEventMap>(
+    connection: HubConnection,
+    eventName: EventName,
+    handler: (...args: HubEventMap[EventName]) => void
+) => {
+    connection.on(eventName, handler);
+};

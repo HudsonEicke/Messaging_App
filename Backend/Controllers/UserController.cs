@@ -18,11 +18,13 @@ public class UserController : ModifiedControllerBase
     private readonly AuthService authService;
     private readonly IHubContext<ChatHub> hubContext;
     private readonly PresenceService presenceService;
+    private readonly FriendService friendService;
 
-    public UserController(MessagingAppContext db, AuthService authService, IHubContext<ChatHub> hubContext, PresenceService presenceService)
+    public UserController(MessagingAppContext db, AuthService authService, IHubContext<ChatHub> hubContext, PresenceService presenceService, FriendService friendService)
     {
         this.db = db;
         this.presenceService = presenceService;
+        this.friendService = friendService;
         this.authService = authService;
         this.hubContext = hubContext;
     }
@@ -146,11 +148,18 @@ public class UserController : ModifiedControllerBase
 
         List<long> conversationIds = await db.ConversationMembers.AsNoTracking().Where(member => member.userID == userId).Select(member => member.conversationID).ToListAsync();
 
+        //a dm you closed still shows your name and avatar to the other person, so it's found by the pair columns instead of membership
+        List<long> directConversationIds = await db.Conversations.AsNoTracking().Where(conversation => conversation.conversationType == ConversationType.direct && (conversation.directUserLowID == userId || conversation.directUserHighID == userId)).Select(conversation => conversation.id).ToListAsync();
+
         List<string> groups = new List<string>();
         groups.AddRange(serverIds.Select(id => $"server_{id}"));
-        groups.AddRange(conversationIds.Select(id => $"conversation_{id}"));
+        groups.AddRange(conversationIds.Union(directConversationIds).Select(id => $"conversation_{id}"));
 
         await hubContext.Clients.Groups(groups).SendAsync("UserUpdated", foundUser.username, foundUser.displayName, foundUser.profileImageUrl);
+
+        //friends who share no server or conversation aren't in those groups; someone in both gets it twice, which is harmless
+        List<string> friendUserIds = await friendService.GetFriendUserIds(userId);
+        await hubContext.Clients.Users(friendUserIds).SendAsync("UserUpdated", foundUser.username, foundUser.displayName, foundUser.profileImageUrl);
 
         UserResult result = new UserResult();
 
@@ -164,7 +173,7 @@ public class UserController : ModifiedControllerBase
     }
 
     [HttpPut("me/password")]
-    public async Task<IActionResult> UpdatePassword(UpdatePasswordRequest updatePasswordRequest)
+    public async Task<ActionResult<AuthResult>> UpdatePassword(UpdatePasswordRequest updatePasswordRequest)
     {
         if(string.IsNullOrWhiteSpace(updatePasswordRequest.currentPassword) || string.IsNullOrWhiteSpace(updatePasswordRequest.newPassword))
         {
@@ -196,7 +205,7 @@ public class UserController : ModifiedControllerBase
 
         if(hashResult == PasswordVerificationResult.Failed)
         {
-            return Unauthorized("Invalid credentials");
+            return BadRequest("Current password is incorrect");
         }
 
         if(hashResult == PasswordVerificationResult.SuccessRehashNeeded)
@@ -218,7 +227,11 @@ public class UserController : ModifiedControllerBase
 
         await db.SaveChangesAsync();
 
-        return Ok();
+        //every other session is signed out, but this one gets new tokens so it stays signed in
+        AuthResult result = await authService.IssueTokens(foundUser);
+        result.message = "Password updated";
+
+        return Ok(result);
     }
 
     [HttpPut("me/status")]
@@ -256,6 +269,9 @@ public class UserController : ModifiedControllerBase
         groups.AddRange(conversationIds.Select(id => $"conversation_{id}"));
 
         await hubContext.Clients.Groups(groups).SendAsync("UserStatusChanged", foundUser.username, presenceService.GetDisplayedStatus(userId, foundUser.activityStatus));
+
+        List<string> friendUserIds = await friendService.GetFriendUserIds(userId);
+        await hubContext.Clients.Users(friendUserIds).SendAsync("UserStatusChanged", foundUser.username, presenceService.GetDisplayedStatus(userId, foundUser.activityStatus));
 
         return Ok();
     }

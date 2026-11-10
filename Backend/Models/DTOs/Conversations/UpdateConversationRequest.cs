@@ -7,5 +7,5 @@ public class UpdateConversationRequest
     [MaxLength(100)]
     public string ? conversationName { get; set; } = null;
     [MaxLength(2048)]
-    public string ? conversationImageUrl { get; set; } = null;
+    public string ? iconUrl { get; set; } = null;
 }

@@ -261,7 +261,33 @@ public class UserTests : IClassFixture<TestWebApplicationFactory>
     }
 
     [Fact]
-    public async Task UpdatePassword_WithWrongCurrentPassword_ReturnsUnauthorized()
+    public async Task UpdatePassword_ReturnsTokensThatCanRefresh()
+    {
+        //arrange
+        string token = await RegisterAndGetToken("updatepasstokens", "updatepasstokens@email.com");
+        UpdatePasswordRequest updateRequest = new UpdatePasswordRequest
+        {
+            currentPassword = "Test123!",
+            newPassword = "NewTest456!"
+        };
+        HttpResponseMessage updateResponse = await client.SendAsync(CreateRequest(HttpMethod.Put, "/users/me/password", token, updateRequest), TestContext.Current.CancellationToken);
+        AuthResult? updateResult = await updateResponse.Content.ReadFromJsonAsync<AuthResult>(TestContext.Current.CancellationToken);
+
+        RefreshRequest refreshRequest = new RefreshRequest
+        {
+            accessToken = updateResult!.accessToken,
+            refreshToken = updateResult.refreshToken
+        };
+
+        //act
+        HttpResponseMessage response = await client.PostAsJsonAsync("/auth/refresh", refreshRequest, TestContext.Current.CancellationToken);
+
+        //assert
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task UpdatePassword_WithWrongCurrentPassword_ReturnsBadRequest()
     {
         //arrange
         string token = await RegisterAndGetToken("updatepasswrong", "updatepasswrong@email.com");
@@ -275,7 +301,7 @@ public class UserTests : IClassFixture<TestWebApplicationFactory>
         HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Put, "/users/me/password", token, updateRequest), TestContext.Current.CancellationToken);
 
         //assert
-        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
     }
 
     [Fact]

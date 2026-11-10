@@ -59,6 +59,17 @@ public class ServerController : ModifiedControllerBase
 
         await hubGroupService.AddUserToGroup(userId, $"server_{newServer.id}");
 
+        string? username = GetUsername();
+
+        //the user's other tabs add the new server to their list
+        ServerResult joinedServer = new ServerResult();
+        joinedServer.serverID = newServer.id;
+        joinedServer.serverName = newServer.serverName;
+        joinedServer.ownerUsername = username ?? string.Empty;
+        joinedServer.iconUrl = newServer.iconUrl;
+
+        await hubContext.Clients.User(userId.ToString()).SendAsync("ServerJoined", joinedServer);
+
         CreateServerResult result = new CreateServerResult();
 
         result.serverID = newServer.id;
@@ -183,9 +194,9 @@ public class ServerController : ModifiedControllerBase
         }
 
         //checks if the user is changing the ico
-        if(updateServerRequest.serverImageUrl != null)
+        if(updateServerRequest.iconUrl != null)
         {
-            foundServer.iconUrl = updateServerRequest.serverImageUrl;
+            foundServer.iconUrl = updateServerRequest.iconUrl;
         }
 
         await db.SaveChangesAsync();
@@ -203,7 +214,7 @@ public class ServerController : ModifiedControllerBase
         result.ownerUsername = owner.username;
         result.iconUrl = foundServer.iconUrl;
 
-        await hubContext.Clients.Group($"server_{foundServer.id}").SendAsync("ServerUpdated", foundServer.serverName, foundServer.iconUrl);
+        await hubContext.Clients.Group($"server_{foundServer.id}").SendAsync("ServerUpdated", foundServer.id, foundServer.serverName, foundServer.iconUrl);
 
         return Ok(result);
     }
@@ -230,15 +241,17 @@ public class ServerController : ModifiedControllerBase
             return Forbid();
         }
 
+        //loaded before the delete, which also removes the memberships
         List<long> memberIds = await db.ServerMembers.AsNoTracking().Where(member => member.serverID == id).Select(member => member.userID).ToListAsync();
-
-        await hubContext.Clients.Group($"server_{foundServer.id}").SendAsync("ServerDeleted", foundServer.id);
-
-        foreach (long memberId in memberIds)
-            await hubGroupService.RemoveUserFromGroup(memberId, $"server_{foundServer.id}");
 
         db.Servers.Remove(foundServer);
         await db.SaveChangesAsync();
+
+        //sent only once the delete is saved, so clients never drop a server that still exists
+        await hubContext.Clients.Group($"server_{id}").SendAsync("ServerDeleted", id);
+
+        foreach (long memberId in memberIds)
+            await hubGroupService.RemoveUserFromGroup(memberId, $"server_{id}");
 
         return NoContent();
     }
@@ -296,9 +309,9 @@ public class ServerController : ModifiedControllerBase
         await db.SaveChangesAsync();
 
         if(newOwnerUsername != null)
-            await hubContext.Clients.Group($"server_{id}").SendAsync("OwnerChanged", newOwnerUsername);
+            await hubContext.Clients.Group($"server_{id}").SendAsync("OwnerChanged", id, newOwnerUsername);
 
-        await hubContext.Clients.Group($"server_{id}").SendAsync("MemberLeft", GetUsername());
+        await hubContext.Clients.Group($"server_{id}").SendAsync("MemberLeft", id, GetUsername());
         await hubGroupService.RemoveUserFromGroup(userId, $"server_{id}");
 
         return NoContent();
@@ -349,7 +362,7 @@ public class ServerController : ModifiedControllerBase
 
         await db.SaveChangesAsync();
 
-        await hubContext.Clients.Group($"server_{id}").SendAsync("MemberKicked", foundUser.username);
+        await hubContext.Clients.Group($"server_{id}").SendAsync("MemberKicked", id, foundUser.username);
         await hubGroupService.RemoveUserFromGroup(foundUser.id, $"server_{id}");
 
         return NoContent();
@@ -406,7 +419,7 @@ public class ServerController : ModifiedControllerBase
         result.channelName = newChannel.channelName;
         result.channelOrder = newChannel.channelOrder;
 
-        await hubContext.Clients.Group($"server_{id}").SendAsync("ChannelCreated", result);
+        await hubContext.Clients.Group($"server_{id}").SendAsync("ChannelCreated", id, result);
 
         return Ok(result);
     }
@@ -492,7 +505,7 @@ public class ServerController : ModifiedControllerBase
         await db.SaveChangesAsync();
         await transaction.CommitAsync();
 
-        await hubContext.Clients.Group($"server_{id}").SendAsync("ChannelsReordered", reorderChannelRequest.channelIDs);
+        await hubContext.Clients.Group($"server_{id}").SendAsync("ChannelsReordered", id, reorderChannelRequest.channelIDs);
 
         return NoContent();
     }

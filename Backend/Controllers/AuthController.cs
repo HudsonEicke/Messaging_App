@@ -3,12 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Messaging_App.Data;
 using Microsoft.AspNetCore.Identity;
 using Messaging_App.Services;
-using System.Security.Claims;
-using Microsoft.Extensions.Options;
-using Messaging_App.Configuration;
 using Microsoft.AspNetCore.RateLimiting;
-using System.Security.Cryptography;
-using System.Text;
 
 namespace Messaging_App.Controllers;
 
@@ -17,16 +12,12 @@ namespace Messaging_App.Controllers;
 public class AuthController : ControllerBase
 {
     private readonly MessagingAppContext db;
-    private readonly JwtService jwtService;
     private readonly AuthService authService;
-    private readonly JwtSettings jwtSettings;
 
-    public AuthController(MessagingAppContext db, JwtService jwtService, AuthService authService, IOptions<JwtSettings> jwtSettings)
+    public AuthController(MessagingAppContext db, AuthService authService)
     {
         this.db = db;
-        this.jwtService = jwtService;
         this.authService = authService;
-        this.jwtSettings = jwtSettings.Value;
     }
 
     //REGISTER
@@ -100,22 +91,8 @@ public class AuthController : ControllerBase
             return Conflict(result);
         }
 
-        //generates a refresh token and access token for the user
-        Claim[] claims = {new Claim(ClaimTypes.Name, newUser.username), new Claim(ClaimTypes.NameIdentifier, newUser.id.ToString())};
-
-        string accessToken = jwtService.GenerateAccessToken(claims);
-        string refreshToken = jwtService.GenerateRefreshToken();
-
-        RefreshToken newToken = new RefreshToken();
-        newToken.userID = newUser.id;
-        newToken.token = Convert.ToBase64String(SHA256.HashData(Encoding.UTF8.GetBytes(refreshToken)));
-        newToken.expiresDate = DateTime.UtcNow.AddDays(jwtSettings.RefreshTokenExpirationDays);
-        await authService.SaveRefreshToken(newToken);
-
-        result.success = true;
+        result = await authService.IssueTokens(newUser);
         result.message = "Account successfully created";
-        result.accessToken = accessToken;
-        result.refreshToken = refreshToken;
 
         return Ok(result);
     }
@@ -162,23 +139,8 @@ public class AuthController : ControllerBase
             await db.SaveChangesAsync();
         }
 
-        //generates a refresh token and access token for the user
-        Claim[] claims = {new Claim(ClaimTypes.Name, foundUser.username), new Claim(ClaimTypes.NameIdentifier, foundUser.id.ToString())};
-
-        string accessToken = jwtService.GenerateAccessToken(claims);
-        string refreshToken = jwtService.GenerateRefreshToken();
-
-        RefreshToken newToken = new RefreshToken();
-        newToken.userID = foundUser.id;
-        newToken.token = Convert.ToBase64String(SHA256.HashData(Encoding.UTF8.GetBytes(refreshToken)));
-        newToken.expiresDate = DateTime.UtcNow.AddDays(jwtSettings.RefreshTokenExpirationDays);
-        await authService.DeleteExpiredRefreshTokens(foundUser.id);
-        await authService.SaveRefreshToken(newToken);
-
-        result.success = true;
+        result = await authService.IssueTokens(foundUser);
         result.message = "Login successful";
-        result.accessToken = accessToken;
-        result.refreshToken = refreshToken;
         return Ok(result);
     }
 
@@ -232,24 +194,9 @@ public class AuthController : ControllerBase
             return Unauthorized(result);
         }
 
-        //generates a refresh token and access token for the user
-        Claim[] claims = {new Claim(ClaimTypes.Name, foundUser.username), new Claim(ClaimTypes.NameIdentifier, foundUser.id.ToString())};
-        
-        string accessToken = jwtService.GenerateAccessToken(claims);
-        string refreshToken = jwtService.GenerateRefreshToken();
-
         await authService.RevokeRefreshToken(foundToken);
 
-        RefreshToken newToken = new RefreshToken();
-        newToken.userID = foundUser.id;
-        newToken.token = Convert.ToBase64String(SHA256.HashData(Encoding.UTF8.GetBytes(refreshToken)));
-        newToken.expiresDate = DateTime.UtcNow.AddDays(jwtSettings.RefreshTokenExpirationDays);
-        await authService.DeleteExpiredRefreshTokens(foundUser.id);
-        await authService.SaveRefreshToken(newToken);
-
-        result.accessToken = accessToken;
-        result.refreshToken = refreshToken;
-        result.success = true;
+        result = await authService.IssueTokens(foundUser);
         result.message = "New token successfully generated";
 
         return Ok(result);

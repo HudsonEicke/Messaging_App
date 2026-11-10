@@ -91,6 +91,22 @@ public class FriendTests : IClassFixture<TestWebApplicationFactory>
     }
 
     [Fact]
+    public async Task SendRequest_ToValidUser_ReturnsReceiverInResult()
+    {
+        //arrange
+        (string tokenA, _) = await RegisterTwoUsers("frsenduserA", "frsenduserB");
+
+        //act
+        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Post, "/friends/requests", tokenA, new SendFriendRequestRequest { username = "frsenduserB" }), TestContext.Current.CancellationToken);
+        FriendRequestResult? result = await response.Content.ReadFromJsonAsync<FriendRequestResult>(TestContext.Current.CancellationToken);
+
+        //assert
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.NotNull(result);
+        Assert.Equal("frsenduserB", result.user.username);
+    }
+
+    [Fact]
     public async Task SendRequest_ToSelf_ReturnsBadRequest()
     {
         //arrange
@@ -249,6 +265,24 @@ public class FriendTests : IClassFixture<TestWebApplicationFactory>
 
         //assert
         Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task DeleteRequest_AsSender_CancelsRequest()
+    {
+        //arrange
+        (string tokenA, string tokenB) = await RegisterTwoUsers("frcancelA", "frcancelB");
+        await SendFriendRequest(tokenA, "frcancelB");
+
+        //act
+        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Delete, "/friends/requests/frcancelB", tokenA), TestContext.Current.CancellationToken);
+        HttpResponseMessage pendingResponse = await client.SendAsync(CreateRequest(HttpMethod.Get, "/friends/requests", tokenB), TestContext.Current.CancellationToken);
+        List<UserResult>? pending = await pendingResponse.Content.ReadFromJsonAsync<List<UserResult>>(TestContext.Current.CancellationToken);
+
+        //assert
+        Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
+        Assert.NotNull(pending);
+        Assert.Empty(pending);
     }
 
     [Fact]
@@ -463,6 +497,37 @@ public class FriendTests : IClassFixture<TestWebApplicationFactory>
         Assert.NotNull(result);
         Assert.Single(result);
         Assert.Equal("frpendingA", result[0].username);
+    }
+
+    [Fact]
+    public async Task GetPendingFriends_WithOutgoingDirection_ReturnsSentRequests()
+    {
+        //arrange
+        (string tokenA, _) = await RegisterTwoUsers("froutgoingA", "froutgoingB");
+        await SendFriendRequest(tokenA, "froutgoingB");
+
+        //act
+        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Get, "/friends/requests?direction=outgoing", tokenA), TestContext.Current.CancellationToken);
+        List<UserResult>? result = await response.Content.ReadFromJsonAsync<List<UserResult>>(TestContext.Current.CancellationToken);
+
+        //assert
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.NotNull(result);
+        Assert.Single(result);
+        Assert.Equal("froutgoingB", result[0].username);
+    }
+
+    [Fact]
+    public async Task GetPendingFriends_WithInvalidDirection_ReturnsBadRequest()
+    {
+        //arrange
+        string token = await RegisterAndGetToken("frbaddirection", "frbaddirection@email.com");
+
+        //act
+        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Get, "/friends/requests?direction=sideways", token), TestContext.Current.CancellationToken);
+
+        //assert
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
     }
 
     [Fact]

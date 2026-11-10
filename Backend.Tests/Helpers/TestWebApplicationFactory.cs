@@ -28,7 +28,8 @@ public class TestWebApplicationFactory : WebApplicationFactory<Program>
      
                 ["JwtSettings:AccessTokenExpirationMinutes"] = "15",
                 ["JwtSettings:RefreshTokenExpirationDays"] = "7",
-                ["EncryptionSettings:SecretKey"] = "test-encryption-key-32-chars-min"
+                ["EncryptionSettings:SecretKey"] = "test-encryption-key-32-chars-min",
+                ["CleanupSettings:Enabled"] = "false"
             });
 
             string localSettings = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "appsettings.Development.json"));

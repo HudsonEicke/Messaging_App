@@ -105,16 +105,19 @@ public class ConversationTests : IClassFixture<TestWebApplicationFactory>
     }
 
     [Fact]
-    public async Task CreateConversation_DirectWhenAlreadyExists_ReturnsConflict()
+    public async Task CreateConversation_DirectWhenAlreadyExists_ReturnsExistingDm()
     {
         //arrange
-        (string tokenA, _, _) = await CreateDmConversation("cvdirdupeA", "cvdirdupeB");
+        (string tokenA, _, long conversationId) = await CreateDmConversation("cvdirdupeA", "cvdirdupeB");
 
         //act
         HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Post, "/conversations", tokenA, new CreateConversationRequest { memberUsernames = new List<string> { "cvdirdupeB" } }),TestContext.Current.CancellationToken);
+        CreateConversationResult? result = await response.Content.ReadFromJsonAsync<CreateConversationResult>(TestContext.Current.CancellationToken);
 
         //assert
-        Assert.Equal(HttpStatusCode.Conflict, response.StatusCode);
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.NotNull(result);
+        Assert.Equal(conversationId, result.conversationID);
     }
 
     [Fact]
@@ -126,11 +129,14 @@ public class ConversationTests : IClassFixture<TestWebApplicationFactory>
 
         //act
         HttpResponseMessage[] responses = await Task.WhenAll(client.SendAsync(CreateRequest(HttpMethod.Post, "/conversations", tokenA, new CreateConversationRequest { memberUsernames = new List<string> { "racedmboth2" } }), TestContext.Current.CancellationToken), client.SendAsync(CreateRequest(HttpMethod.Post, "/conversations", tokenB, new CreateConversationRequest { memberUsernames = new List<string> { "racedmboth1" } }), TestContext.Current.CancellationToken));
+        CreateConversationResult? firstResult = await responses[0].Content.ReadFromJsonAsync<CreateConversationResult>(TestContext.Current.CancellationToken);
+        CreateConversationResult? secondResult = await responses[1].Content.ReadFromJsonAsync<CreateConversationResult>(TestContext.Current.CancellationToken);
         HttpResponseMessage listResponse = await client.SendAsync(CreateRequest(HttpMethod.Get, "/conversations", tokenA), TestContext.Current.CancellationToken);
         List<ConversationResult>? conversations = await listResponse.Content.ReadFromJsonAsync<List<ConversationResult>>(TestContext.Current.CancellationToken);
 
         //assert
-        Assert.Equal(new[] { HttpStatusCode.OK, HttpStatusCode.Conflict }, responses.Select(response => response.StatusCode).OrderBy(status => status).ToArray());
+        Assert.All(responses, response => Assert.Equal(HttpStatusCode.OK, response.StatusCode));
+        Assert.Equal(firstResult!.conversationID, secondResult!.conversationID);
         Assert.Single(conversations!, conversation => conversation.conversationType == ConversationType.direct);
     }
 
@@ -148,6 +154,22 @@ public class ConversationTests : IClassFixture<TestWebApplicationFactory>
         //assert
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         Assert.Equal(conversationId, result!.conversationID);
+    }
+
+    [Fact]
+    public async Task CreateConversation_Direct_ReturnsOtherUsername()
+    {
+        //arrange
+        string tokenA = await RegisterAndGetToken("cvotherA", "cvotherA@email.com");
+        await RegisterAndGetToken("cvotherB", "cvotherB@email.com");
+
+        //act
+        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Post, "/conversations", tokenA, new CreateConversationRequest { memberUsernames = new List<string> { "cvotherB" } }), TestContext.Current.CancellationToken);
+        CreateConversationResult? result = await response.Content.ReadFromJsonAsync<CreateConversationResult>(TestContext.Current.CancellationToken);
+
+        //assert
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Equal("cvotherB", result!.otherUsername);
     }
 
     [Fact]
@@ -239,6 +261,55 @@ public class ConversationTests : IClassFixture<TestWebApplicationFactory>
     }
 
     [Fact]
+    public async Task GetConversations_AfterOtherUserLeavesDm_StillListsDm()
+    {
+        //arrange
+        (string tokenA, string tokenB, long conversationId) = await CreateDmConversation("cvdmstaysA", "cvdmstaysB");
+        await client.SendAsync(CreateRequest(HttpMethod.Delete, $"/conversations/{conversationId}/members/me", tokenB), TestContext.Current.CancellationToken);
+
+        //act
+        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Get, "/conversations", tokenA), TestContext.Current.CancellationToken);
+        List<ConversationResult>? result = await response.Content.ReadFromJsonAsync<List<ConversationResult>>(TestContext.Current.CancellationToken);
+
+        //assert
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        ConversationResult dm = Assert.Single(result!, conversation => conversation.id == conversationId);
+        Assert.Equal("cvdmstaysB", dm.conversationName);
+    }
+
+    [Fact]
+    public async Task GetConversations_WithDm_ReturnsOtherUsername()
+    {
+        //arrange
+        (string tokenA, _, long conversationId) = await CreateDmConversation("cvlistotherA", "cvlistotherB");
+
+        //act
+        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Get, "/conversations", tokenA), TestContext.Current.CancellationToken);
+        List<ConversationResult>? result = await response.Content.ReadFromJsonAsync<List<ConversationResult>>(TestContext.Current.CancellationToken);
+
+        //assert
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        ConversationResult dm = Assert.Single(result!, conversation => conversation.id == conversationId);
+        Assert.Equal("cvlistotherB", dm.otherUsername);
+    }
+
+    [Fact]
+    public async Task GetConversations_WithGroup_ReturnsNullOtherUsername()
+    {
+        //arrange
+        (string ownerToken, long conversationId) = await CreateGroupConversation("cvlistgrpown", new List<string> { "cvlistgrpmem1", "cvlistgrpmem2" });
+
+        //act
+        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Get, "/conversations", ownerToken), TestContext.Current.CancellationToken);
+        List<ConversationResult>? result = await response.Content.ReadFromJsonAsync<List<ConversationResult>>(TestContext.Current.CancellationToken);
+
+        //assert
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        ConversationResult group = Assert.Single(result!, conversation => conversation.id == conversationId);
+        Assert.Null(group.otherUsername);
+    }
+
+    [Fact]
     public async Task GetConversations_WhenNone_ReturnsEmptyList()
     {
         //arrange
@@ -280,6 +351,22 @@ public class ConversationTests : IClassFixture<TestWebApplicationFactory>
         Assert.NotNull(result);
         Assert.Equal(conversationId, result.id);
         Assert.Equal(ConversationType.direct, result.conversationType);
+    }
+
+    [Fact]
+    public async Task GetConversation_AfterOtherUserLeavesDm_ReturnsOtherUsersName()
+    {
+        //arrange
+        (string tokenA, string tokenB, long conversationId) = await CreateDmConversation("cvdmnameA", "cvdmnameB");
+        await client.SendAsync(CreateRequest(HttpMethod.Delete, $"/conversations/{conversationId}/members/me", tokenB), TestContext.Current.CancellationToken);
+
+        //act
+        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Get, $"/conversations/{conversationId}", tokenA), TestContext.Current.CancellationToken);
+        ConversationResult? result = await response.Content.ReadFromJsonAsync<ConversationResult>(TestContext.Current.CancellationToken);
+
+        //assert
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Equal("cvdmnameB", result!.conversationName);
     }
 
     [Fact]
@@ -654,5 +741,50 @@ public class ConversationTests : IClassFixture<TestWebApplicationFactory>
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         Assert.Equal(100, result!.conversationName.Length);
         Assert.EndsWith("...", result.conversationName);
+    }
+
+    //BLOCKING
+    [Fact]
+    public async Task CreateConversation_DirectWhenBlocked_ReturnsForbidden()
+    {
+        //arrange
+        string tokenA = await RegisterAndGetToken("cvblockdmA", "cvblockdmA@email.com");
+        string tokenB = await RegisterAndGetToken("cvblockdmB", "cvblockdmB@email.com");
+        await client.SendAsync(CreateRequest(HttpMethod.Put, "/friends/blocked/cvblockdmA", tokenB), TestContext.Current.CancellationToken);
+
+        //act
+        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Post, "/conversations", tokenA, new CreateConversationRequest { memberUsernames = new List<string> { "cvblockdmB" } }), TestContext.Current.CancellationToken);
+
+        //assert
+        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task SendMessage_InDirectAfterBlock_ReturnsForbidden()
+    {
+        //arrange
+        (string tokenA, string tokenB, long conversationId) = await CreateDmConversation("cvblocksendA", "cvblocksendB");
+        await client.SendAsync(CreateRequest(HttpMethod.Put, "/friends/blocked/cvblocksendA", tokenB), TestContext.Current.CancellationToken);
+
+        //act
+        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Post, $"/conversations/{conversationId}/messages", tokenA, new SendMessageRequest { messageText = "hello?" }), TestContext.Current.CancellationToken);
+
+        //assert
+        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task AddMember_WhenBlocked_ReturnsForbidden()
+    {
+        //arrange
+        (string ownerToken, long conversationId) = await CreateGroupConversation("cvblockaddown", new List<string> { "cvblockaddm1", "cvblockaddm2" });
+        string newMemberToken = await RegisterAndGetToken("cvblockaddnew", "cvblockaddnew@email.com");
+        await client.SendAsync(CreateRequest(HttpMethod.Put, "/friends/blocked/cvblockaddown", newMemberToken), TestContext.Current.CancellationToken);
+
+        //act
+        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Post, $"/conversations/{conversationId}/members", ownerToken, new AddConversationMemberRequest { username = "cvblockaddnew" }), TestContext.Current.CancellationToken);
+
+        //assert
+        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
     }
 }

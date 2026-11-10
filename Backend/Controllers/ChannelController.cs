@@ -153,7 +153,30 @@ public class ChannelController : ModifiedControllerBase
             messageQuery = messageQuery.Where(message => message.id < before);
         }
 
-        List<MessageResult> results = await messageQuery.OrderByDescending(message => message.id).Take(MESSAGEGRABAMOUNT).Join(db.Users, message => message.sender, user => user.id, (message, user) => new MessageResult{id = message.id, messageText = encryptionService.Decrypt(message.messageText), senderUsername = user.username, senderDisplayName = user.displayName, edited = message.edited, timeSent = message.timeSent, replyToID = message.replyToID}).ToListAsync();
+        List<MessageResult> results = await messageQuery.OrderByDescending(message => message.id).Take(MESSAGEGRABAMOUNT).Join(db.Users, message => message.sender, user => user.id, (message, user) => new MessageResult{id = message.id, messageText = encryptionService.Decrypt(message.messageText), senderUsername = user.username, senderDisplayName = user.displayName, senderProfileImageUrl = user.profileImageUrl, edited = message.edited, timeSent = message.timeSent, isReply = message.isReply, replyToID = message.replyToID}).ToListAsync();
+
+        List<long> replyIds = results.Where(result => result.replyToID != null).Select(result => result.replyToID!.Value).Distinct().ToList();
+
+        //decrypting can't run in the database, so the originals are loaded in a second query
+        if (replyIds.Count > 0)
+        {
+            List<MessageReplyPreview> previews = await db.Messages.AsNoTracking().Where(message => replyIds.Contains(message.id)).Join(db.Users, message => message.sender, user => user.id, (message, user) => new MessageReplyPreview{id = message.id, messageText = message.messageText, senderUsername = user.username, senderDisplayName = user.displayName, senderProfileImageUrl = user.profileImageUrl}).ToListAsync();
+
+            foreach (MessageReplyPreview preview in previews)
+            {
+                preview.messageText = ShortenReplyPreview(encryptionService.Decrypt(preview.messageText));
+            }
+
+            Dictionary<long, MessageReplyPreview> previewsById = previews.ToDictionary(preview => preview.id);
+
+            foreach (MessageResult result in results)
+            {
+                if (result.replyToID != null && previewsById.TryGetValue(result.replyToID.Value, out MessageReplyPreview? preview))
+                {
+                    result.replyTo = preview;
+                }
+            }
+        }
 
         return Ok(results);
     }
@@ -180,10 +203,10 @@ public class ChannelController : ModifiedControllerBase
             return NotFound();
         }
 
-        //checks membership and gets the sender's display name in one query, null means they aren't in the server
-        string? displayName = await db.ServerMembers.AsNoTracking().Where(member => member.serverID == foundChannel.serverID && member.userID == userId).Join(db.Users, member => member.userID, user => user.id, (member, user) => user.displayName).FirstOrDefaultAsync();
+        //checks membership and gets the sender in one query, null means they aren't in the server
+        User? sender = await db.ServerMembers.AsNoTracking().Where(member => member.serverID == foundChannel.serverID && member.userID == userId).Join(db.Users, member => member.userID, user => user.id, (member, user) => user).FirstOrDefaultAsync();
 
-        if(displayName == null)
+        if(sender == null)
         {
             return Forbid();
         }
@@ -194,18 +217,22 @@ public class ChannelController : ModifiedControllerBase
         newMessage.channelID = id;
         newMessage.sender = userId;
 
+        MessageReplyPreview? replyPreview = null;
+
         //checks if the message is replying to another message
         if(sendMessageRequest.replyToID != null)
         {
             //makes sure message is apart of the server
-            bool replyExists = await db.Messages.AnyAsync(message => message.id == sendMessageRequest.replyToID && message.channelID == id);
+            replyPreview = await db.Messages.AsNoTracking().Where(message => message.id == sendMessageRequest.replyToID && message.channelID == id).Join(db.Users, message => message.sender, user => user.id, (message, user) => new MessageReplyPreview{id = message.id, messageText = message.messageText, senderUsername = user.username, senderDisplayName = user.displayName, senderProfileImageUrl = user.profileImageUrl}).FirstOrDefaultAsync();
 
-            if(!replyExists)
+            if(replyPreview == null)
             {
                 return BadRequest("Reply target message not found");
             }
 
+            replyPreview.messageText = ShortenReplyPreview(encryptionService.Decrypt(replyPreview.messageText));
             newMessage.replyToID = sendMessageRequest.replyToID;
+            newMessage.isReply = true;
         }
 
         db.Messages.Add(newMessage);
@@ -224,11 +251,14 @@ public class ChannelController : ModifiedControllerBase
         result.id = newMessage.id;
         result.messageText = sendMessageRequest.messageText;
         result.senderUsername = username;
-        result.senderDisplayName = displayName;
+        result.senderDisplayName = sender.displayName;
+        result.senderProfileImageUrl = sender.profileImageUrl;
         result.timeSent = newMessage.timeSent;
+        result.isReply = newMessage.isReply;
         result.replyToID = newMessage.replyToID;
+        result.replyTo = replyPreview;
 
-        await hubContext.Clients.Group($"server_{foundChannel.serverID}").SendAsync("ReceiveChannelMessage", foundChannel.serverID, result);
+        await hubContext.Clients.Group($"server_{foundChannel.serverID}").SendAsync("ReceiveChannelMessage", foundChannel.serverID, foundChannel.id, result);
 
         return Ok(result);
     }
@@ -243,15 +273,19 @@ public class ChannelController : ModifiedControllerBase
 
         long userId = nullableUserId.Value;
 
-        //one query: null means the channel doesn't exist, false means the user isn't in its server
-        bool? isMember = await db.Channels.Where(channel => channel.id == id).Select(channel => (bool?)db.ServerMembers.Any(member => member.serverID == channel.serverID && member.userID == userId)).FirstOrDefaultAsync();
+        //the server id is needed for the event, so this doesn't use the one-query membership check
+        long? nullableServerId = await db.Channels.AsNoTracking().Where(channel => channel.id == id).Select(channel => (long?)channel.serverID).FirstOrDefaultAsync();
 
-        if(isMember == null)
+        if(nullableServerId == null)
         {
             return NotFound();
         }
 
-        if(isMember == false)
+        long serverId = nullableServerId.Value;
+
+        bool isMember = await db.ServerMembers.AsNoTracking().AnyAsync(member => member.serverID == serverId && member.userID == userId);
+
+        if(!isMember)
         {
             return Forbid();
         }
@@ -265,6 +299,12 @@ public class ChannelController : ModifiedControllerBase
         }
 
         await readStateService.MarkChannelRead(id, userId, updateReadStateRequest.lastReadMessageID);
+
+        //worked out after saving, so the user's other tabs get the real state even if a newer message arrived meanwhile
+        bool channelHasUnread = await readStateService.ChannelHasUnread(id, userId);
+        bool serverHasUnread = await readStateService.ServerHasUnread(serverId, userId);
+
+        await hubContext.Clients.User(userId.ToString()).SendAsync("ChannelReadStateUpdated", serverId, id, channelHasUnread, serverHasUnread);
 
         return NoContent();
     }

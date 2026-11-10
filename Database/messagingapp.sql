@@ -85,6 +85,7 @@ create table Messages
     sender BIGINT NOT NULL REFERENCES Users(id) ON DELETE CASCADE, --who the message is from
     timeSent TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     edited BOOLEAN NOT NULL DEFAULT false,
+    isReply BOOLEAN NOT NULL DEFAULT false,
     replyToID BIGINT REFERENCES Messages(id) ON DELETE SET NULL
 );
 
@@ -124,6 +125,7 @@ create table ConversationMessages
     sender BIGINT NOT NULL REFERENCES Users(id) ON DELETE CASCADE,
     timeSent TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     edited BOOLEAN NOT NULL DEFAULT false,
+    isReply BOOLEAN NOT NULL DEFAULT false,
     replyToID BIGINT REFERENCES ConversationMessages(id) ON DELETE SET NULL
 );
 

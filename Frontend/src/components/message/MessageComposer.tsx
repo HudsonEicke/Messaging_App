@@ -1,0 +1,153 @@
+import { useEffect, useRef, useState } from 'react';
+import type { KeyboardEvent, SubmitEvent } from 'react';
+import { X } from 'lucide-react';
+import type { MessageResponse } from '@/types';
+import { cn, getErrorMessage } from '@/lib/utils';
+import { MESSAGE_MAX_LENGTH } from './messageSource';
+import type { TypingUser } from './messageSource';
+import TypingIndicator from './TypingIndicator';
+
+const COUNTER_THRESHOLD = 1800;
+
+interface MessageComposerProps
+{
+    placeholder: string;
+    replyTarget: MessageResponse | null;
+    onCancelReply: () => void;
+    onSend: (messageText: string) => Promise<void>;
+    typingUsers: TypingUser[];
+    onTyping: () => void;
+}
+
+const MessageComposer = ({ placeholder, replyTarget, onCancelReply, onSend, typingUsers, onTyping }: MessageComposerProps) =>
+{
+    const textareaRef = useRef<HTMLTextAreaElement>(null);
+    const [draft, setDraft] = useState('');
+    const [isSending, setIsSending] = useState(false);
+    const [sendError, setSendError] = useState<string | null>(null);
+
+    const replyTargetId = replyTarget?.id;
+
+    // on open, and when Reply is clicked so you can type straight away
+    useEffect(() =>
+    {
+        textareaRef.current?.focus();
+    }, [replyTargetId]);
+
+    const send = async () =>
+    {
+        const messageText = draft.trim();
+
+        if (messageText === '' || isSending)
+        {
+            return;
+        }
+
+        setIsSending(true);
+        setSendError(null);
+
+        try
+        {
+            await onSend(messageText);
+            setDraft('');
+        }
+        catch (error)
+        {
+            setSendError(getErrorMessage(error, 'Could not send message'));
+        }
+        finally
+        {
+            setIsSending(false);
+        }
+    };
+
+    const handleSubmit = (event: SubmitEvent<HTMLFormElement>) =>
+    {
+        event.preventDefault();
+        send();
+    };
+
+    const handleChange = (text: string) =>
+    {
+        setDraft(text);
+
+        if (text.trim() !== '')
+        {
+            onTyping();
+        }
+    };
+
+    const handleKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>) =>
+    {
+        if (event.key === 'Escape' && replyTarget)
+        {
+            event.preventDefault();
+            onCancelReply();
+            return;
+        }
+
+        // isComposing: Enter that confirms an IME candidate shouldn't send
+        if (event.key === 'Enter' && !event.shiftKey && !event.nativeEvent.isComposing)
+        {
+            event.preventDefault();
+            send();
+        }
+    };
+
+    const remaining = MESSAGE_MAX_LENGTH - draft.length;
+
+    return (
+        <form onSubmit={handleSubmit} className="relative shrink-0 px-4 pb-4">
+            <div className="relative rounded-lg border border-input bg-muted/40 transition-colors focus-within:border-ring focus-within:ring-3 focus-within:ring-ring/50 dark:bg-input/30">
+                {
+                    replyTarget && (
+                        <div className="flex items-center gap-2 border-b px-4 py-1.5 text-xs text-muted-foreground">
+                            <p className="min-w-0 flex-1 truncate">
+                                Replying to <span className="font-semibold text-foreground">{replyTarget.senderDisplayName}</span>
+                            </p>
+                            <button
+                                type="button"
+                                aria-label="Cancel reply"
+                                onClick={onCancelReply}
+                                className="flex size-5 shrink-0 items-center justify-center rounded-full outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/50"
+                            >
+                                <X className="size-3.5" aria-hidden="true" />
+                            </button>
+                        </div>
+                    )
+                }
+                <textarea
+                    ref={textareaRef}
+                    rows={1}
+                    value={draft}
+                    maxLength={MESSAGE_MAX_LENGTH}
+                    placeholder={placeholder}
+                    aria-label={placeholder}
+                    aria-invalid={sendError !== null}
+                    onChange={event => handleChange(event.target.value)}
+                    onKeyDown={handleKeyDown}
+                    className="block field-sizing-content max-h-[50vh] min-h-11 w-full resize-none bg-transparent py-3 pr-14 pl-4 text-sm outline-none placeholder:text-muted-foreground"
+                />
+                {
+                    draft.length > COUNTER_THRESHOLD && (
+                        <span
+                            aria-live="polite"
+                            className={cn('absolute right-3 bottom-3 text-xs tabular-nums', remaining <= 0 ? 'text-destructive' : 'text-muted-foreground')}
+                        >
+                            {remaining}
+                            <span className="sr-only"> characters left</span>
+                        </span>
+                    )
+                }
+            </div>
+            {sendError && <p role="alert" className="mt-1 text-sm text-destructive">{sendError}</p>}
+
+            {/* sits in the bottom padding so the composer doesn't move when someone starts typing */}
+            <div className="absolute inset-x-4 bottom-0 h-4 leading-4">
+                <TypingIndicator typingUsers={typingUsers} />
+            </div>
+        </form>
+    );
+};
+
+export default MessageComposer;

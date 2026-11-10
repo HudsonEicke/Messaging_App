@@ -19,7 +19,7 @@ Content-Type: application/json
 POST {{Messaging_App_HostAddress}}/friends/requests/{{username}}/accept
 Authorization: Bearer {{accessToken}}
 
-###Decline a friend request
+###Decline a friend request, or cancel one you sent
 DELETE {{Messaging_App_HostAddress}}/friends/requests/{{username}}
 Authorization: Bearer {{accessToken}}
 
@@ -41,6 +41,10 @@ Authorization: Bearer {{accessToken}}
 
 ###Get all pending friend requests
 GET {{Messaging_App_HostAddress}}/friends/requests
+Authorization: Bearer {{accessToken}}
+
+###Get all friend requests you have sent
+GET {{Messaging_App_HostAddress}}/friends/requests?direction=outgoing
 Authorization: Bearer {{accessToken}}
 
 ###Get all blocked users

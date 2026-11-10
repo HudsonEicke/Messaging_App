@@ -1,0 +1,36 @@
+import { createAction } from '@reduxjs/toolkit';
+import type { ActivityStatus, ChannelResponse, ConversationResponse, MessageResponse, ServerResponse, UserResponse } from '@/types';
+
+// one action per SignalR event, kept apart from the slices so any slice can respond without importing another
+export const channelMessageReceived = createAction<{ serverID: number; channelID: number; message: MessageResponse; isRead: boolean }>('hub/channelMessageReceived');
+export const channelMessageEdited = createAction<{ channelID: number; messageID: number; messageText: string }>('hub/channelMessageEdited');
+export const channelMessageDeleted = createAction<{ channelID: number; messageID: number }>('hub/channelMessageDeleted');
+export const channelCreated = createAction<{ serverID: number; channel: ChannelResponse }>('hub/channelCreated');
+export const channelUpdated = createAction<{ channelID: number; channelName: string }>('hub/channelUpdated');
+export const channelsReordered = createAction<{ serverID: number; channelIDs: number[] }>('hub/channelsReordered');
+export const channelDeleted = createAction<{ channelID: number }>('hub/channelDeleted');
+export const channelReadStateUpdated = createAction<{ serverID: number; channelID: number; channelHasUnread: boolean; serverHasUnread: boolean }>('hub/channelReadStateUpdated');
+export const serverMemberJoined = createAction<{ serverID: number; member: UserResponse }>('hub/serverMemberJoined');
+export const serverMemberRemoved = createAction<{ serverID: number; username: string }>('hub/serverMemberRemoved');
+export const serverOwnerChanged = createAction<{ serverID: number; ownerUsername: string }>('hub/serverOwnerChanged');
+export const serverUpdated = createAction<{ serverID: number; serverName: string; iconUrl: string }>('hub/serverUpdated');
+export const serverRemoved = createAction<{ serverID: number }>('hub/serverRemoved');
+export const serverJoined = createAction<{ server: ServerResponse }>('hub/serverJoined');
+export const conversationCreated = createAction<{ conversation: ConversationResponse }>('hub/conversationCreated');
+export const conversationMessageReceived = createAction<{ conversationID: number; message: MessageResponse; isRead: boolean }>('hub/conversationMessageReceived');
+export const conversationMessageEdited = createAction<{ conversationID: number; messageID: number; messageText: string }>('hub/conversationMessageEdited');
+export const conversationMessageDeleted = createAction<{ conversationID: number; messageID: number }>('hub/conversationMessageDeleted');
+export const conversationUpdated = createAction<{ conversationID: number; conversationName: string; iconUrl: string }>('hub/conversationUpdated');
+export const conversationMemberAdded = createAction<{ conversationID: number; member: UserResponse }>('hub/conversationMemberAdded');
+export const conversationMemberRemoved = createAction<{ conversationID: number; username: string }>('hub/conversationMemberRemoved');
+export const conversationOwnerChanged = createAction<{ conversationID: number; ownerUsername: string }>('hub/conversationOwnerChanged');
+export const conversationRemoved = createAction<{ conversationID: number }>('hub/conversationRemoved');
+export const conversationReadStateUpdated = createAction<{ conversationID: number; unreadCount: number }>('hub/conversationReadStateUpdated');
+export const userStatusChanged = createAction<{ username: string; status: ActivityStatus }>('hub/userStatusChanged');
+export const userUpdated = createAction<{ username: string; displayName: string; profileImageUrl: string }>('hub/userUpdated');
+export const friendRequestReceived = createAction<{ user: UserResponse }>('hub/friendRequestReceived');
+export const friendRequestSent = createAction<{ user: UserResponse }>('hub/friendRequestSent');
+export const friendAdded = createAction<{ user: UserResponse }>('hub/friendAdded');
+export const friendRemoved = createAction<{ username: string }>('hub/friendRemoved');
+export const userBlocked = createAction<{ user: UserResponse }>('hub/userBlocked');
+export const userUnblocked = createAction<{ username: string }>('hub/userUnblocked');
