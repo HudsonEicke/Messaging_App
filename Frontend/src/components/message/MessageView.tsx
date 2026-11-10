@@ -12,9 +12,11 @@ interface MessageViewProps
     source: MessageSource;
     placeholder: string;
     intro: ReactNode;
+    // shown instead of the composer when you can't send, e.g. a DM with someone you've blocked
+    composerNotice?: ReactNode;
 }
 
-const MessageView = ({ source, placeholder, intro }: MessageViewProps) =>
+const MessageView = ({ source, placeholder, intro, composerNotice }: MessageViewProps) =>
 {
     const currentUsername = useSelector((state: RootState) => state.user.user?.username);
     const [replyTarget, setReplyTarget] = useState<MessageResponse | null>(null);
@@ -32,7 +34,11 @@ const MessageView = ({ source, placeholder, intro }: MessageViewProps) =>
     return (
         <div className="flex min-h-0 min-w-0 flex-1 flex-col">
             <MessageList source={source} currentUsername={currentUsername} intro={intro} onReply={setReplyTarget} />
-            <MessageComposer placeholder={placeholder} replyTarget={replyTarget} onCancelReply={cancelReply} onSend={handleSend} typingUsers={source.typingUsers} onTyping={source.notifyTyping} />
+            {
+                composerNotice ?? (
+                    <MessageComposer placeholder={placeholder} replyTarget={replyTarget} onCancelReply={cancelReply} onSend={handleSend} typingUsers={source.typingUsers} onTyping={source.notifyTyping} />
+                )
+            }
         </div>
     );
 };

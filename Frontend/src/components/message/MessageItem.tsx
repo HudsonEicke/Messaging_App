@@ -2,7 +2,9 @@ import { Fragment, memo, useState } from 'react';
 import type { KeyboardEvent, MouseEvent, ReactNode } from 'react';
 import { Copy, Pencil, Reply, Trash2, User } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
+import { useSelector } from 'react-redux';
 import type { MessageReplyPreview, MessageResponse } from '@/types';
+import type { RootState } from '@/store/store';
 import { cn, copyToClipboard, getErrorMessage } from '@/lib/utils';
 import { formatFullTimestamp, formatMessageTime, formatMessageTimestamp } from '@/lib/messageTime';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -149,6 +151,9 @@ const MessageItem = ({ message, isGrouped, isHighlighted, canEdit, canDelete, is
 // the corner line runs from above the avatar to the preview, like a thread connector
 const ReplyPreview = ({ replyTo, onJump }: { replyTo: MessageReplyPreview; onJump: (messageID: number) => void }) =>
 {
+    // matches the collapsed row in the list; jumping there reveals the message
+    const isSenderBlocked = useSelector((state: RootState) => state.friend.blockedUsers.some(user => user.username === replyTo.senderUsername));
+
     return (
         <div className="relative flex h-5 items-center pl-14 text-xs">
             <span aria-hidden="true" className="absolute top-2.5 left-5 h-2.5 w-8 rounded-tl-md border-t-2 border-l-2 border-muted-foreground/40" />
@@ -163,7 +168,7 @@ const ReplyPreview = ({ replyTo, onJump }: { replyTo: MessageReplyPreview; onJum
                     <AvatarFallback><User className="size-2.5" aria-hidden="true" /></AvatarFallback>
                 </Avatar>
                 <span className="shrink-0 font-medium">@{replyTo.senderDisplayName}</span>
-                <span className="truncate">{replyTo.messageText}</span>
+                <span className={cn('truncate', isSenderBlocked && 'italic')}>{isSenderBlocked ? 'Blocked message' : replyTo.messageText}</span>
             </button>
         </div>
     );

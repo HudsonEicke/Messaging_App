@@ -1,6 +1,9 @@
 import { Fragment, useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
+import { useSelector } from 'react-redux';
 import type { MessageResponse } from '@/types';
+import type { RootState } from '@/store/store';
+import { getBlockedRuns } from '@/lib/blockedRuns';
 import { useWindowFocus } from '@/hooks/useWindowFocus';
 import { formatDayDivider, isSameDay, isWithinGroupWindow } from '@/lib/messageTime';
 import { Button } from '@/components/ui/button';
@@ -38,6 +41,9 @@ const MessageList = ({ source, currentUsername, intro, onReply }: MessageListPro
     const [isJumping, setIsJumping] = useState(false);
     const [jumpNotice, setJumpNotice] = useState<string | null>(null);
     const [isBottomVisible, setIsBottomVisible] = useState(false);
+    // a blocked run shows if any of its messages is in here, from Show or from jumping to one
+    const [revealedMessageIds, setRevealedMessageIds] = useState<Set<number>>(() => new Set());
+    const blockedUsers = useSelector((state: RootState) => state.friend.blockedUsers);
     const isWindowFocused = useWindowFocus();
 
     const lastMessage = messages?.at(-1);
@@ -198,6 +204,19 @@ const MessageList = ({ source, currentUsername, intro, onReply }: MessageListPro
         return () => clearTimeout(timer);
     }, [jumpNotice]);
 
+    // a jump target that was hidden as a blocked message is only in the DOM once it's revealed
+    useLayoutEffect(() =>
+    {
+        const pendingScrollId = pendingScrollIdRef.current;
+        const pendingElement = pendingScrollId === null ? null : document.getElementById(getMessageElementId(pendingScrollId));
+
+        if (pendingElement)
+        {
+            pendingElement.scrollIntoView({ block: 'center' });
+            pendingScrollIdRef.current = null;
+        }
+    }, [revealedMessageIds]);
+
     const jumpToMessage = useCallback(async (messageID: number) =>
     {
         setJumpNotice(null);
@@ -212,6 +231,9 @@ const MessageList = ({ source, currentUsername, intro, onReply }: MessageListPro
                 setJumpNotice("That message isn't available anymore");
                 return;
             }
+
+            // harmless for a message that isn't blocked, so there's no need to check
+            setRevealedMessageIds(previousIds => new Set(previousIds).add(messageID));
 
             const element = document.getElementById(getMessageElementId(messageID));
 
@@ -238,6 +260,16 @@ const MessageList = ({ source, currentUsername, intro, onReply }: MessageListPro
 
     const stopEditing = useCallback(() => setEditingMessageId(null), []);
 
+    const toggleBlockedRun = (runIds: number[], isRevealed: boolean) =>
+    {
+        setRevealedMessageIds(previousIds =>
+        {
+            const nextIds = new Set(previousIds);
+            runIds.forEach(id => { if (isRevealed) nextIds.delete(id); else nextIds.add(id); });
+            return nextIds;
+        });
+    };
+
     const renderMessages = () =>
     {
         if (messages === undefined)
@@ -257,6 +289,8 @@ const MessageList = ({ source, currentUsername, intro, onReply }: MessageListPro
                 </div>
             );
         }
+
+        const blockedRuns = getBlockedRuns(messages, new Set(blockedUsers.map(user => user.username)));
 
         return (
             <>
@@ -290,6 +324,15 @@ const MessageList = ({ source, currentUsername, intro, onReply }: MessageListPro
                             // a reply always shows its own name so the preview line has something to attach to
                             const isGrouped = previousSentAt !== undefined && !startsNewDay && !message.replyTo && previous?.senderUsername === message.senderUsername && isWithinGroupWindow(previousSentAt, sentAt);
                             const isOwn = message.senderUsername === currentUsername;
+                            const runStartId = blockedRuns.runStartById.get(message.id);
+                            const runIds = runStartId === undefined ? undefined : blockedRuns.runIdsByStart.get(runStartId);
+                            const isRunRevealed = runIds?.some(id => revealedMessageIds.has(id)) ?? false;
+
+                            // the rest of a hidden run is covered by the row on its first message
+                            if (runIds && !isRunRevealed && message.id !== runStartId)
+                            {
+                                return null;
+                            }
 
                             return (
                                 <Fragment key={message.id}>
@@ -302,20 +345,38 @@ const MessageList = ({ source, currentUsername, intro, onReply }: MessageListPro
                                             </li>
                                         )
                                     }
-                                    <MessageItem
-                                        message={message}
-                                        isGrouped={isGrouped}
-                                        isHighlighted={highlightedMessageId === message.id}
-                                        canEdit={isOwn}
-                                        canDelete={isOwn || canDeleteOthers}
-                                        isEditing={editingMessageId === message.id}
-                                        onReply={onReply}
-                                        onJumpToMessage={jumpToMessage}
-                                        onStartEdit={setEditingMessageId}
-                                        onStopEdit={stopEditing}
-                                        onEdit={edit}
-                                        onDelete={remove}
-                                    />
+                                    {
+                                        runIds && message.id === runStartId && (
+                                            <li className="mx-4 my-1">
+                                                <button
+                                                    type="button"
+                                                    aria-expanded={isRunRevealed}
+                                                    onClick={() => toggleBlockedRun(runIds, isRunRevealed)}
+                                                    className="rounded-sm text-xs text-muted-foreground outline-none hover:text-foreground hover:underline focus-visible:ring-3 focus-visible:ring-ring/50"
+                                                >
+                                                    {runIds.length} blocked {runIds.length === 1 ? 'message' : 'messages'} · {isRunRevealed ? 'Hide' : 'Show'}
+                                                </button>
+                                            </li>
+                                        )
+                                    }
+                                    {
+                                        (!runIds || isRunRevealed) && (
+                                            <MessageItem
+                                                message={message}
+                                                isGrouped={isGrouped}
+                                                isHighlighted={highlightedMessageId === message.id}
+                                                canEdit={isOwn}
+                                                canDelete={isOwn || canDeleteOthers}
+                                                isEditing={editingMessageId === message.id}
+                                                onReply={onReply}
+                                                onJumpToMessage={jumpToMessage}
+                                                onStartEdit={setEditingMessageId}
+                                                onStopEdit={stopEditing}
+                                                onEdit={edit}
+                                                onDelete={remove}
+                                            />
+                                        )
+                                    }
                                 </Fragment>
                             );
                         })

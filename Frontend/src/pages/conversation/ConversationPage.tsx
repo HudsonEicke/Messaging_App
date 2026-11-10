@@ -8,6 +8,7 @@ import { useActiveIds } from '@/hooks/useActiveIds';
 import { useConversationMessages } from '@/hooks/useConversationMessages';
 import { useMemberListPreference } from '@/hooks/useMemberListPreference';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import BlockedNotice from '@/components/friend/BlockedNotice';
 import ChatHeader from '@/components/message/ChatHeader';
 import ConversationMemberList from '@/components/member/ConversationMemberList';
 import MemberListToggle from '@/components/member/MemberListToggle';
@@ -38,6 +39,8 @@ const ConversationChat = ({ conversation }: { conversation: ConversationResponse
     const FallbackIcon = isGroup ? Users : User;
     const name = conversation.conversationName;
     const showMemberList = isGroup && memberList.isOpen;
+    const blockedOtherUser = useSelector((state: RootState) =>
+        isGroup ? undefined : state.friend.blockedUsers.find(user => user.username === conversation.otherUsername));
 
     return (
         <section aria-label={name} className="flex min-h-0 min-w-0 flex-1 flex-col">
@@ -57,6 +60,7 @@ const ConversationChat = ({ conversation }: { conversation: ConversationResponse
                 <MessageView
                     source={source}
                     placeholder={isGroup ? `Message ${name}` : `Message @${name}`}
+                    composerNotice={blockedOtherUser && <BlockedNotice user={blockedOtherUser} />}
                     intro={
                         <>
                             <p className="text-2xl font-bold">{name}</p>
