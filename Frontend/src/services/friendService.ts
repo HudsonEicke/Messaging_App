@@ -6,8 +6,8 @@ export const getFriends = async(): Promise<UserResponse[]> => {
     return data;
 };
 
-export const getPendingRequests = async(): Promise<UserResponse[]> => {
-    const { data } = await api.get<UserResponse[]>('/friends/requests');
+export const getPendingRequests = async(direction: 'incoming' | 'outgoing'): Promise<UserResponse[]> => {
+    const { data } = await api.get<UserResponse[]>('/friends/requests', { params: { direction } });
     return data;
 };
 
@@ -27,7 +27,8 @@ export const acceptFriendRequest = async(username: string): Promise<UserResponse
     return data;
 };
 
-export const declineFriendRequest = async(username: string): Promise<void> => {
+// declines a request they sent, or cancels one you sent
+export const deleteFriendRequest = async(username: string): Promise<void> => {
     await api.delete(`/friends/requests/${username}`);
 };
 

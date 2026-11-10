@@ -33,6 +33,12 @@ export interface HubEventMap
     ServerJoined: [server: ServerResponse];
     UserStatusChanged: [username: string, status: ActivityStatus];
     UserUpdated: [username: string, displayName: string, profileImageUrl: string];
+    FriendRequestReceived: [user: UserResponse];
+    FriendRequestSent: [user: UserResponse];
+    FriendAdded: [user: UserResponse];
+    FriendRemoved: [username: string];
+    UserBlocked: [user: UserResponse];
+    UserUnblocked: [username: string];
 }
 
 // hub methods the client calls, with their arguments

@@ -7,10 +7,12 @@ import { useActiveIds } from '@/hooks/useActiveIds';
 import { useOnReconnect } from '@/hooks/useOnReconnect';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Separator } from '@/components/ui/separator';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { fetchConversations, leaveConversation } from '@/store/conversationSlice';
 import { getErrorMessage } from '@/lib/utils';
 import ConversationItem from './ConversationItem';
+import FriendsLink from './FriendsLink';
 import GroupSettingsDialog from './GroupSettingsDialog';
 import NewConversationDialog from './NewConversationDialog';
 
@@ -76,7 +78,13 @@ const ConversationList = () =>
             {closeError && <p role="alert" className="px-4 pt-2 text-sm text-destructive">{closeError}</p>}
 
             <ScrollArea className="min-h-0 flex-1">
-                <nav aria-label="Direct messages" className="flex flex-col gap-0.5 py-3">
+                <FriendsLink />
+
+                <div className="px-4 py-2">
+                    <Separator />
+                </div>
+
+                <nav aria-label="Direct messages" className="flex flex-col gap-0.5 pb-3">
                     {
                         conversations.length > 0
                             ? conversations.map(conversation => (

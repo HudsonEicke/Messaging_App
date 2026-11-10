@@ -4,6 +4,7 @@ import { Outlet } from 'react-router-dom';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import type { AppDispatch } from '@/store/store';
 import { fetchMe } from '@/store/userSlice';
+import { fetchFriendData } from '@/store/friendSlice';
 import { useActiveIds } from '@/hooks/useActiveIds';
 import { useHubConnection } from '@/hooks/useHubConnection';
 import { useOnReconnect } from '@/hooks/useOnReconnect';
@@ -22,6 +23,10 @@ const AppShell = () =>
 
     useEffect(() => { dispatch(fetchMe()); }, [dispatch]);
     useOnReconnect(() => dispatch(fetchMe()));
+
+    // loaded here rather than on the friends page so the request count shows everywhere
+    useEffect(() => { dispatch(fetchFriendData()); }, [dispatch]);
+    useOnReconnect(() => dispatch(fetchFriendData()));
 
     return (
         <div className="flex h-screen flex-col overflow-hidden">

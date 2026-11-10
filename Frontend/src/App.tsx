@@ -7,6 +7,7 @@ import { RegisterPage } from '@/pages/register';
 import { ServerIndexPage } from '@/pages/server';
 import { ChannelPage } from '@/pages/channel';
 import { ConversationPage } from '@/pages/conversation';
+import { FriendsPage } from '@/pages/friends';
 
 function App()
 {
@@ -19,7 +20,7 @@ function App()
                 </Route>
                 <Route element={<ProtectedRoute />}>
                     <Route element={<AppShell />}>
-                        <Route path="/channels/@me" element={<div>home</div>} />
+                        <Route path="/channels/@me" element={<FriendsPage />} />
                         <Route path="/channels/@me/:conversationId" element={<ConversationPage />} />
                         <Route path="/channels/:serverId" element={<ServerIndexPage />} />
                         <Route path="/channels/:serverId/:channelId" element={<ChannelPage />} />

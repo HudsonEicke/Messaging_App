@@ -1,11 +1,12 @@
 import { useDispatch, useSelector } from 'react-redux';
-import { useNavigate } from 'react-router-dom';
-import { AtSign, Crown, MessageCircle, RotateCw, User } from 'lucide-react';
+import { AtSign, Crown, MessageCircle, RotateCw, User, UserPlus } from 'lucide-react';
 import type { UserResponse } from '@/types';
 import { ActivityStatus } from '@/types';
 import type { AppDispatch, RootState } from '@/store/store';
-import { createConversation, fetchConversations } from '@/store/conversationSlice';
+import { sendFriendRequest } from '@/store/friendSlice';
+import { useOpenDirectMessage } from '@/hooks/useOpenDirectMessage';
 import { cn, copyToClipboard } from '@/lib/utils';
+import { byDisplayName } from '@/lib/userSort';
 import { ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuTrigger } from '@/components/ui/context-menu';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -19,8 +20,6 @@ interface MemberListProps
     loadError: string | null;
     onRetry: () => void;
 }
-
-const byDisplayName = (first: UserResponse, second: UserResponse) => first.displayName.localeCompare(second.displayName, undefined, { sensitivity: 'base' });
 
 // away and dnd count as online, matching what the badge shows
 const MemberList = ({ members, ownerUsername, loadError, onRetry }: MemberListProps) =>
@@ -100,24 +99,30 @@ const MemberSection = ({ title, members, ownerUsername }: MemberSectionProps) =>
 const MemberRow = ({ member, isOwner }: { member: UserResponse; isOwner: boolean }) =>
 {
     const dispatch = useDispatch<AppDispatch>();
-    const navigate = useNavigate();
+    const openDirectMessageWith = useOpenDirectMessage();
     const currentUsername = useSelector((state: RootState) => state.user.user?.username);
+    // an incoming request still shows Add Friend, since sending one back accepts it
+    const canAddFriend = useSelector((state: RootState) =>
+        ![state.friend.friends, state.friend.outgoingRequests, state.friend.blockedUsers].some(users => users.some(user => user.username === member.username)));
     const isOffline = member.activityStatus === ActivityStatus.offline;
     const isSelf = member.username === currentUsername;
 
-    // creating a DM that already exists returns the existing one
     const openDirectMessage = async () =>
     {
         try
         {
-            const conversation = await dispatch(createConversation({ memberUsernames: [member.username] })).unwrap();
-            dispatch(fetchConversations());
-            navigate(`/channels/@me/${conversation.id}`);
+            await openDirectMessageWith(member.username);
         }
         catch
         {
             // the menu has already closed, so there is nowhere to show the error yet
         }
+    };
+
+    // a failed request is likewise silent; the thunk resolves with the error instead of throwing
+    const addFriend = () =>
+    {
+        dispatch(sendFriendRequest(member.username));
     };
 
     return (
@@ -149,6 +154,14 @@ const MemberRow = ({ member, isOwner }: { member: UserResponse; isOwner: boolean
                         <ContextMenuItem onSelect={openDirectMessage}>
                             <MessageCircle aria-hidden="true" />
                             Message
+                        </ContextMenuItem>
+                    )
+                }
+                {
+                    !isSelf && canAddFriend && (
+                        <ContextMenuItem onSelect={addFriend}>
+                            <UserPlus aria-hidden="true" />
+                            Add Friend
                         </ContextMenuItem>
                     )
                 }

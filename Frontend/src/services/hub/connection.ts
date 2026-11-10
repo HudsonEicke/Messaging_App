@@ -7,6 +7,7 @@ import { onHubEvent } from './events';
 import type { HubEventMap, HubMethodMap } from './events';
 import { registerChannelEvents } from './handlers/channelEvents';
 import { registerConversationEvents } from './handlers/conversationEvents';
+import { registerFriendEvents } from './handlers/friendEvents';
 import { registerServerEvents } from './handlers/serverEvents';
 import { registerUserEvents } from './handlers/userEvents';
 
@@ -31,6 +32,7 @@ registerChannelEvents(connection);
 registerServerEvents(connection);
 registerConversationEvents(connection);
 registerUserEvents(connection);
+registerFriendEvents(connection);
 
 // what the app currently wants; queued tasks check it when they run, so a stop followed by a start cancels out
 let isWanted = false;
