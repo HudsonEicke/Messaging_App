@@ -1,11 +1,14 @@
+import { useSelector } from 'react-redux';
 import { NavLink } from 'react-router-dom';
 import { Link, LogOut, Settings, User, Users, X } from 'lucide-react';
 import type { ConversationResponse } from '@/types';
 import { ConversationType } from '@/types';
+import type { RootState } from '@/store/store';
 import { cn, copyToClipboard, getAbsoluteUrl } from '@/lib/utils';
 import { ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuSeparator, ContextMenuTrigger } from '@/components/ui/context-menu';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import StatusBadge from '@/components/user/StatusBadge';
 
 const MAX_SHOWN_UNREAD = 99;
 
@@ -27,6 +30,9 @@ const ConversationItem = ({ conversation, isActive, onClose, onOpenSettings, onL
     const ActionIcon = isGroup ? Settings : X;
     const actionLabel = isGroup ? 'Group settings' : 'Close conversation';
     const conversationPath = `/channels/@me/${conversation.id}`;
+    // only friends' statuses are loaded, so other DMs show no badge
+    const friendStatus = useSelector((state: RootState) =>
+        isGroup ? undefined : state.friend.friends.find(friend => friend.username === conversation.otherUsername)?.activityStatus);
 
     return (
         <div className="group relative px-2">
@@ -51,6 +57,7 @@ const ConversationItem = ({ conversation, isActive, onClose, onOpenSettings, onL
                             <AvatarFallback>
                                 <FallbackIcon className="size-4" aria-hidden="true" />
                             </AvatarFallback>
+                            {friendStatus !== undefined && <StatusBadge status={friendStatus} />}
                         </Avatar>
 
                         <span className="min-w-0 flex-1 truncate">{conversation.conversationName}</span>
