@@ -230,13 +230,7 @@ public class ConversationController : ModifiedControllerBase
             await SendConversationCreated(newConversation, userId);
             await SendConversationCreated(newConversation, otherUser.id);
 
-            result = new CreateConversationResult();
-            result.conversationID = newConversation.id;
-            result.conversationName = otherUser.displayName;
-            result.iconUrl = otherUser.profileImageUrl;
-            result.memberUsernames = new List<string> { creatingUser.username, otherUser.username };
-
-            return Ok(result);
+            return Ok(CreateDirectResult(newConversation.id, creatingUser, otherUser));
         }
         
         List<User> members = await db.Users.AsNoTracking().Where(user => createConversationRequest.memberUsernames.Contains(user.username)).ToListAsync();
