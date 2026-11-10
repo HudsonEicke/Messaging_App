@@ -1,12 +1,11 @@
 import { z } from 'zod';
+import { isWebUrl } from '@/lib/url';
 
 // match the limits on UpdateMeRequest and UpdatePasswordRequest
 export const DISPLAY_NAME_MAX_LENGTH = 32;
 export const PROFILE_IMAGE_URL_MAX_LENGTH = 2048;
 export const PASSWORD_MIN_LENGTH = 8;
 export const PASSWORD_MAX_LENGTH = 128;
-
-const isWebUrl = (value: string) => URL.canParse(value) && ['http:', 'https:'].includes(new URL(value).protocol);
 
 export const profileSchema = z.object({
     // empty resets the display name to the username

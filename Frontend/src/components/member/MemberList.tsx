@@ -1,5 +1,5 @@
 import { useDispatch, useSelector } from 'react-redux';
-import { AtSign, Crown, MessageCircle, RotateCw, User, UserPlus } from 'lucide-react';
+import { AtSign, Crown, MessageCircle, RotateCw, User, UserMinus, UserPlus } from 'lucide-react';
 import type { UserResponse } from '@/types';
 import { ActivityStatus } from '@/types';
 import type { AppDispatch, RootState } from '@/store/store';
@@ -7,7 +7,7 @@ import { sendFriendRequest } from '@/store/friendSlice';
 import { useOpenDirectMessage } from '@/hooks/useOpenDirectMessage';
 import { cn, copyToClipboard } from '@/lib/utils';
 import { byDisplayName } from '@/lib/userSort';
-import { ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuTrigger } from '@/components/ui/context-menu';
+import { ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuSeparator, ContextMenuTrigger } from '@/components/ui/context-menu';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -19,10 +19,12 @@ interface MemberListProps
     ownerUsername: string | undefined;
     loadError: string | null;
     onRetry: () => void;
+    // set for a server's owner; conversations have no kick
+    onKick?: (member: UserResponse) => void;
 }
 
 // away and dnd count as online, matching what the badge shows
-const MemberList = ({ members, ownerUsername, loadError, onRetry }: MemberListProps) =>
+const MemberList = ({ members, ownerUsername, loadError, onRetry, onKick }: MemberListProps) =>
 {
     const renderContent = () =>
     {
@@ -46,8 +48,8 @@ const MemberList = ({ members, ownerUsername, loadError, onRetry }: MemberListPr
 
         return (
             <>
-                <MemberSection title="Online" members={onlineMembers} ownerUsername={ownerUsername} />
-                <MemberSection title="Offline" members={offlineMembers} ownerUsername={ownerUsername} />
+                <MemberSection title="Online" members={onlineMembers} ownerUsername={ownerUsername} onKick={onKick} />
+                <MemberSection title="Offline" members={offlineMembers} ownerUsername={ownerUsername} onKick={onKick} />
             </>
         );
     };
@@ -70,9 +72,10 @@ interface MemberSectionProps
     title: string;
     members: UserResponse[];
     ownerUsername: string | undefined;
+    onKick?: (member: UserResponse) => void;
 }
 
-const MemberSection = ({ title, members, ownerUsername }: MemberSectionProps) =>
+const MemberSection = ({ title, members, ownerUsername, onKick }: MemberSectionProps) =>
 {
     if (members.length === 0)
     {
@@ -88,7 +91,7 @@ const MemberSection = ({ title, members, ownerUsername }: MemberSectionProps) =>
             <ul className="px-2">
                 {
                     members.map(member => (
-                        <MemberRow key={member.username} member={member} isOwner={member.username === ownerUsername} />
+                        <MemberRow key={member.username} member={member} isOwner={member.username === ownerUsername} onKick={onKick} />
                     ))
                 }
             </ul>
@@ -96,7 +99,14 @@ const MemberSection = ({ title, members, ownerUsername }: MemberSectionProps) =>
     );
 };
 
-const MemberRow = ({ member, isOwner }: { member: UserResponse; isOwner: boolean }) =>
+interface MemberRowProps
+{
+    member: UserResponse;
+    isOwner: boolean;
+    onKick?: (member: UserResponse) => void;
+}
+
+const MemberRow = ({ member, isOwner, onKick }: MemberRowProps) =>
 {
     const dispatch = useDispatch<AppDispatch>();
     const openDirectMessageWith = useOpenDirectMessage();
@@ -169,6 +179,18 @@ const MemberRow = ({ member, isOwner }: { member: UserResponse; isOwner: boolean
                     <AtSign aria-hidden="true" />
                     Copy username
                 </ContextMenuItem>
+                {
+                    // the owner is the only one who sees this, and can't kick themselves
+                    onKick && !isSelf && (
+                        <>
+                            <ContextMenuSeparator />
+                            <ContextMenuItem variant="destructive" onSelect={() => onKick(member)}>
+                                <UserMinus aria-hidden="true" />
+                                Kick
+                            </ContextMenuItem>
+                        </>
+                    )
+                }
             </ContextMenuContent>
         </ContextMenu>
     );

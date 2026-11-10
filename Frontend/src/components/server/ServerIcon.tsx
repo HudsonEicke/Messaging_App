@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom';
-import { Link, LogOut, UserPlus } from 'lucide-react';
+import { Link, LogOut, Settings, UserPlus } from 'lucide-react';
 import type { ServerResponse } from '@/types';
 import { cn, copyToClipboard, getAbsoluteUrl, getInitials } from '@/lib/utils';
 import { ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuSeparator, ContextMenuTrigger } from '@/components/ui/context-menu';
@@ -10,11 +10,13 @@ interface ServerIconProps
 {
     server: ServerResponse;
     isActive: boolean;
+    isOwner: boolean;
     onInvite: (serverId: number) => void;
+    onOpenSettings: (serverId: number) => void;
     onLeave: (serverId: number) => void;
 }
 
-const ServerIcon = ({ server, isActive, onInvite, onLeave }: ServerIconProps) =>
+const ServerIcon = ({ server, isActive, isOwner, onInvite, onOpenSettings, onLeave }: ServerIconProps) =>
 {
     const serverPath = `/channels/${server.serverID}`;
 
@@ -70,6 +72,14 @@ const ServerIcon = ({ server, isActive, onInvite, onLeave }: ServerIconProps) =>
                         <Link aria-hidden="true" />
                         Copy link
                     </ContextMenuItem>
+                    {
+                        isOwner && (
+                            <ContextMenuItem onSelect={() => onOpenSettings(server.serverID)}>
+                                <Settings aria-hidden="true" />
+                                Server settings
+                            </ContextMenuItem>
+                        )
+                    }
                     <ContextMenuSeparator />
                     <ContextMenuItem variant="destructive" onSelect={() => onLeave(server.serverID)}>
                         <LogOut aria-hidden="true" />

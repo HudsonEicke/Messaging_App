@@ -13,6 +13,7 @@ import HomeButton from './HomeButton';
 import InviteDialog from './InviteDialog';
 import LeaveServerDialog from './LeaveServerDialog';
 import ServerIcon from './ServerIcon';
+import ServerSettingsDialog from './ServerSettingsDialog';
 
 const PLACEHOLDER_COUNT = 3;
 
@@ -22,11 +23,13 @@ const ServerList = () =>
     const { servers, hasLoadedServers, serversStatus, serversError } = useSelector((state: RootState) => state.server);
     const { serverId } = useActiveIds();
     const currentUsername = useSelector((state: RootState) => state.user.user?.username);
-    const [menuTarget, setMenuTarget] = useState<{ serverId: number; action: 'invite' | 'leave' } | null>(null);
+    const [menuTarget, setMenuTarget] = useState<{ serverId: number; action: 'invite' | 'settings' | 'leave' } | null>(null);
     const targetServer = servers.find(server => server.serverID === menuTarget?.serverId);
 
     const openInvite = (targetServerId: number) => setMenuTarget({ serverId: targetServerId, action: 'invite' });
+    const openSettings = (targetServerId: number) => setMenuTarget({ serverId: targetServerId, action: 'settings' });
     const openLeave = (targetServerId: number) => setMenuTarget({ serverId: targetServerId, action: 'leave' });
+    const isOwnerOf = (ownerUsername: string) => currentUsername !== undefined && ownerUsername === currentUsername;
     const closeMenuDialog = (open: boolean) => { if (!open) setMenuTarget(null); };
 
     useEffect(() =>
@@ -46,7 +49,15 @@ const ServerList = () =>
                 // once loaded, a refetch keeps showing the cached list, so placeholders and Retry only appear before that
                 hasLoadedServers
                     ? servers.map(server => (
-                        <ServerIcon key={server.serverID} server={server} isActive={server.serverID === serverId} onInvite={openInvite} onLeave={openLeave} />
+                        <ServerIcon
+                            key={server.serverID}
+                            server={server}
+                            isActive={server.serverID === serverId}
+                            isOwner={isOwnerOf(server.ownerUsername)}
+                            onInvite={openInvite}
+                            onOpenSettings={openSettings}
+                            onLeave={openLeave}
+                        />
                     ))
                     : serversStatus === 'failed'
                         ? (
@@ -79,10 +90,15 @@ const ServerList = () =>
                 )
             }
             {
+                targetServer && menuTarget?.action === 'settings' && isOwnerOf(targetServer.ownerUsername) && (
+                    <ServerSettingsDialog server={targetServer} isActive={targetServer.serverID === serverId} open onOpenChange={closeMenuDialog} />
+                )
+            }
+            {
                 targetServer && menuTarget?.action === 'leave' && (
                     <LeaveServerDialog
                         server={targetServer}
-                        isOwner={currentUsername !== undefined && targetServer.ownerUsername === currentUsername}
+                        isOwner={isOwnerOf(targetServer.ownerUsername)}
                         isActive={targetServer.serverID === serverId}
                         open
                         onOpenChange={closeMenuDialog}

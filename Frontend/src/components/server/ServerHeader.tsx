@@ -1,9 +1,10 @@
 import { useState } from 'react';
-import { ChevronDown, LogOut, Plus, UserPlus } from 'lucide-react';
+import { ChevronDown, LogOut, Plus, Settings, UserPlus } from 'lucide-react';
 import type { ServerResponse } from '@/types';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import InviteDialog from './InviteDialog';
 import LeaveServerDialog from './LeaveServerDialog';
+import ServerSettingsDialog from './ServerSettingsDialog';
 
 interface ServerHeaderProps
 {
@@ -17,6 +18,7 @@ const ServerHeader = ({ server, isOwner, onCreateChannel }: ServerHeaderProps) =
 {
     const [isInviteOpen, setIsInviteOpen] = useState(false);
     const [isLeaveOpen, setIsLeaveOpen] = useState(false);
+    const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
     if (server === undefined)
     {
@@ -44,10 +46,16 @@ const ServerHeader = ({ server, isOwner, onCreateChannel }: ServerHeaderProps) =
                         </DropdownMenuItem>
                         {
                             isOwner && (
-                                <DropdownMenuItem onSelect={onCreateChannel}>
-                                    <Plus aria-hidden="true" />
-                                    Create channel
-                                </DropdownMenuItem>
+                                <>
+                                    <DropdownMenuItem onSelect={onCreateChannel}>
+                                        <Plus aria-hidden="true" />
+                                        Create channel
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem onSelect={() => setIsSettingsOpen(true)}>
+                                        <Settings aria-hidden="true" />
+                                        Server settings
+                                    </DropdownMenuItem>
+                                </>
                             )
                         }
                         <DropdownMenuSeparator />
@@ -61,6 +69,8 @@ const ServerHeader = ({ server, isOwner, onCreateChannel }: ServerHeaderProps) =
 
             <InviteDialog serverId={server.serverID} serverName={server.serverName} open={isInviteOpen} onOpenChange={setIsInviteOpen} />
             <LeaveServerDialog server={server} isOwner={isOwner} open={isLeaveOpen} onOpenChange={setIsLeaveOpen} />
+            {/* mounted only while open so the form starts from the current name and icon each time */}
+            {isOwner && isSettingsOpen && <ServerSettingsDialog server={server} isActive open onOpenChange={setIsSettingsOpen} />}
         </header>
     );
 };
