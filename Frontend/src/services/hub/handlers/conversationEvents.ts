@@ -1,6 +1,6 @@
 import type { HubConnection } from '@microsoft/signalr';
 import { store } from '@/store/store';
-import { conversationCreated, conversationMemberAdded, conversationMemberRemoved, conversationMessageDeleted, conversationMessageEdited, conversationMessageReceived, conversationOwnerChanged, conversationRemoved, conversationUpdated } from '@/store/hubEvents';
+import { conversationCreated, conversationMemberAdded, conversationMemberRemoved, conversationMessageDeleted, conversationMessageEdited, conversationMessageReceived, conversationOwnerChanged, conversationReadStateUpdated, conversationRemoved, conversationUpdated } from '@/store/hubEvents';
 import { onHubEvent } from '@/services/hub/events';
 
 const isCurrentUser = (username: string) => username === store.getState().user.user?.username;
@@ -46,5 +46,11 @@ export const registerConversationEvents = (connection: HubConnection) =>
     onHubEvent(connection, 'ConversationMemberLeft', (conversationID, username) =>
     {
         store.dispatch(isCurrentUser(username) ? conversationRemoved({ conversationID }) : conversationMemberRemoved({ conversationID, username }));
+    });
+
+    // sent to all your tabs when one of them marks a conversation read
+    onHubEvent(connection, 'ConversationReadStateUpdated', (conversationID, unreadCount) =>
+    {
+        store.dispatch(conversationReadStateUpdated({ conversationID, unreadCount }));
     });
 };

@@ -5,7 +5,7 @@ import type { ApiError } from '@/lib/utils';
 import { getApiError } from '@/lib/utils';
 import { editMessageText, insertMessage, removeMessage, updateSenderProfile } from '@/lib/messageList';
 import { clearTokens } from './authSlice';
-import { conversationCreated, conversationMemberAdded, conversationMemberRemoved, conversationMessageDeleted, conversationMessageEdited, conversationMessageReceived, conversationOwnerChanged, conversationRemoved, conversationUpdated, userStatusChanged, userUpdated } from './hubEvents';
+import { conversationCreated, conversationMemberAdded, conversationMemberRemoved, conversationMessageDeleted, conversationMessageEdited, conversationMessageReceived, conversationOwnerChanged, conversationReadStateUpdated, conversationRemoved, conversationUpdated, userStatusChanged, userUpdated } from './hubEvents';
 import { getConversations, getConversation, createConversation as createConversationRequest, updateConversation as updateConversationRequest, leaveConversation as leaveConversationRequest, getMessages, sendMessage as sendMessageRequest, editMessage as editMessageRequest, deleteMessage as deleteMessageRequest, getConversationMembers, addMember as addMemberRequest, markConversationRead as markConversationReadRequest } from '@/services/conversationService';
 
 const MESSAGE_PAGE_SIZE = 50;
@@ -449,6 +449,14 @@ const conversationSlice = createSlice({
             })
             .addCase(conversationRemoved, (state, action) => {
                 removeConversation(state, action.payload.conversationID);
+            })
+            .addCase(conversationReadStateUpdated, (state, action) => {
+                const conversation = state.conversations.find(listedConversation => listedConversation.id === action.payload.conversationID);
+
+                if (conversation)
+                {
+                    conversation.unreadCount = action.payload.unreadCount;
+                }
             })
             .addCase(userStatusChanged, (state, action) => {
                 for (const members of Object.values(state.membersByConversation))

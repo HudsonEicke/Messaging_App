@@ -6,7 +6,7 @@ import { getApiError } from '@/lib/utils';
 import { loadLastChannels } from '@/lib/lastChannelStorage';
 import { clearTokens } from './authSlice';
 import { updateChannel, deleteChannel, markChannelRead, sendMessage } from './channelSlice';
-import { channelCreated, channelDeleted, channelMessageReceived, channelsReordered, channelUpdated, serverMemberJoined, serverMemberRemoved, serverOwnerChanged, serverRemoved, serverUpdated, userStatusChanged, userUpdated } from './hubEvents';
+import { channelCreated, channelDeleted, channelMessageReceived, channelReadStateUpdated, channelsReordered, channelUpdated, serverJoined, serverMemberJoined, serverMemberRemoved, serverOwnerChanged, serverRemoved, serverUpdated, userStatusChanged, userUpdated } from './hubEvents';
 import { getServers, getServer, createServer as createServerRequest, updateServer as updateServerRequest, deleteServer as deleteServerRequest, leaveServer as leaveServerRequest, getServerMembers, kickMember as kickMemberRequest, getChannels, createChannel as createChannelRequest, reorderChannels as reorderChannelsRequest, getInvites, createInvite as createInviteRequest, deleteInvite as deleteInviteRequest, joinServer as joinServerRequest } from '@/services/serverService';
 
 type FetchStatus = 'idle' | 'loading' | 'succeeded' | 'failed';
@@ -41,6 +41,14 @@ const initialState: ServerState = {
 };
 
 // shared by deleteServer and leaveServer, both mean the server is gone for this user
+// the tab that created or joined the server gets it from both the response and the hub, in either order
+const addServer = (state: ServerState, server: ServerResponse) => {
+    if (!state.servers.some(listedServer => listedServer.serverID === server.serverID))
+    {
+        state.servers.push(server);
+    }
+};
+
 const removeServer = (state: ServerState, serverID: number) => {
     state.servers = state.servers.filter(server => server.serverID !== serverID);
     delete state.channelsByServer[serverID];
@@ -398,13 +406,13 @@ const serverSlice = createSlice({
                 state.serversError = action.payload ?? { message: 'Could not load servers' };
             })
             .addCase(createServer.fulfilled, (state, action) => {
-                state.servers.push(action.payload);
+                addServer(state, action.payload);
             })
             .addCase(createServer.rejected, (state, action) => {
                 state.error = action.payload ?? { message: 'Could not create server' };
             })
             .addCase(joinServer.fulfilled, (state, action) => {
-                state.servers.push(action.payload);
+                addServer(state, action.payload);
             })
             .addCase(joinServer.rejected, (state, action) => {
                 state.error = action.payload ?? { message: 'Could not join server' };
@@ -543,6 +551,25 @@ const serverSlice = createSlice({
             })
             .addCase(serverRemoved, (state, action) => {
                 removeServer(state, action.payload.serverID);
+            })
+            .addCase(serverJoined, (state, action) => {
+                addServer(state, action.payload.server);
+            })
+            // the backend works out both flags after saving, so they hold even when this tab never loaded the server's channels
+            .addCase(channelReadStateUpdated, (state, action) => {
+                const { serverID, channelID, channelHasUnread, serverHasUnread } = action.payload;
+                const channel = state.channelsByServer[serverID]?.find(listedChannel => listedChannel.channelID === channelID);
+                const server = state.servers.find(listedServer => listedServer.serverID === serverID);
+
+                if (channel)
+                {
+                    channel.hasUnread = channelHasUnread;
+                }
+
+                if (server)
+                {
+                    server.hasUnread = serverHasUnread;
+                }
             })
             .addCase(userStatusChanged, (state, action) => {
                 for (const members of Object.values(state.membersByServer))
