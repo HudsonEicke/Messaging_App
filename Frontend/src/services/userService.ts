@@ -1,5 +1,5 @@
 import api from './api';
-import { type UpdateMeRequest, type UpdatePasswordRequest, type UpdateStatusRequest, type UserDetailedResponse, type UserResponse } from '@/types';
+import { type AuthResponse, type UpdateMeRequest, type UpdatePasswordRequest, type UpdateStatusRequest, type UserDetailedResponse, type UserResponse } from '@/types';
 
 export const getMe = async(): Promise<UserDetailedResponse> => {
     const { data } = await api.get<UserDetailedResponse>('/users/me');
@@ -21,8 +21,10 @@ export const updateMe = async(updateRequest: UpdateMeRequest): Promise<UserRespo
     return data;
 };
 
-export const updatePassword = async(updatePasswordRequest: UpdatePasswordRequest): Promise<void> => {
-    await api.put('/users/me/password', updatePasswordRequest);
+// returns new tokens for this session, since the change signs out every session
+export const updatePassword = async(updatePasswordRequest: UpdatePasswordRequest): Promise<AuthResponse> => {
+    const { data } = await api.put<AuthResponse>('/users/me/password', updatePasswordRequest);
+    return data;
 };
 
 export const updateStatus = async(updateStatusRequest: UpdateStatusRequest): Promise<void> => {

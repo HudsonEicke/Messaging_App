@@ -10,7 +10,29 @@ export interface ApiError
 {
     status?: number;
     message: string;
+    // from a 400 ValidationProblemDetails, keyed by request field
+    fieldErrors?: Record<string, string[]>;
 }
+
+// JSON parse errors are keyed like "$.displayName", attribute errors by the bare name
+const getFieldErrors = (errors: unknown): Record<string, string[]> | undefined => {
+    if (typeof errors !== 'object' || errors === null)
+    {
+        return undefined;
+    }
+
+    const fieldErrors: Record<string, string[]> = {};
+
+    for (const [key, messages] of Object.entries(errors))
+    {
+        if (Array.isArray(messages))
+        {
+            fieldErrors[key.replace(/^\$\./, '')] = messages.filter((message): message is string => typeof message === 'string');
+        }
+    }
+
+    return Object.keys(fieldErrors).length > 0 ? fieldErrors : undefined;
+};
 
 export const getApiError = (err: unknown, fallback: string): ApiError => {
     if (!axios.isAxiosError(err))
@@ -30,6 +52,15 @@ export const getApiError = (err: unknown, fallback: string): ApiError => {
     if (typeof data?.message === 'string')
     {
         return { status, message: data.message };
+    }
+
+    // the title only says "One or more validation errors occurred.", so lead with the first field's message
+    const fieldErrors = getFieldErrors(data?.errors);
+    const firstFieldError = fieldErrors && Object.values(fieldErrors).flat()[0];
+
+    if (fieldErrors && firstFieldError)
+    {
+        return { status, message: firstFieldError, fieldErrors };
     }
 
     // ProblemDetails from NotFound(), BadRequest() with no message, etc.

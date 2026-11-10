@@ -1,11 +1,11 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import type { PayloadAction } from '@reduxjs/toolkit';
-import type { ActivityStatus, UserDetailedResponse } from '@/types';
+import type { ActivityStatus, UpdateMeRequest, UpdatePasswordRequest, UserDetailedResponse, UserResponse } from '@/types';
 import type { ApiError } from '@/lib/utils';
 import { getApiError } from '@/lib/utils';
-import { clearTokens } from './authSlice';
+import { clearTokens, setTokens } from './authSlice';
 import { userStatusChanged, userUpdated } from './hubEvents';
-import { getMe, updateStatus } from '@/services/userService';
+import { getMe, updateMe, updatePassword, updateStatus } from '@/services/userService';
 
 interface UserState
 {
@@ -42,6 +42,30 @@ export const updateMyStatus = createAsyncThunk<void, ActivityStatus, { rejectVal
     }
 });
 
+export const updateProfile = createAsyncThunk<UserResponse, UpdateMeRequest, { rejectValue: ApiError }>('user/updateProfile', async (request, { rejectWithValue }) => {
+    try
+    {
+        return await updateMe(request);
+    }
+    catch (error)
+    {
+        return rejectWithValue(getApiError(error, 'Could not update your profile'));
+    }
+});
+
+// the backend revokes every session's refresh token, so this one switches to the new tokens it returns
+export const changePassword = createAsyncThunk<void, UpdatePasswordRequest, { rejectValue: ApiError }>('user/changePassword', async (request, { dispatch, rejectWithValue }) => {
+    try
+    {
+        const { accessToken, refreshToken } = await updatePassword(request);
+        dispatch(setTokens({ accessToken, refreshToken }));
+    }
+    catch (error)
+    {
+        return rejectWithValue(getApiError(error, 'Could not change your password'));
+    }
+});
+
 const userSlice = createSlice({
     name: 'user',
     initialState,
@@ -72,6 +96,13 @@ const userSlice = createSlice({
                 if (state.user)
                 {
                     state.user.activityStatus = action.meta.arg;
+                }
+            })
+            .addCase(updateProfile.fulfilled, (state, action) => {
+                if (state.user)
+                {
+                    state.user.displayName = action.payload.displayName;
+                    state.user.profileImageUrl = action.payload.profileImageUrl;
                 }
             })
             // while you're connected the backend sends your own picked status, so this keeps your other tabs' picker in sync
