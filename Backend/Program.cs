@@ -17,6 +17,7 @@ var secretKey = Encoding.UTF8.GetBytes(jwtSettings.SecretKey);
 
 builder.Services.Configure<JwtSettings>(builder.Configuration.GetSection("JwtSettings"));
 builder.Services.Configure<EncryptionSettings>(builder.Configuration.GetSection("EncryptionSettings"));
+builder.Services.AddOptions<CleanupSettings>().Bind(builder.Configuration.GetSection("CleanupSettings")).ValidateDataAnnotations().ValidateOnStart();
 
 string[] allowedOrigins = builder.Configuration.GetSection("AllowedOrigins").Get<string[]>() ?? [];
 
@@ -86,6 +87,7 @@ builder.Services.AddScoped<FriendService>();
 builder.Services.AddSingleton<ConnectionTracker>();
 builder.Services.AddSingleton<HubGroupService>();
 builder.Services.AddSingleton<PresenceService>();
+builder.Services.AddHostedService<DatabaseCleanupService>();
 
 var app = builder.Build();
 
