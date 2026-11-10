@@ -20,13 +20,18 @@ public class ConversationController : ModifiedControllerBase
     private readonly HubGroupService hubGroupService;
     private readonly PresenceService presenceService;
     private readonly ReadStateService readStateService;
+    private readonly FriendService friendService;
     private const int MESSAGEGRABAMOUNT = 50;
     private const int MAXCONVERSATIONMEMBERS = 25;
     private const int MAXUNREADCOUNT = 100;
     private const int MAXCONVERSATIONNAMELENGTH = 100;
 
-    public ConversationController(MessagingAppContext db, EncryptionService encryptionService, IHubContext<ChatHub> hubContext, ReadStateService readStateService, HubGroupService hubGroupService, PresenceService presenceService)
+    //the same wording whichever person did the blocking, so the blocked person can't tell
+    private const string BLOCKEDMESSAGE = "You can't message this user";
+
+    public ConversationController(MessagingAppContext db, EncryptionService encryptionService, IHubContext<ChatHub> hubContext, ReadStateService readStateService, HubGroupService hubGroupService, PresenceService presenceService, FriendService friendService)
     {
+        this.friendService = friendService;
         this.db = db;
         this.presenceService = presenceService;
         this.encryptionService = encryptionService;
@@ -167,6 +172,12 @@ public class ConversationController : ModifiedControllerBase
                 return Forbid();
             }
 
+            //covers reopening a closed dm too
+            if(await friendService.IsBlockedBetween(userId, otherUser.id))
+            {
+                return StatusCode(StatusCodes.Status403Forbidden, BLOCKEDMESSAGE);
+            }
+
             long directUserLowID = Math.Min(userId, otherUser.id);
             long directUserHighID = Math.Max(userId, otherUser.id);
 
@@ -238,6 +249,14 @@ public class ConversationController : ModifiedControllerBase
         if(members.Any(user => user.id == userId))
         {
             return Forbid();
+        }
+
+        List<long> blockedMemberIds = await friendService.GetBlockedAmong(userId, members.Select(member => member.id).ToList());
+
+        if(blockedMemberIds.Count > 0)
+        {
+            string blockedUsername = members.First(member => member.id == blockedMemberIds[0]).username;
+            return StatusCode(StatusCodes.Status403Forbidden, $"You can't add {blockedUsername}");
         }
 
         newConversation = new Conversation();
@@ -461,6 +480,11 @@ public class ConversationController : ModifiedControllerBase
             return NotFound();
         }
 
+        if(await friendService.IsBlockedBetween(userId, foundUser.id))
+        {
+            return StatusCode(StatusCodes.Status403Forbidden, $"You can't add {foundUser.username}");
+        }
+
         ConversationMember? existingMember = await db.ConversationMembers.AsNoTracking().FirstOrDefaultAsync(member => member.conversationID == id && member.userID == foundUser.id);
 
         if(existingMember != null)
@@ -658,6 +682,17 @@ public class ConversationController : ModifiedControllerBase
         if(!isMember)
         {
             return Forbid();
+        }
+
+        //only dms; people who are already in a group together can keep talking there
+        if(conversation.conversationType == ConversationType.direct)
+        {
+            long? otherUserId = conversation.directUserLowID == userId ? conversation.directUserHighID : conversation.directUserLowID;
+
+            if(otherUserId != null && await friendService.IsBlockedBetween(userId, otherUserId.Value))
+            {
+                return StatusCode(StatusCodes.Status403Forbidden, BLOCKEDMESSAGE);
+            }
         }
 
         ConversationMessage newMessage = new ConversationMessage();

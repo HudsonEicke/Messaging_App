@@ -742,4 +742,49 @@ public class ConversationTests : IClassFixture<TestWebApplicationFactory>
         Assert.Equal(100, result!.conversationName.Length);
         Assert.EndsWith("...", result.conversationName);
     }
+
+    //BLOCKING
+    [Fact]
+    public async Task CreateConversation_DirectWhenBlocked_ReturnsForbidden()
+    {
+        //arrange
+        string tokenA = await RegisterAndGetToken("cvblockdmA", "cvblockdmA@email.com");
+        string tokenB = await RegisterAndGetToken("cvblockdmB", "cvblockdmB@email.com");
+        await client.SendAsync(CreateRequest(HttpMethod.Put, "/friends/blocked/cvblockdmA", tokenB), TestContext.Current.CancellationToken);
+
+        //act
+        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Post, "/conversations", tokenA, new CreateConversationRequest { memberUsernames = new List<string> { "cvblockdmB" } }), TestContext.Current.CancellationToken);
+
+        //assert
+        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task SendMessage_InDirectAfterBlock_ReturnsForbidden()
+    {
+        //arrange
+        (string tokenA, string tokenB, long conversationId) = await CreateDmConversation("cvblocksendA", "cvblocksendB");
+        await client.SendAsync(CreateRequest(HttpMethod.Put, "/friends/blocked/cvblocksendA", tokenB), TestContext.Current.CancellationToken);
+
+        //act
+        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Post, $"/conversations/{conversationId}/messages", tokenA, new SendMessageRequest { messageText = "hello?" }), TestContext.Current.CancellationToken);
+
+        //assert
+        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task AddMember_WhenBlocked_ReturnsForbidden()
+    {
+        //arrange
+        (string ownerToken, long conversationId) = await CreateGroupConversation("cvblockaddown", new List<string> { "cvblockaddm1", "cvblockaddm2" });
+        string newMemberToken = await RegisterAndGetToken("cvblockaddnew", "cvblockaddnew@email.com");
+        await client.SendAsync(CreateRequest(HttpMethod.Put, "/friends/blocked/cvblockaddown", newMemberToken), TestContext.Current.CancellationToken);
+
+        //act
+        HttpResponseMessage response = await client.SendAsync(CreateRequest(HttpMethod.Post, $"/conversations/{conversationId}/members", ownerToken, new AddConversationMemberRequest { username = "cvblockaddnew" }), TestContext.Current.CancellationToken);
+
+        //assert
+        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+    }
 }
