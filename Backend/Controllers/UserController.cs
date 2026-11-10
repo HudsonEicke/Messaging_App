@@ -18,11 +18,13 @@ public class UserController : ModifiedControllerBase
     private readonly AuthService authService;
     private readonly IHubContext<ChatHub> hubContext;
     private readonly PresenceService presenceService;
+    private readonly FriendService friendService;
 
-    public UserController(MessagingAppContext db, AuthService authService, IHubContext<ChatHub> hubContext, PresenceService presenceService)
+    public UserController(MessagingAppContext db, AuthService authService, IHubContext<ChatHub> hubContext, PresenceService presenceService, FriendService friendService)
     {
         this.db = db;
         this.presenceService = presenceService;
+        this.friendService = friendService;
         this.authService = authService;
         this.hubContext = hubContext;
     }
@@ -155,6 +157,10 @@ public class UserController : ModifiedControllerBase
 
         await hubContext.Clients.Groups(groups).SendAsync("UserUpdated", foundUser.username, foundUser.displayName, foundUser.profileImageUrl);
 
+        //friends who share no server or conversation aren't in those groups; someone in both gets it twice, which is harmless
+        List<string> friendUserIds = await friendService.GetFriendUserIds(userId);
+        await hubContext.Clients.Users(friendUserIds).SendAsync("UserUpdated", foundUser.username, foundUser.displayName, foundUser.profileImageUrl);
+
         UserResult result = new UserResult();
 
         result.displayName = foundUser.displayName;
@@ -259,6 +265,9 @@ public class UserController : ModifiedControllerBase
         groups.AddRange(conversationIds.Select(id => $"conversation_{id}"));
 
         await hubContext.Clients.Groups(groups).SendAsync("UserStatusChanged", foundUser.username, presenceService.GetDisplayedStatus(userId, foundUser.activityStatus));
+
+        List<string> friendUserIds = await friendService.GetFriendUserIds(userId);
+        await hubContext.Clients.Users(friendUserIds).SendAsync("UserStatusChanged", foundUser.username, presenceService.GetDisplayedStatus(userId, foundUser.activityStatus));
 
         return Ok();
     }

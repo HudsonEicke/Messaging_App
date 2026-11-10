@@ -82,6 +82,7 @@ builder.Services.AddDbContext<MessagingAppContext>(options => options.UseNpgsql(
 builder.Services.AddAuthorization();
 builder.Services.AddScoped<AuthService>();
 builder.Services.AddScoped<ReadStateService>();
+builder.Services.AddScoped<FriendService>();
 builder.Services.AddSingleton<ConnectionTracker>();
 builder.Services.AddSingleton<HubGroupService>();
 builder.Services.AddSingleton<PresenceService>();

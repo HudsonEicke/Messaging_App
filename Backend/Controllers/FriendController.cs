@@ -4,6 +4,8 @@ using Messaging_App.Data;
 using Microsoft.AspNetCore.Identity;
 using Messaging_App.Services;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.SignalR;
+using Messaging_App.Hubs;
 
 namespace Messaging_App.Controllers;
 
@@ -14,11 +16,31 @@ public class FriendController : ModifiedControllerBase
 {
     private readonly MessagingAppContext db;
     private readonly PresenceService presenceService;
+    private readonly IHubContext<ChatHub> hubContext;
 
-    public FriendController(MessagingAppContext db, PresenceService presenceService)
+    public FriendController(MessagingAppContext db, PresenceService presenceService, IHubContext<ChatHub> hubContext)
     {
         this.db = db;
         this.presenceService = presenceService;
+        this.hubContext = hubContext;
+    }
+
+    private UserResult BuildUserResult(User user)
+    {
+        UserResult result = new UserResult();
+        result.displayName = user.displayName;
+        result.username = user.username;
+        result.profileImageUrl = user.profileImageUrl;
+        result.activityStatus = presenceService.GetDisplayedStatus(user.id, user.activityStatus);
+        result.accountCreationTime = user.accountCreationTime;
+
+        return result;
+    }
+
+    //every hub event below goes to all of that user's tabs
+    private async Task SendToUser(long userId, string eventName, object argument)
+    {
+        await hubContext.Clients.User(userId.ToString()).SendAsync(eventName, argument);
     }
 
     [HttpPost("requests")]
@@ -52,7 +74,15 @@ public class FriendController : ModifiedControllerBase
 
         List<Friend> foundFriends = await db.Friends.Where(request => (request.sender == userId && request.receiver == otherUser.id) || (request.receiver == userId && request.sender == otherUser.id)).ToListAsync();
 
+        User? currentUser = await db.Users.AsNoTracking().FirstOrDefaultAsync(user => user.id == userId);
+
+        if(currentUser == null)
+        {
+            return Unauthorized();
+        }
+
         FriendRequestResult result = new FriendRequestResult();
+        result.user = BuildUserResult(otherUser);
 
         //checks if either user has sent a request or not
         if(foundFriends.Count == 0)
@@ -92,6 +122,18 @@ public class FriendController : ModifiedControllerBase
 
         await db.SaveChangesAsync();
 
+        //if they had already sent one, the request accepted it instead
+        if(result.status == FriendStatus.friends)
+        {
+            await SendToUser(userId, "FriendAdded", result.user);
+            await SendToUser(otherUser.id, "FriendAdded", BuildUserResult(currentUser));
+        }
+        else
+        {
+            await SendToUser(userId, "FriendRequestSent", result.user);
+            await SendToUser(otherUser.id, "FriendRequestReceived", BuildUserResult(currentUser));
+        }
+
         return Ok(result);
     }
 
@@ -128,18 +170,23 @@ public class FriendController : ModifiedControllerBase
 
         await db.SaveChangesAsync();
 
-        UserResult result = new UserResult();
-        result.displayName = otherUser.displayName;
-        result.username = username;
-        result.profileImageUrl = otherUser.profileImageUrl;
-        result.activityStatus = presenceService.GetDisplayedStatus(otherUser.id, otherUser.activityStatus);
-        result.accountCreationTime = otherUser.accountCreationTime;
+        UserResult result = BuildUserResult(otherUser);
+
+        User? currentUser = await db.Users.AsNoTracking().FirstOrDefaultAsync(user => user.id == userId);
+
+        await SendToUser(userId, "FriendAdded", result);
+
+        if(currentUser != null)
+        {
+            await SendToUser(otherUser.id, "FriendAdded", BuildUserResult(currentUser));
+        }
 
         return Ok(result);
     }
 
+    //declines a request they sent, or cancels one you sent
     [HttpDelete("requests/{username}")]
-    public async Task<IActionResult> DeclineRequest(string username)
+    public async Task<IActionResult> DeleteRequest(string username)
     {
         long? nullableUserId = GetUserId();
         
@@ -160,16 +207,19 @@ public class FriendController : ModifiedControllerBase
             return BadRequest("Cannot be friends with yourself");
         }
 
-        Friend? request = await db.Friends.FirstOrDefaultAsync(friend => friend.sender == otherUser.id && friend.receiver == userId && friend.status == FriendStatus.pending);
+        Friend? request = await db.Friends.FirstOrDefaultAsync(friend => ((friend.sender == otherUser.id && friend.receiver == userId) || (friend.sender == userId && friend.receiver == otherUser.id)) && friend.status == FriendStatus.pending);
 
         if(request == null)
         {
-            return NotFound("No pending friend request from user");
+            return NotFound("No pending friend request with user");
         }
 
         db.Friends.Remove(request);
 
         await db.SaveChangesAsync();
+
+        await SendToUser(userId, "FriendRemoved", otherUser.username);
+        await SendToUser(otherUser.id, "FriendRemoved", GetUsername() ?? string.Empty);
 
         return NoContent();
     }
@@ -207,6 +257,9 @@ public class FriendController : ModifiedControllerBase
 
         await db.SaveChangesAsync();
 
+        await SendToUser(userId, "FriendRemoved", otherUser.username);
+        await SendToUser(otherUser.id, "FriendRemoved", GetUsername() ?? string.Empty);
+
         return NoContent();
     }
 
@@ -240,6 +293,9 @@ public class FriendController : ModifiedControllerBase
         if(myRow?.status == FriendStatus.blocked)
             return BadRequest("You have already blocked this user");
 
+        //a block of their own stays, so both people can block each other
+        bool hadRelationship = (theirRow != null && theirRow.status != FriendStatus.blocked) || myRow != null;
+
         if(theirRow != null && theirRow.status != FriendStatus.blocked)
             db.Friends.Remove(theirRow);
 
@@ -254,6 +310,14 @@ public class FriendController : ModifiedControllerBase
         db.Friends.Add(blockRequest);
 
         await db.SaveChangesAsync();
+
+        await SendToUser(userId, "UserBlocked", BuildUserResult(otherUser));
+
+        //they only see the friendship or request go away, not that they were blocked
+        if(hadRelationship)
+        {
+            await SendToUser(otherUser.id, "FriendRemoved", GetUsername() ?? string.Empty);
+        }
 
         return NoContent();
     }
@@ -291,6 +355,8 @@ public class FriendController : ModifiedControllerBase
 
         await db.SaveChangesAsync();
 
+        await SendToUser(userId, "UserUnblocked", otherUser.username);
+
         return NoContent();
     }
 
@@ -309,8 +375,9 @@ public class FriendController : ModifiedControllerBase
         return Ok(results);
     }
 
+    //incoming unless direction=outgoing
     [HttpGet("requests")]
-    public async Task<ActionResult<List<UserResult>>> GetPendingFriends()
+    public async Task<ActionResult<List<UserResult>>> GetPendingFriends([FromQuery] FriendRequestDirection direction = FriendRequestDirection.incoming)
     {
         long? nullableUserId = GetUserId();
         
@@ -318,6 +385,13 @@ public class FriendController : ModifiedControllerBase
             return Unauthorized();
 
         long userId = nullableUserId.Value;
+
+        if(direction == FriendRequestDirection.outgoing)
+        {
+            List<UserResult> outgoingResults = await db.Friends.Where(friend => friend.sender == userId && friend.status == FriendStatus.pending).Join(db.Users, friend => friend.receiver, user => user.id, (friend, user) => new UserResult{displayName = user.displayName, username = user.username, profileImageUrl = user.profileImageUrl, activityStatus = presenceService.GetDisplayedStatus(user.id, user.activityStatus), accountCreationTime = user.accountCreationTime}).ToListAsync();
+
+            return Ok(outgoingResults);
+        }
 
         List<UserResult> results = await db.Friends.Where(friend => friend.receiver == userId && friend.status == FriendStatus.pending).Join(db.Users, friend => friend.sender, user => user.id, (friend, user) => new UserResult{displayName = user.displayName, username = user.username, profileImageUrl = user.profileImageUrl, activityStatus = presenceService.GetDisplayedStatus(user.id, user.activityStatus), accountCreationTime = user.accountCreationTime}).ToListAsync();
 

@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using Messaging_App.Data;
+using Messaging_App.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
@@ -11,11 +12,13 @@ public class ChatHub : Hub
 {
     private readonly MessagingAppContext db;
     private readonly ConnectionTracker connectionTracker;
+    private readonly FriendService friendService;
 
-    public ChatHub(MessagingAppContext db, ConnectionTracker connectionTracker)
+    public ChatHub(MessagingAppContext db, ConnectionTracker connectionTracker, FriendService friendService)
     {
         this.db = db;
         this.connectionTracker = connectionTracker;
+        this.friendService = friendService;
     }
 
     public override async Task OnConnectedAsync()
@@ -54,6 +57,10 @@ public class ChatHub : Hub
             if (user != null && user.activityStatus != ActivityStatus.offline)
             {
                 await Clients.Groups(groups).SendAsync("UserStatusChanged", user.username, user.activityStatus);
+
+                //friends who share no server or conversation aren't in those groups; someone in both gets it twice, which is harmless
+                List<string> friendUserIds = await friendService.GetFriendUserIds(userId);
+                await Clients.Users(friendUserIds).SendAsync("UserStatusChanged", user.username, user.activityStatus);
             }
         }
 
@@ -71,6 +78,9 @@ public class ChatHub : Hub
         if (isLastConnection && username != null)
         {
             await Clients.Groups(groups).SendAsync("UserStatusChanged", username, ActivityStatus.offline);
+
+            List<string> friendUserIds = await friendService.GetFriendUserIds(userId);
+            await Clients.Users(friendUserIds).SendAsync("UserStatusChanged", username, ActivityStatus.offline);
         }
 
         await base.OnDisconnectedAsync(exception);
