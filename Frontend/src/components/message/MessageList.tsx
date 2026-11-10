@@ -328,7 +328,7 @@ const MessageList = ({ source, currentUsername, intro, onReply }: MessageListPro
     return (
         <div className="relative flex min-h-0 flex-1 flex-col">
             {/* overflow-anchor is off because the scroll position is restored by hand after older messages load */}
-            <div ref={scrollRef} onScroll={rememberScroll} className="min-h-0 flex-1 overflow-y-auto [overflow-anchor:none]">
+            <div ref={scrollRef} onScroll={rememberScroll} className="scrollbar-thin min-h-0 flex-1 overflow-y-auto [overflow-anchor:none]">
                 <div className="flex min-h-full flex-col justify-end">
                     {renderMessages()}
                     <div ref={bottomSentinelRef} className="h-4 shrink-0" />

@@ -53,7 +53,7 @@ const ConversationChat = ({ conversation }: { conversation: ConversationResponse
             />
 
             {/* the header spans the full width; the member list sits beside the messages under it */}
-            <div className="relative flex min-h-0 flex-1">
+            <div className="flex min-h-0 flex-1 @container">
                 <MessageView
                     source={source}
                     placeholder={isGroup ? `Message ${name}` : `Message @${name}`}

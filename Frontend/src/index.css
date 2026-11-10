@@ -126,6 +126,16 @@
     --sidebar-ring: oklch(0.702 0.183 293.541);
 }
 
+/* a native scrollbar styled to look like ScrollArea's, for scroll containers that can't use it */
+@utility scrollbar-thin {
+    scrollbar-width: thin;
+    scrollbar-color: transparent transparent;
+
+    &:hover {
+        scrollbar-color: var(--border) transparent;
+    }
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;
