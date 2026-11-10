@@ -149,6 +149,9 @@ public class InviteController : ModifiedControllerBase
         result.ownerUsername = owner.username;
         result.iconUrl = foundServer.iconUrl;
 
+        //the user's other tabs add the server to their list
+        await hubContext.Clients.User(userId.ToString()).SendAsync("ServerJoined", result);
+
         return Ok(result);
     }
 }

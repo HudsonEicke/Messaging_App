@@ -762,6 +762,11 @@ public class ConversationController : ModifiedControllerBase
 
         await readStateService.MarkConversationRead(id, userId, updateReadStateRequest.lastReadMessageID);
 
+        //worked out after saving, so the user's other tabs get the real count even if a newer message arrived meanwhile
+        int unreadCount = await readStateService.GetConversationUnreadCount(id, userId, MAXUNREADCOUNT);
+
+        await hubContext.Clients.User(userId.ToString()).SendAsync("ConversationReadStateUpdated", id, unreadCount);
+
         return NoContent();
     }
 }

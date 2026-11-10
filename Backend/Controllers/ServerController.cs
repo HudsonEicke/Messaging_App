@@ -59,6 +59,17 @@ public class ServerController : ModifiedControllerBase
 
         await hubGroupService.AddUserToGroup(userId, $"server_{newServer.id}");
 
+        string? username = GetUsername();
+
+        //the user's other tabs add the new server to their list
+        ServerResult joinedServer = new ServerResult();
+        joinedServer.serverID = newServer.id;
+        joinedServer.serverName = newServer.serverName;
+        joinedServer.ownerUsername = username ?? string.Empty;
+        joinedServer.iconUrl = newServer.iconUrl;
+
+        await hubContext.Clients.User(userId.ToString()).SendAsync("ServerJoined", joinedServer);
+
         CreateServerResult result = new CreateServerResult();
 
         result.serverID = newServer.id;
