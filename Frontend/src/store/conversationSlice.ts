@@ -67,8 +67,8 @@ const applyMessageDelete = (state: ConversationState, conversationID: number, me
     }
 };
 
-// the list is sorted by recent activity, and the backend marks your own messages read
-const bumpConversation = (state: ConversationState, conversationID: number, messageID: number, isOwnMessage: boolean) => {
+// the list is sorted by recent activity; isRead is your own message or one that arrived where you're reading
+const bumpConversation = (state: ConversationState, conversationID: number, messageID: number, isRead: boolean) => {
     const index = state.conversations.findIndex(conversation => conversation.id === conversationID);
 
     // your own message comes from both the response and the hub, so only count it once
@@ -79,7 +79,7 @@ const bumpConversation = (state: ConversationState, conversationID: number, mess
 
     const [conversation] = state.conversations.splice(index, 1);
     conversation.lastMessageID = messageID;
-    conversation.unreadCount = isOwnMessage ? 0 : conversation.unreadCount + 1;
+    conversation.unreadCount = isRead ? 0 : conversation.unreadCount + 1;
     state.conversations.unshift(conversation);
 };
 
@@ -411,10 +411,10 @@ const conversationSlice = createSlice({
                 insertConversation(state, action.payload.conversation);
             })
             .addCase(conversationMessageReceived, (state, action) => {
-                const { conversationID, message, isOwnMessage } = action.payload;
+                const { conversationID, message, isRead } = action.payload;
 
                 addMessage(state, conversationID, message);
-                bumpConversation(state, conversationID, message.id, isOwnMessage);
+                bumpConversation(state, conversationID, message.id, isRead);
             })
             .addCase(conversationMessageEdited, (state, action) => {
                 const { conversationID, messageID, messageText } = action.payload;

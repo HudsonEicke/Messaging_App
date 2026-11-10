@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo } from 'react';
 import { useDispatch, useSelector, useStore } from 'react-redux';
 import type { AppDispatch, RootState } from '@/store/store';
 import { deleteMessage, editMessage, fetchMessages, markConversationRead, sendMessage } from '@/store/conversationSlice';
+import { startReadingConversation, stopReadingConversation } from '@/store/readingSlice';
 import type { MessageSource } from '@/components/message/messageSource';
 import { useOnReconnect } from './useOnReconnect';
 import { useTyping } from './useTyping';
@@ -60,6 +61,11 @@ export const useConversationMessages = (conversationID: number, hasUnread: boole
         dispatch(markConversationRead({ conversationID, lastReadMessageID: messageID }));
     }, [dispatch, conversationID]);
 
+    const setReading = useCallback((isReading: boolean) =>
+    {
+        dispatch(isReading ? startReadingConversation(conversationID) : stopReadingConversation(conversationID));
+    }, [dispatch, conversationID]);
+
     const ensureLoaded = useCallback(async (messageID: number): Promise<boolean> =>
     {
         for (;;)
@@ -97,7 +103,7 @@ export const useConversationMessages = (conversationID: number, hasUnread: boole
     }, [dispatch, store, conversationID]);
 
     return useMemo(
-        () => ({ messages, status, error, hasMore, hasUnread, canDeleteOthers, reload, loadOlder, send, edit, remove, markRead, ensureLoaded, typingUsers, notifyTyping }),
-        [messages, status, error, hasMore, hasUnread, canDeleteOthers, reload, loadOlder, send, edit, remove, markRead, ensureLoaded, typingUsers, notifyTyping]
+        () => ({ messages, status, error, hasMore, hasUnread, canDeleteOthers, reload, loadOlder, send, edit, remove, markRead, setReading, ensureLoaded, typingUsers, notifyTyping }),
+        [messages, status, error, hasMore, hasUnread, canDeleteOthers, reload, loadOlder, send, edit, remove, markRead, setReading, ensureLoaded, typingUsers, notifyTyping]
     );
 };

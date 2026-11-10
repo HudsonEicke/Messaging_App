@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo } from 'react';
 import { useDispatch, useSelector, useStore } from 'react-redux';
 import type { AppDispatch, RootState } from '@/store/store';
 import { deleteMessage, editMessage, fetchMessages, markChannelRead, sendMessage } from '@/store/channelSlice';
+import { startReadingChannel, stopReadingChannel } from '@/store/readingSlice';
 import type { MessageSource } from '@/components/message/messageSource';
 import { useOnReconnect } from './useOnReconnect';
 import { useTyping } from './useTyping';
@@ -60,6 +61,11 @@ export const useChannelMessages = (channelID: number, hasUnread: boolean, canDel
         dispatch(markChannelRead({ channelID, lastReadMessageID: messageID }));
     }, [dispatch, channelID]);
 
+    const setReading = useCallback((isReading: boolean) =>
+    {
+        dispatch(isReading ? startReadingChannel(channelID) : stopReadingChannel(channelID));
+    }, [dispatch, channelID]);
+
     const ensureLoaded = useCallback(async (messageID: number): Promise<boolean> =>
     {
         for (;;)
@@ -97,7 +103,7 @@ export const useChannelMessages = (channelID: number, hasUnread: boolean, canDel
     }, [dispatch, store, channelID]);
 
     return useMemo(
-        () => ({ messages, status, error, hasMore, hasUnread, canDeleteOthers, reload, loadOlder, send, edit, remove, markRead, ensureLoaded, typingUsers, notifyTyping }),
-        [messages, status, error, hasMore, hasUnread, canDeleteOthers, reload, loadOlder, send, edit, remove, markRead, ensureLoaded, typingUsers, notifyTyping]
+        () => ({ messages, status, error, hasMore, hasUnread, canDeleteOthers, reload, loadOlder, send, edit, remove, markRead, setReading, ensureLoaded, typingUsers, notifyTyping }),
+        [messages, status, error, hasMore, hasUnread, canDeleteOthers, reload, loadOlder, send, edit, remove, markRead, setReading, ensureLoaded, typingUsers, notifyTyping]
     );
 };

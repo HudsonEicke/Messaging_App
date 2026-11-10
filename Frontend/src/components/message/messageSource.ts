@@ -28,6 +28,8 @@ export interface MessageSource
     edit: (messageID: number, messageText: string) => Promise<void>;
     remove: (messageID: number) => Promise<void>;
     markRead: (messageID: number) => void;
+    // true while the list is at the bottom with the window focused, so new messages count as read on arrival
+    setReading: (isReading: boolean) => void;
     // loads older pages until the message is in the list; false if it's gone
     ensureLoaded: (messageID: number) => Promise<boolean>;
     typingUsers: TypingUser[];

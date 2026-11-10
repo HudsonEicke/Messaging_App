@@ -2,7 +2,7 @@ import { createAction } from '@reduxjs/toolkit';
 import type { ActivityStatus, ChannelResponse, ConversationResponse, MessageResponse, ServerResponse, UserResponse } from '@/types';
 
 // one action per SignalR event, kept apart from the slices so any slice can respond without importing another
-export const channelMessageReceived = createAction<{ serverID: number; channelID: number; message: MessageResponse; isOwnMessage: boolean }>('hub/channelMessageReceived');
+export const channelMessageReceived = createAction<{ serverID: number; channelID: number; message: MessageResponse; isRead: boolean }>('hub/channelMessageReceived');
 export const channelMessageEdited = createAction<{ channelID: number; messageID: number; messageText: string }>('hub/channelMessageEdited');
 export const channelMessageDeleted = createAction<{ channelID: number; messageID: number }>('hub/channelMessageDeleted');
 export const channelCreated = createAction<{ serverID: number; channel: ChannelResponse }>('hub/channelCreated');
@@ -17,7 +17,7 @@ export const serverUpdated = createAction<{ serverID: number; serverName: string
 export const serverRemoved = createAction<{ serverID: number }>('hub/serverRemoved');
 export const serverJoined = createAction<{ server: ServerResponse }>('hub/serverJoined');
 export const conversationCreated = createAction<{ conversation: ConversationResponse }>('hub/conversationCreated');
-export const conversationMessageReceived = createAction<{ conversationID: number; message: MessageResponse; isOwnMessage: boolean }>('hub/conversationMessageReceived');
+export const conversationMessageReceived = createAction<{ conversationID: number; message: MessageResponse; isRead: boolean }>('hub/conversationMessageReceived');
 export const conversationMessageEdited = createAction<{ conversationID: number; messageID: number; messageText: string }>('hub/conversationMessageEdited');
 export const conversationMessageDeleted = createAction<{ conversationID: number; messageID: number }>('hub/conversationMessageDeleted');
 export const conversationUpdated = createAction<{ conversationID: number; conversationName: string; iconUrl: string }>('hub/conversationUpdated');

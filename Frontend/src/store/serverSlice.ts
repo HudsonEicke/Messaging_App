@@ -490,12 +490,11 @@ const serverSlice = createSlice({
             .addCase(sendMessage.fulfilled, (state, action) => {
                 clearChannelUnread(state, action.payload.channelID);
             })
-            // a message you sent from another tab is already read on the backend; if you're viewing
-            // the channel, MessageList marks someone else's message read once the bottom is in view
+            // when you're scrolled up or the window isn't focused, MessageList marks it read once you reach the bottom
             .addCase(channelMessageReceived, (state, action) => {
-                const { serverID, channelID, isOwnMessage } = action.payload;
+                const { serverID, channelID, isRead } = action.payload;
 
-                if (isOwnMessage)
+                if (isRead)
                 {
                     clearChannelUnread(state, channelID);
                 }

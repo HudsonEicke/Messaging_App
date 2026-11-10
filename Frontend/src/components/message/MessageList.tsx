@@ -27,7 +27,7 @@ interface MessageListProps
 
 const MessageList = ({ source, currentUsername, intro, onReply }: MessageListProps) =>
 {
-    const { messages, status, error, hasMore, hasUnread, canDeleteOthers, reload, loadOlder, edit, remove, markRead, ensureLoaded } = source;
+    const { messages, status, error, hasMore, hasUnread, canDeleteOthers, reload, loadOlder, edit, remove, markRead, setReading, ensureLoaded } = source;
     const scrollRef = useRef<HTMLDivElement>(null);
     const topSentinelRef = useRef<HTMLDivElement>(null);
     const bottomSentinelRef = useRef<HTMLDivElement>(null);
@@ -165,6 +165,20 @@ const MessageList = ({ source, currentUsername, intro, onReply }: MessageListPro
         observer.observe(sentinel);
         return () => observer.disconnect();
     }, []);
+
+    // the same conditions the mark-read below waits for, so the hub handlers can treat a new message as read straight away
+    const isReading = isBottomVisible && isWindowFocused && messages !== undefined;
+
+    useEffect(() =>
+    {
+        if (!isReading)
+        {
+            return;
+        }
+
+        setReading(true);
+        return () => setReading(false);
+    }, [isReading, setReading]);
 
     useEffect(() =>
     {

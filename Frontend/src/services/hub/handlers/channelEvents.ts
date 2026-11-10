@@ -1,15 +1,24 @@
 import type { HubConnection } from '@microsoft/signalr';
 import { store } from '@/store/store';
 import { channelCreated, channelDeleted, channelMessageDeleted, channelMessageEdited, channelMessageReceived, channelReadStateUpdated, channelsReordered, channelUpdated } from '@/store/hubEvents';
+import { markChannelRead } from '@/store/channelSlice';
 import { onHubEvent } from '@/services/hub/events';
 
 export const registerChannelEvents = (connection: HubConnection) =>
 {
     onHubEvent(connection, 'ReceiveChannelMessage', (serverID, channelID, message) =>
     {
-        const isOwnMessage = message.senderUsername === store.getState().user.user?.username;
+        const state = store.getState();
+        const isOwnMessage = message.senderUsername === state.user.user?.username;
+        // MessageList only marks read when the dot is showing, so a message arriving where you're reading is marked here
+        const isBeingRead = !isOwnMessage && state.reading.channelID === channelID;
 
-        store.dispatch(channelMessageReceived({ serverID, channelID, message: { ...message, edited: false }, isOwnMessage }));
+        store.dispatch(channelMessageReceived({ serverID, channelID, message: { ...message, edited: false }, isRead: isOwnMessage || isBeingRead }));
+
+        if (isBeingRead)
+        {
+            store.dispatch(markChannelRead({ channelID, lastReadMessageID: message.id }));
+        }
     });
 
     onHubEvent(connection, 'ChannelMessageEdited', (channelID, messageID, messageText) =>

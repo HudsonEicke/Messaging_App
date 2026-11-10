@@ -1,6 +1,7 @@
 import type { HubConnection } from '@microsoft/signalr';
 import { store } from '@/store/store';
 import { conversationCreated, conversationMemberAdded, conversationMemberRemoved, conversationMessageDeleted, conversationMessageEdited, conversationMessageReceived, conversationOwnerChanged, conversationReadStateUpdated, conversationRemoved, conversationUpdated } from '@/store/hubEvents';
+import { markConversationRead } from '@/store/conversationSlice';
 import { onHubEvent } from '@/services/hub/events';
 
 const isCurrentUser = (username: string) => username === store.getState().user.user?.username;
@@ -14,7 +15,16 @@ export const registerConversationEvents = (connection: HubConnection) =>
 
     onHubEvent(connection, 'ReceiveConversationMessage', (conversationID, message) =>
     {
-        store.dispatch(conversationMessageReceived({ conversationID, message: { ...message, edited: false }, isOwnMessage: isCurrentUser(message.senderUsername) }));
+        const isOwnMessage = isCurrentUser(message.senderUsername);
+        // MessageList only marks read when the badge is showing, so a message arriving where you're reading is marked here
+        const isBeingRead = !isOwnMessage && store.getState().reading.conversationID === conversationID;
+
+        store.dispatch(conversationMessageReceived({ conversationID, message: { ...message, edited: false }, isRead: isOwnMessage || isBeingRead }));
+
+        if (isBeingRead)
+        {
+            store.dispatch(markConversationRead({ conversationID, lastReadMessageID: message.id }));
+        }
     });
 
     onHubEvent(connection, 'ConversationMessageEdited', (conversationID, messageID, messageText) =>
