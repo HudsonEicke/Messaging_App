@@ -31,8 +31,27 @@ services:
       - JwtSettings__SecretKey=${JWT_SECRET_KEY}
       - EncryptionSettings__SecretKey=${ENCRYPTION_SECRET_KEY}
       #- JwtSettings__Issuer
+  web:
+    image: beacon-web
+    build: ./Frontend
+    restart: unless-stopped
+    depends_on:
+      - api
+    environment:
+      - DOMAIN=${DOMAIN}
     ports:
-      - "127.0.0.1:8080:8080"
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - type: volume
+        source: caddy-data
+        target: /data
+      - type: volume
+        source: caddy-config
+        target: /config
 
 volumes:
   database-data:
+  caddy-data:
+  caddy-config:
