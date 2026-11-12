@@ -39,7 +39,6 @@ services:
       - ConnectionStrings__MessagingAppContext=Host=postgres;Database=messaging_app;Username=postgres;Password=${POSTGRES_PASSWORD}
       - JwtSettings__SecretKey=${JWT_SECRET_KEY}
       - EncryptionSettings__SecretKey=${ENCRYPTION_SECRET_KEY}
-      #- JwtSettings__Issuer
   web:
     image: beacon-web
     build: ./Frontend
