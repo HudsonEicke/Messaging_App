@@ -19,6 +19,20 @@ services:
       timeout: 5s
       retries: 10
       start_period: 10s
+  api:
+    image: beacon-api
+    build: ./Backend
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      - ConnectionStrings__MessagingAppContext=Host=postgres;Database=messaging_app;Username=postgres;Password=${POSTGRES_PASSWORD}
+      - JwtSettings__SecretKey=${JWT_SECRET_KEY}
+      - EncryptionSettings__SecretKey=${ENCRYPTION_SECRET_KEY}
+      #- JwtSettings__Issuer
+    ports:
+      - "127.0.0.1:8080:8080"
 
 volumes:
   database-data:
