@@ -1,0 +1,66 @@
+name: beacon
+
+x-logging: &default-logging
+  driver: local
+  options:
+    max-size: "10m"
+    max-file: "3"
+
+services:
+  postgres:
+    image: postgres:17
+    restart: unless-stopped
+    logging: *default-logging
+    environment:
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+    volumes:
+      - type: volume
+        source: database-data
+        target: /var/lib/postgresql/data
+      - type: bind
+        source: ./Database/messagingapp.sql
+        target: /docker-entrypoint-initdb.d/messagingapp.sql
+        read_only: true
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "postgres", "-h", "127.0.0.1"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+  api:
+    image: beacon-api
+    build: ./Backend
+    restart: unless-stopped
+    logging: *default-logging
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      - ConnectionStrings__MessagingAppContext=Host=postgres;Database=messaging_app;Username=postgres;Password=${POSTGRES_PASSWORD}
+      - JwtSettings__SecretKey=${JWT_SECRET_KEY}
+      - EncryptionSettings__SecretKey=${ENCRYPTION_SECRET_KEY}
+  web:
+    image: beacon-web
+    build: ./Frontend
+    restart: unless-stopped
+    logging: *default-logging
+    depends_on:
+      - api
+    environment:
+      - DOMAIN=${DOMAIN}
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - type: volume
+        source: caddy-data
+        target: /data
+      - type: volume
+        source: caddy-config
+        target: /config
+
+volumes:
+  database-data:
+  caddy-data:
+  caddy-config:

@@ -7,6 +7,8 @@ using Messaging_App.Configuration;
 using Messaging_App.Services;
 using Microsoft.AspNetCore.RateLimiting;
 using Messaging_App.Hubs;
+using Microsoft.AspNetCore.HttpOverrides;
+using System.Threading.RateLimiting;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -17,6 +19,14 @@ var secretKey = Encoding.UTF8.GetBytes(jwtSettings.SecretKey);
 
 builder.Services.Configure<JwtSettings>(builder.Configuration.GetSection("JwtSettings"));
 builder.Services.Configure<EncryptionSettings>(builder.Configuration.GetSection("EncryptionSettings"));
+
+builder.Services.Configure<ForwardedHeadersOptions>(options =>
+{
+    options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+    options.KnownIPNetworks.Clear();
+    options.KnownProxies.Clear();
+});
+
 builder.Services.AddOptions<CleanupSettings>().Bind(builder.Configuration.GetSection("CleanupSettings")).ValidateDataAnnotations().ValidateOnStart();
 
 string[] allowedOrigins = builder.Configuration.GetSection("AllowedOrigins").Get<string[]>() ?? [];
@@ -65,11 +75,16 @@ builder.Services.AddAuthentication(options =>
 
 builder.Services.AddRateLimiter(options =>
 {
-    options.AddFixedWindowLimiter("auth", opt =>
-    {
-        opt.PermitLimit = 10;
-        opt.Window = TimeSpan.FromMinutes(1);
-    });
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+
+    options.AddPolicy("auth", httpContext => RateLimitPartition.GetFixedWindowLimiter(
+        httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+        partitionKey => new FixedWindowRateLimiterOptions
+        {
+            PermitLimit = 10,
+            Window = TimeSpan.FromMinutes(1)
+        }
+    ));
 });
 
 // Add services to the container.
@@ -90,6 +105,8 @@ builder.Services.AddSingleton<PresenceService>();
 builder.Services.AddHostedService<DatabaseCleanupService>();
 
 var app = builder.Build();
+
+app.UseForwardedHeaders();
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
