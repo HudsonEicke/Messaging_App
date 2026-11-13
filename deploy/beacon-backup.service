@@ -1,0 +1,12 @@
+[Unit]
+Description=Back up the Beacon database
+Requires=docker.service
+After=docker.service network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+EnvironmentFile=/etc/beacon/backup.env
+Environment=RCLONE_CONFIG=/root/.config/rclone/rclone.conf
+ExecStart=/usr/local/sbin/beacon-backup
+TimeoutStartSec=30min
