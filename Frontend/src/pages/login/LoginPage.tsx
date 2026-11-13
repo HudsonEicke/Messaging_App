@@ -8,7 +8,7 @@ export const LoginPage = () =>
             <Card className="w-full max-w-sm">
                 <CardHeader>
                     <CardTitle>Login</CardTitle>
-                    <CardDescription>Login to you account below</CardDescription>
+                    <CardDescription>Log in to your Beacon account</CardDescription>
                 </CardHeader>
                 <LoginForm/>
             </Card>

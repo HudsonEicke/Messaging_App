@@ -8,7 +8,7 @@ export const RegisterPage = () =>
             <Card className="w-full max-w-sm">
                 <CardHeader>
                     <CardTitle>Create Account</CardTitle>
-                    <CardDescription>Fill in the information below to create your account</CardDescription>
+                    <CardDescription>Create your Beacon account</CardDescription>
                 </CardHeader>
                 <RegisterForm/>
             </Card>
