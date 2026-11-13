@@ -107,7 +107,7 @@ const MessageItem = ({ message, isGrouped, isHighlighted, canEdit, canDelete, is
                                     ? <MessageEditor message={message} onCancel={onStopEdit} onSave={onEdit} />
                                     : (
                                         // links keep the browser's own menu so they can be opened or copied
-                                        <div className="text-sm leading-5 break-words" onContextMenu={event => { if ((event.target as HTMLElement).closest('a')) event.stopPropagation(); }}>
+                                        <div className="text-sm leading-5 break-words select-text" onContextMenu={event => { if ((event.target as HTMLElement).closest('a')) event.stopPropagation(); }}>
                                             <MessageMarkdown text={message.messageText} />
                                             {message.edited && <span className="ml-1 text-[11px] text-muted-foreground">(edited)</span>}
                                         </div>
